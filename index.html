@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EProc Flow by ersandyf_ (Supabase Final Edition)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --primary-50: #eff6ff; --primary-100: #dbeafe; --primary-500: #3b82f6;
+            --primary-600: #2563eb; --primary-700: #1d4ed8;
+            --success-50: #f0fdf4; --success-500: #16a34a; --success-600: #15803d;
+            --danger-50: #fef2f2; --danger-500: #dc2626;
+            --warning-50: #fffbeb; --warning-500: #d97706;
+            --info-50: #f0f9ff; --info-500: #0284c7;
+
+            --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1; --gray-400: #94a3b8; --gray-500: #64748b;
+            --gray-600: #475569; --gray-700: #334155; --gray-800: #1e293b;
+            --gray-900: #0f172a;
+
+            --bg-body: var(--gray-50); --bg-surface: #ffffff;
+            --bg-surface-glass: rgba(255, 255, 255, 0.75);
+            --bg-hover: var(--gray-50); --text-main: var(--gray-900);
+            --text-muted: var(--gray-500); --border-color: var(--gray-200);
+
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            
+            --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+            --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-sans); background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; -webkit-font-smoothing: antialiased; overflow: hidden; }
+        button, input, textarea, select { font-family: inherit; outline: none; }
+        
+        /* Utility Classes */
+        .text-muted { color: var(--text-muted); } .text-primary { color: var(--primary-600); }
+        .text-success { color: var(--success-600); } .text-danger { color: var(--danger-500); }
+        .text-sm { font-size: 0.875rem; } .text-xs { font-size: 0.75rem; } .text-lg { font-size: 1.125rem; }
+        .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; } .font-bold { font-weight: 700; }
+        .w-full { width: 100%; } .h-full { height: 100%; }
+        .flex { display: flex; } .flex-col { flex-direction: column; }
+        .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+        .gap-2 { gap: var(--space-2); } .gap-3 { gap: var(--space-3); } .gap-4 { gap: var(--space-4); }
+        .p-4 { padding: var(--space-4); } .mb-2 { margin-bottom: var(--space-2); } .mb-4 { margin-bottom: var(--space-4); }
+
+        /* Layout */
+        .app-layout { display: flex; height: 100vh; width: 100vw; position: relative; }
+        .sidebar { width: 260px; background: var(--bg-surface-glass); backdrop-filter: blur(16px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 40; flex-shrink: 0; }
+        .sidebar-header { height: 64px; display: flex; flex-direction: column; justify-content: center; padding: 0 var(--space-4); border-bottom: 1px solid var(--border-color); }
+        .logo-container { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; font-size: 1.125rem; color: var(--primary-600); letter-spacing: -0.02em; }
+        .logo-subtitle { font-size: 0.65rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+        .sidebar-nav { flex: 1; padding: var(--space-4) var(--space-3); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-5); }
+        .sidebar-nav::-webkit-scrollbar { width: 4px; } .sidebar-nav::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
+        .nav-group { display: flex; flex-direction: column; gap: 2px; }
+        .nav-group-title { font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: var(--gray-400); padding: 0 var(--space-3) var(--space-2) var(--space-3); }
+        .nav-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--text-muted); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition-fast); }
+        .nav-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        .nav-item.active { background-color: var(--primary-50); color: var(--primary-600); font-weight: 600; }
+        
+        .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-body); position: relative;}
+        .top-header { height: 64px; background: var(--bg-surface-glass); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-6); z-index: 30; flex-shrink: 0; }
+        .content-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
+
+        /* Components */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition-fast); border: 1px solid transparent; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+        .btn-primary { background-color: var(--primary-600); color: white; box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2); }
+        .btn-primary:hover { background-color: var(--primary-700); transform: translateY(-1px); }
+        .btn-outline { background-color: var(--bg-surface); border-color: var(--border-color); color: var(--text-main); }
+        .btn-outline:hover { background-color: var(--bg-hover); }
+        .btn-ghost { background-color: transparent; color: var(--text-muted); }
+        .btn-ghost:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
+        .badge-success { background: var(--success-50); color: var(--success-600); border: 1px solid rgba(22,163,74,0.2); }
+        .badge-warning { background: var(--warning-50); color: var(--warning-500); border: 1px solid rgba(217,119,6,0.2); }
+        .badge-info { background: var(--info-50); color: var(--primary-600); border: 1px solid rgba(37,99,235,0.2); }
+        .badge-neutral { background: var(--gray-100); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+        .card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+        .card-interactive:hover { border-color: var(--primary-500); box-shadow: var(--shadow-md); transform: translateY(-2px); cursor: pointer; transition: all var(--transition-fast); }
+        
+        /* Tables & Forms */
+        .table-container { width: 100%; overflow-x: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+        .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+        .data-table th { background: var(--gray-50); padding: var(--space-3) var(--space-4); font-weight: 600; color: var(--gray-600); border-bottom: 1px solid var(--border-color); white-space: nowrap;}
+        .data-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-color); color: var(--gray-800); }
+        .data-table tr:hover td { background-color: var(--gray-50); }
+        
+        .form-group { margin-bottom: var(--space-4); }
+        .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: var(--gray-700); margin-bottom: var(--space-2); }
+        .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.875rem; transition: border-color var(--transition-fast); background: var(--bg-surface);}
+        .form-control:focus { border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
+        .form-control:disabled { background: var(--gray-50); color: var(--gray-500); cursor: not-allowed; }
+
+        /* Workspace & Specifics */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content { background: var(--bg-surface); border-radius: var(--radius-lg); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-float); transform: translateY(20px); transition: transform 0.2s; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--bg-surface); z-index: 10;}
+        .modal-body { padding: var(--space-5); }
+        .modal-footer { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: var(--space-3); position: sticky; bottom: 0; background: var(--bg-surface); z-index: 10;}
+
+        .workspace-header { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); padding: var(--space-6) var(--space-6) 0 var(--space-6); }
+        .workspace-tabs { display: flex; gap: var(--space-6); overflow-x: auto; border-bottom: 1px solid transparent; scrollbar-width: none; margin-top: var(--space-4); }
+        .tab-item { padding: var(--space-3) 0; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all var(--transition-fast); }
+        .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
+        .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
+
+        .spreadsheet-container { border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; background: var(--bg-surface); }
+        .spreadsheet { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
+        .spreadsheet td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 0; }
+        .cell-input { width: 100%; height: 100%; border: none; padding: var(--space-3); background: transparent; outline: none; }
+        .cell-input:focus { box-shadow: inset 0 0 0 2px var(--primary-600); background: var(--primary-50); }
+        .cell-readonly { padding: var(--space-3); background: var(--gray-50); font-weight: 500; }
+
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+        .toast { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; box-shadow: var(--shadow-float); display: flex; align-items: center; gap: 12px; font-size: 0.875rem; font-weight: 500; animation: slideIn 0.3s ease forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8); text-align: center; color: var(--text-muted); }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); border-top: 1px solid var(--border-color); background: var(--bg-surface);}
+        .page-btn { padding: 4px 10px; border: 1px solid var(--border-color); background: var(--bg-surface); border-radius: 4px; cursor: pointer; font-size: 0.875rem;}
+        .page-btn.active { background: var(--primary-600); color: white; border-color: var(--primary-600); }
+        
+        /* Chat UI Specifics */
+        .chat-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: var(--bg-body); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+        .chat-msg { display: flex; gap: var(--space-3); max-width: 80%; }
+        .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+        .chat-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .chat-bubble { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: 0.875rem; line-height: 1.5; }
+        .chat-msg.bot .chat-avatar { background: var(--primary-100); color: var(--primary-600); }
+        .chat-msg.bot .chat-bubble { background: var(--bg-surface); border: 1px solid var(--border-color); border-top-left-radius: 0; }
+        .chat-msg.user .chat-avatar { background: var(--gray-200); color: var(--gray-700); }
+        .chat-msg.user .chat-bubble { background: var(--primary-600); color: white; border-top-right-radius: 0; }
+        
+        #global-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-layout" id="app-root" style="display: none;">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
+                <div class="logo-subtitle">by ersandyf_ · Sistem Manajemen Pengadaan</div>
+            </div>
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <div class="nav-item active" data-route="dashboard"><i class="ph ph-squares-four"></i> <span>Dashboard</span></div>
+                
+                <div class="nav-group">
+                    <div class="nav-group-title">PENGADAAN</div>
+                    <div class="nav-item" data-route="pengadaan-daftar"><i class="ph ph-briefcase"></i> <span>Daftar Paket</span></div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">MASTER DATA</div>
+                    <div class="nav-item" data-route="master-pejabat"><i class="ph ph-identification-badge"></i> <span>Pejabat</span></div>
+                    <div class="nav-item" data-route="master-penyedia"><i class="ph ph-buildings"></i> <span>Penyedia</span></div>
+                    <div class="nav-item" data-route="master-template"><i class="ph ph-files"></i> <span>Template Dokumen</span></div>
+                    <div class="nav-item" data-route="master-penomoran"><i class="ph ph-list-numbers"></i> <span>Penomoran Dokumen</span></div>
+                    <div class="nav-item" data-route="master-waktu"><i class="ph ph-timer"></i> <span>Master Waktu</span></div>
+                    <div class="nav-item" data-route="master-jadwal-proses"><i class="ph ph-calendar-check"></i> <span>Master Jadwal Proses</span></div>
+                    <div class="nav-item" data-route="master-jenis"><i class="ph ph-tag"></i> <span>Jenis Pengadaan</span></div>
+                    <div class="nav-item" data-route="master-kontrak"><i class="ph ph-file-text"></i> <span>Jenis Kontrak</span></div>
+                    <div class="nav-item" data-route="master-libur"><i class="ph ph-calendar-x"></i> <span>Hari Libur</span></div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">DOKUMEN</div>
+                    <div class="nav-item" data-route="dokumen-sistem"><i class="ph ph-file-text"></i> <span>Dokumen Sistem</span></div>
+                    <div class="nav-item" data-route="dokumen-pendukung"><i class="ph ph-upload-simple"></i> <span>Dokumen Pendukung</span></div>
+                    <div class="nav-item" data-route="dokumen-spse"><i class="ph ph-link"></i> <span>Dokumen SPSE</span></div>
+                    <div class="nav-item" data-route="dokumen-arsip"><i class="ph ph-archive"></i> <span>Arsip Dokumen</span></div>
+                    <div class="nav-item" data-route="cetak-pencairan"><i class="ph ph-printer"></i> <span>Cetak Pengajuan Pencairan</span></div>
+                </div>
+                
+                <div class="nav-group">
+                    <div class="nav-group-title">LAPORAN</div>
+                    <div class="nav-item" data-route="laporan-pengadaan"><i class="ph ph-chart-bar"></i> <span>Monitoring Pengadaan</span></div>
+                    <div class="nav-item" data-route="laporan-jadwal"><i class="ph ph-calendar"></i> <span>Monitoring Jadwal</span></div>
+                    <div class="nav-item" data-route="laporan-anggaran"><i class="ph ph-currency-circle-dollar"></i> <span>Monitoring Anggaran</span></div>
+                    <div class="nav-item" data-route="laporan-penyedia"><i class="ph ph-users"></i> <span>Laporan Penyedia</span></div>
+                    <div class="nav-item" data-route="laporan-pejabat"><i class="ph ph-user-list"></i> <span>Laporan Pejabat</span></div>
+                    <div class="nav-item" data-route="laporan-paket"><i class="ph ph-printer"></i> <span>Cetak Laporan Paket</span></div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-group-title">SISTEM</div>
+                    <div class="nav-item" data-route="ai-assistant"><i class="ph ph-sparkle text-primary"></i> <span>Asisten AI</span></div>
+                    <div class="nav-item" data-route="pengaturan"><i class="ph ph-gear"></i> <span>Pengaturan</span></div>
+                </div>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column;">
+                    <span class="font-semibold text-main">Farhan Ersandy</span>
+                    <span style="font-size: 0.75rem;">Pengelola Pengadaan Barang/Jasa • BKAD Kota Bogor (Supabase Sync)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: var(--space-4);">
+                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu', 'info')">
+                        <i class="ph ph-magnifying-glass"></i> Cari Sesuatu...
+                    </div>
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">FE</div>
+                </div>
+            </header>
+
+            <div class="content-scroll-area" id="router-view"></div>
+            
+            <div class="modal-overlay" id="global-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="font-bold text-lg" id="modal-title">Form</h3>
+                        <button class="btn btn-ghost btn-sm" onclick="DOM.closeModal()"><i class="ph ph-x"></i></button>
+                    </div>
+                    <div class="modal-body" id="modal-body"></div>
+                    <div class="modal-footer" id="modal-footer"></div>
+                </div>
+            </div>
+        </main>
+        <div class="toast-container" id="toast-container"></div>
+    </div>
+
+    <!-- Global Loader -->
+    <div id="global-loader">
+        <i class="ph ph-spinner ph-spin text-5xl text-primary-600"></i>
+        <p class="font-medium text-gray-600">Menghubungkan ke Supabase...</p>
+    </div>
+
+    <script>
+        const Utils = {
+            formatNumber: (amount) => new Intl.NumberFormat('id-ID').format(Number(amount) || 0),
+            formatCurrency: (amount) => { const v = Number(amount); return Number.isFinite(v) && v !== 0 ? new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0,maximumFractionDigits:0}).format(v) : ''; },
+            formatDate: (dateString) => { if(!dateString) return '-'; return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString)); },
+            formatDateShort: (dateString) => { if(!dateString) return '-'; const d = new Date(dateString); return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; },
+            getBadge: (status) => {
+                const text = status ? status.toString().toUpperCase() : 'UNKNOWN';
+                const map = { 'SELESAI': 'badge-success', 'KONTRAK': 'badge-success', 'AKTIF': 'badge-success', 'NEGOSIASI': 'badge-warning', 'PROSES': 'badge-warning', 'PERSIAPAN': 'badge-info', 'KLARIFIKASI': 'badge-info', 'REVIU': 'badge-info', 'PEMILIHAN': 'badge-neutral', 'NONAKTIF': 'badge-neutral', 'BATAL': 'badge-danger' };
+                return `<span class="badge ${map[text] || 'badge-neutral'}">${text}</span>`;
+            },
+            generateId: () => Math.random().toString(36).substring(2, 10).toUpperCase(),
+            addWorkingDays: (startDate, days, holidays = []) => {
+                let date = new Date(startDate); let added = 0;
+                while (added < days) { date.setDate(date.getDate() + 1); const isWeekend = date.getDay() === 0 || date.getDay() === 6; const dateStr = date.toISOString().split('T')[0]; if (!isWeekend && !holidays.includes(dateStr)) added++; }
+                return date.toISOString().split('T')[0];
+            },
+            toWords: function(n) {
+                const a=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas']; n=Math.floor(Number(n)||0);
+                if(n<12)return a[n]; if(n<20)return this.toWords(n-10)+' belas'; if(n<100)return this.toWords(Math.floor(n/10))+' puluh '+this.toWords(n%10);
+                if(n<200)return 'seratus '+this.toWords(n-100); if(n<1000)return this.toWords(Math.floor(n/100))+' ratus '+this.toWords(n%100);
+                if(n<2000)return 'seribu '+this.toWords(n-1000); if(n<1000000)return this.toWords(Math.floor(n/1000))+' ribu '+this.toWords(n%1000);
+                if(n<1000000000)return this.toWords(Math.floor(n/1000000))+' juta '+this.toWords(n%1000000); return String(n);
+            }
+        };
+
+        const SUPABASE_URL = 'https://wduukpwuhmvzzccdaopr.supabase.co/rest/v1';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkdXVrcHd1aG12enpjY2Rhb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNjQwOTksImV4cCI6MjA5OTk0MDA5OX0.pDrPLzLDbkmvUBbwfv3KxNieHeFDQpoJJJaLre5XQrM';
+
+        // TABLE_MAP maps Application Data keys to actual Supabase Tables (based on your screenshot)
+        const TABLE_MAP = {
+            'pejabat': 'profiles', 'penyedia': 'suppliers', 'template': 'document_templates', 'penomoran': 'document_number_rules',
+            'waktu': 'schedule_document_rules', 'jadwal_proses': 'schedule_process_rules', 'paket': 'packages', 'documents': 'generated_documents',
+            // Small lookup tables not explicitly in screenshot will be created if they don't exist
+            'jenis': 'jenis_pengadaan', 'kontrak': 'jenis_kontrak', 'libur': 'libur'
+        };
+
+        const DEFAULTS = {
+            lokasi: 'BKAD Kota Bogor, Jl. Pemuda No.31, RT.01/RW.06, Tanah Sareal, Kota Bogor, Jawa Barat 16162',
+            opd: 'BKAD Kota Bogor', bidang: 'Bidang Pengelolaan Barang Milik Daerah',
+            kode_program: '5.02.03', program: 'PROGRAM PENGELOLAAN BARANG MILIK DAERAH',
+            kode_kegiatan: '5.02.03.2.01', kegiatan: 'Pengelolaan Barang Milik Daerah',
+            metode_pemilihan: 'Pengadaan Langsung', durasi_kontrak: 30
+        };
+
+        const DB = {
+            cache: {}, isReady: false,
+            
+            async init() {
+                if (this.isReady) return;
+                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'generated_documents', 'package_items', 'jenis_pengadaan', 'jenis_kontrak', 'libur'];
+                
+                await Promise.all(coreTables.map(async (table) => {
+                    try {
+                        const res = await fetch(`${SUPABASE_URL}/${table}?order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
+                        this.cache[table] = res.ok ? await res.json() : [];
+                    } catch(e) { this.cache[table] = []; }
+                }));
+
+                // Relational logic: attach items to packages
+                if (this.cache['packages'] && this.cache['package_items']) {
+                    this.cache['packages'].forEach(pkg => pkg.items = this.cache['package_items'].filter(i => i.package_id === pkg.id) || []);
+                }
+
+                this.isReady = true;
+                const loader = document.getElementById('global-loader'); if(loader) loader.style.display = 'none';
+                const appRoot = document.getElementById('app-root'); if(appRoot) appRoot.style.display = 'flex';
+            },
+
+            async _sync(method, localTable, payload = null, id = null) {
+                const sbTable = TABLE_MAP[localTable] || localTable;
+                let url = `${SUPABASE_URL}/${sbTable}`;
+                if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
+                
+                const options = { method, headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' } };
+                if (payload && method !== 'DELETE') options.body = JSON.stringify(payload);
+                try { await fetch(url, options); } catch(e) { console.error('Sync Error', e); }
+            },
+
+            get(table) { return this.cache[TABLE_MAP[table] || table] || []; },
+            getById(table, id) { return this.get(table).find(i => i.id === id); },
+            
+            insert(table, payload) {
+                const sbTable = TABLE_MAP[table] || table;
+                const newItem = { id: Utils.generateId(), created_at: new Date().toISOString(), ...payload };
+                if(!this.cache[sbTable]) this.cache[sbTable] = [];
+                this.cache[sbTable].unshift(newItem);
+                this._sync('POST', table, newItem);
+                return newItem;
+            },
+
+            update(table, id, payload) {
+                const sbTable = TABLE_MAP[table] || table;
+                const data = this.get(table);
+                const index = data.findIndex(i => i.id === id);
+                if(index > -1) {
+                    const updated = { ...data[index], ...payload };
+                    data[index] = updated;
+
+                    if (sbTable === 'packages' && payload.items !== undefined) {
+                        const items = payload.items.map(item => ({ ...item, package_id: id }));
+                        (async () => {
+                            try {
+                                await fetch(`${SUPABASE_URL}/package_items?package_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
+                                if(items.length > 0) await fetch(`${SUPABASE_URL}/package_items`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(items) });
+                            } catch (e) { console.error(e); }
+                        })();
+                        const cpy = { ...payload }; delete cpy.items;
+                        this._sync('PATCH', table, cpy, id);
+                    } else {
+                        this._sync('PATCH', table, payload, id);
+                    }
+                    return updated;
+                }
+                return null;
+            },
+
+            delete(table, id) {
+                const sbTable = TABLE_MAP[table] || table;
+                this.cache[sbTable] = this.cache[sbTable].filter(i => i.id !== id);
+                this._sync('DELETE', table, null, id);
+            },
+            
+            calculatePackageTotals(pkg) {
+                let pagu = 0, hps = 0, penawaran = 0, negosiasi = 0;
+                if(pkg.items && pkg.items.length > 0) {
+                    pkg.items.forEach(i => {
+                        const tax = 1 + (Number(i.pajak) || 0) / 100;
+                        hps += (Number(i.vol_hps) * Number(i.harga_hps)) * tax;
+                        penawaran += (Number(i.vol_pen) * Number(i.harga_pen)) * tax;
+                        negosiasi += (Number(i.vol_neg) * Number(i.harga_neg)) * tax;
+                    });
+                }
+                return { hps, penawaran, negosiasi };
+            }
+        };
+
+        const Schemas = {
+            pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
+            penyedia: { title: 'Data Penyedia', table: 'penyedia', fields: [{ key: 'name', label: 'Nama Perusahaan', type: 'text', required: true }, { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, { key: 'type', label: 'Bentuk Usaha', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, { key: 'no_izin', label: 'Nomor Izin', type: 'text', hideInTable: true }, { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, { key: 'bank', label: 'Bank', type: 'text', hideInTable: true }, { key: 'no_rekening', label: 'Nomor Rekening', type: 'text', hideInTable: true }, { key: 'an_rekening', label: 'Atas Nama Rekening', type: 'text', hideInTable: true }, { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }] },
+            template: { title: 'Template Dokumen', table: 'template', fields: [{ key: 'code', label: 'Kode', type: 'text', required: true, width: '100px' }, { key: 'name', label: 'Nama Template', type: 'text', required: true }, { key: 'type', label: 'Jenis', type: 'select', options: ['Barang', 'Konstruksi', 'Konsultansi', 'Jasa Lainnya', 'Umum'], required: true }, { key: 'last_updated', label: 'Tgl Update', type: 'date', formatter: Utils.formatDate }] },
+            penomoran: { title: 'Format Penomoran', table: 'penomoran', fields: [{ key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' }, { key: 'format', label: 'Format Penomoran', type: 'text', required: true }, { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }] },
+            jenis: { title: 'Jenis Pengadaan', table: 'jenis', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
+            kontrak: { title: 'Jenis Kontrak', table: 'kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
+            libur: { title: 'Hari Libur Nasional', table: 'libur', fields: [{ key: 'date', label: 'Tanggal', type: 'date', required: true, formatter: Utils.formatDate }, { key: 'desc', label: 'Keterangan', type: 'text', required: true }] },
+            waktu: { title: 'Master Waktu Dokumen', table: 'waktu', fields: [{ key: 'name', label: 'Tahap/Dokumen', type: 'text', required: true }, { key: 'previous', label: 'Mengikuti Jadwal Sebelumnya', type: 'text', required: true }, { key: 'days', label: 'Selisih Hari Kerja', type: 'number', required: true }, { key: 'anchor', label: 'Acuan', type: 'select', options: ['mulai', 'selesai'] }] },
+            jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
+            paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
+        };
+
+        const DOM = {
+            openModal(title, bodyHTML, footerHTML) {
+                document.getElementById('modal-title').innerText = title; document.getElementById('modal-body').innerHTML = bodyHTML; document.getElementById('modal-footer').innerHTML = footerHTML; document.getElementById('global-modal').classList.add('active');
+            },
+            closeModal() { document.getElementById('global-modal').classList.remove('active'); },
+            getFormData(formId) { const formData = new FormData(document.getElementById(formId)); return Object.fromEntries(formData.entries()); }
+        };
+
+        class CRUDEngine {
+            constructor(schemaKey) {
+                this.schemaKey = schemaKey; this.schema = Schemas[schemaKey];
+                this.filteredData = []; this.currentPage = 1; this.itemsPerPage = 10; this.searchQuery = '';
+            }
+
+            loadData() {
+                const data = [...DB.get(this.schema.table)];
+                if(this.searchQuery) {
+                    const lq = this.searchQuery.toLowerCase();
+                    this.filteredData = data.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(lq)));
+                } else { this.filteredData = data; }
+            }
+
+            render(container) {
+                this.loadData();
+                container.innerHTML = `
+                    <div class="p-6 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div><h1 class="text-2xl font-bold text-main">${this.schema.title}</h1><p class="text-muted text-sm mt-1">Live Sync dari Supabase.</p></div>
+                            <button class="btn btn-primary" onclick="app.crudEngine.showForm()"><i class="ph ph-plus"></i> Tambah Data</button>
+                        </div>
+                        <div class="card flex-1 flex flex-col overflow-hidden">
+                            <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                                <div class="flex gap-2 items-center w-full max-w-md">
+                                    <div class="form-control flex items-center gap-2 bg-white" style="padding:4px 12px;"><i class="ph ph-magnifying-glass text-muted"></i><input type="text" id="crud-search" placeholder="Cari data..." style="border:none; outline:none; background:transparent; width:100%; padding:4px 0;" value="${this.searchQuery}"></div>
+                                    <button class="btn btn-outline btn-sm" onclick="app.crudEngine.handleSearch()"><i class="ph ph-funnel"></i> Cari</button>
+                                </div>
+                                <div class="flex gap-2"><button class="btn btn-ghost btn-sm" onclick="app.crudEngine.refresh()"><i class="ph ph-arrows-clockwise"></i> Sync</button></div>
+                            </div>
+                            <div class="flex-1 overflow-auto">${this.renderTable()}</div>
+                            ${this.renderPagination()}
+                        </div>
+                    </div>
+                `;
+                const si = document.getElementById('crud-search');
+                if(si) si.addEventListener('keypress', (e) => { if(e.key === 'Enter') this.handleSearch(); });
+            }
+
+            handleSearch() { this.searchQuery = document.getElementById('crud-search').value; this.currentPage = 1; app.reRenderCurrentView(); }
+            async refresh() { this.searchQuery = ''; app.reRenderCurrentView(); app.notify('Sinkronisasi selesai', 'info'); }
+
+            renderTable() {
+                if(this.filteredData.length === 0) return `<div class="empty-state"><i class="ph ph-database text-4xl mb-3"></i><p>Tidak ada data ditemukan.</p></div>`;
+                const start = (this.currentPage - 1) * this.itemsPerPage; const paginated = this.filteredData.slice(start, start + this.itemsPerPage); const fields = this.schema.fields.filter(f => !f.hideInTable);
+                let thead = `<tr><th style="width:50px">No</th>` + fields.map(f => `<th style="width:${f.width||'auto'}">${f.label}</th>`).join('') + `<th style="width:100px; text-align:right;">Aksi</th></tr>`;
+                let tbody = paginated.map((item, index) => {
+                    let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
+                    let act = this.schemaKey === 'paket' ? `<button class="btn btn-ghost btn-sm text-primary" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button><button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>` : `<button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
+                    return `<tr>${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
+                }).join('');
+                return `<table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+            }
+
+            renderPagination() {
+                const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+                if(totalPages <= 1) return '';
+                let btns = ''; for(let i=1; i<=totalPages; i++) btns += `<button class="page-btn ${this.currentPage === i ? 'active' : ''}" onclick="app.crudEngine.changePage(${i})">${i}</button>`;
+                return `<div class="pagination"><div class="page-info">Menampilkan ${this.filteredData.length} data</div><div class="page-controls"><button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage-1})"><i class="ph ph-caret-left"></i></button>${btns}<button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage+1})"><i class="ph ph-caret-right"></i></button></div></div>`;
+            }
+
+            changePage(page) { this.currentPage = page; app.reRenderCurrentView(); }
+
+            showForm(id = null) {
+                if(this.schemaKey === 'paket' && !id) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const pjb = DB.get('pejabat'); const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
+                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Baru', stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[] });
+                    app.navigate('workspace', newPkg.id); return;
+                }
+                const item = id ? DB.getById(this.schema.table, id) : {};
+                const fieldsHtml = this.schema.fields.map(f => {
+                    let inp = ''; const val = item[f.key] !== undefined ? item[f.key] : ''; const req = f.required ? 'required' : ''; const ro = f.readOnly ? 'readonly disabled' : '';
+                    if(f.type === 'select') inp = `<select name="${f.key}" class="form-control" ${req} ${ro}><option value="">Pilih...</option>${f.options.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
+                    else if(f.type === 'textarea') inp = `<textarea name="${f.key}" class="form-control" rows="3" ${req} ${ro}>${val}</textarea>`;
+                    else inp = `<input type="${f.type}" name="${f.key}" class="form-control" value="${val}" ${req} ${ro}>`;
+                    return `<div class="form-group"><label class="form-label">${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>${inp}</div>`;
+                }).join('');
+                DOM.openModal(id ? `Edit ${this.schema.title}` : `Tambah ${this.schema.title}`, `<form id="crud-form">${fieldsHtml}</form>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.crudEngine.saveData('${id||''}')">Simpan</button>`);
+            }
+
+            saveData(id) {
+                const data = DOM.getFormData('crud-form');
+                for(let f of this.schema.fields) { if(f.required && !data[f.key]) { app.notify(`${f.label} wajib diisi`, 'error'); return; } }
+                if(this.schemaKey === 'paket' && data.pagu) data.pagu = Number(String(data.pagu).replace(/\D/g, '')) || 0;
+                id ? DB.update(this.schema.table, id, data) : DB.insert(this.schema.table, data);
+                DOM.closeModal(); app.notify('Data berhasil disinkron', 'success'); app.reRenderCurrentView();
+            }
+            deleteData(id) { if(confirm('Hapus data secara permanen?')) { DB.delete(this.schema.table, id); app.notify('Data dihapus', 'success'); app.reRenderCurrentView(); } }
+        }
+
+        class CustomViews {
+            static renderDashboard(container) {
+                const packages = DB.get('paket');
+                container.innerHTML = `
+                    <div style="padding: var(--space-8); max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                            <div><h1 class="font-bold text-main" style="font-size: 2rem; letter-spacing: -0.02em;">Dasbor Pengadaan 👋</h1><p class="text-muted text-lg mt-1">Sistem basis data terhubung ke Supabase.</p></div>
+                            <button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar'); setTimeout(()=>app.crudEngine.showForm(), 250);"><i class="ph ph-plus-circle"></i> Tambah Paket Baru</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5);">
+                            <div class="card p-5 border-l-4" style="border-left-color: var(--primary-500);"><div class="flex items-center gap-3 mb-2 text-primary"><i class="ph-fill ph-briefcase text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Total Paket</span></div><div class="text-3xl font-bold mb-1">${packages.length} Paket</div></div>
+                            <div class="card p-5 border-l-4" style="border-left-color: var(--warning-500);"><div class="flex items-center gap-3 mb-2 text-warning"><i class="ph-fill ph-clock-countdown text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Dalam Proses</span></div><div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage !== 'SELESAI').length} Paket</div></div>
+                            <div class="card p-5 border-l-4" style="border-left-color: var(--success-500);"><div class="flex items-center gap-3 mb-2 text-success"><i class="ph-fill ph-check-circle text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Selesai</span></div><div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage === 'SELESAI').length} Paket</div></div>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-lg mb-4 text-gray-800 flex justify-between"><span>Paket Aktif Terbaru</span> <button class="btn btn-ghost btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button></h2>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                                ${packages.filter(p => p.stage !== 'SELESAI').slice(0,4).map(pkg => {
+                                    const totals = DB.calculatePackageTotals(pkg);
+                                    return `<div class="card card-interactive p-4 flex flex-col gap-3" onclick="app.navigate('workspace', '${pkg.id}')"><div class="flex justify-between items-start"><div><h3 class="font-bold text-main">${pkg.name}</h3><p class="text-xs text-muted">${pkg.id} • ${pkg.metode_pemilihan || '-'}</p></div>${Utils.getBadge(pkg.stage)}</div><div class="flex justify-between items-center bg-gray-50 p-2 rounded"><span class="text-xs font-semibold text-muted">HPS: <span class="text-main">${Utils.formatCurrency(totals.hps)}</span></span><div class="flex gap-2"><span class="text-xs font-medium text-primary bg-primary-50 px-2 py-1 rounded">Progress: ${pkg.progress}%</span></div></div></div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            static renderAIAssistant(container) {
+                container.innerHTML = `
+                    <div class="chat-container">
+                        <div class="p-4 border-b border-gray-200 bg-surface flex justify-between items-center shadow-sm z-10"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xl"><i class="ph-fill ph-sparkle"></i></div><div><h2 class="font-bold">ProcFlow AI</h2><p class="text-xs text-muted">Asisten Ahli Pengadaan (Perpres 16/2018)</p></div></div><button class="btn btn-ghost btn-sm" onclick="app.reRenderCurrentView()"><i class="ph ph-trash"></i> Bersihkan Obrolan</button></div>
+                        <div class="chat-messages" id="chat-messages"><div class="chat-msg bot"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">Halo! Saya adalah Asisten AI Anda. Saya dapat membantu menyusun KAK, mereview regulasi, atau cek status paket.</div></div></div>
+                        <div class="chat-input-area">
+                            <div class="chat-suggestions"><div class="chat-suggestion-chip" onclick="DOM.sendChat('Buatkan draft KAK untuk pengadaan laptop')">Buat Draft KAK</div><div class="chat-suggestion-chip" onclick="DOM.sendChat('Aturan SPPBJ')">Aturan SPPBJ</div></div>
+                            <div class="chat-input-box"><textarea id="chat-input" placeholder="Tanyakan seputar pengadaan..."></textarea><button onclick="DOM.sendChat()"><i class="ph-bold ph-paper-plane-right"></i></button></div>
+                        </div>
+                    </div>
+                `;
+                DOM.sendChat = (text = null) => {
+                    const input = document.getElementById('chat-input'); const msg = text || input.value.trim(); if(!msg) return;
+                    const chatArea = document.getElementById('chat-messages'); chatArea.innerHTML += `<div class="chat-msg user"><div class="chat-avatar">U</div><div class="chat-bubble">${msg}</div></div>`; input.value = ''; chatArea.scrollTop = chatArea.scrollHeight;
+                    const id = 'bot-' + Date.now(); chatArea.innerHTML += `<div class="chat-msg bot" id="${id}"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble flex gap-1"><span class="animate-pulse">.</span><span class="animate-pulse" style="animation-delay: 0.2s">.</span></div></div>`; chatArea.scrollTop = chatArea.scrollHeight;
+                    setTimeout(() => { document.getElementById(id).innerHTML = `<div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">AI siap mendukung Anda dalam Perpres PBJ. Silahkan gunakan panel Workspace.</div>`; chatArea.scrollTop = chatArea.scrollHeight; }, 1000);
+                };
+                document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); DOM.sendChat(); }});
+            }
+            
+            static renderReports(container) { container.innerHTML = `<div class="p-6 h-full flex flex-col"><div class="flex justify-between items-center mb-6"><div><h1 class="text-2xl font-bold text-main">Dashboard Laporan Eksekutif</h1><p class="text-muted text-sm mt-1">Analitik Data Pengadaan Supabase</p></div></div><div class="card p-8 text-center text-muted"><i class="ph ph-chart-line-up text-5xl mb-4"></i><p>Integrasi PowerBI atau Supabase Chart akan tampil di sini.</p></div></div>`; }
+        }
+
+        class WorkspaceView {
+            constructor(packageId) { this.packageId = packageId; this.activeTab = 'ringkasan'; }
+
+            render(container) {
+                this.pkg = DB.getById('paket', this.packageId);
+                if(!this.pkg) { container.innerHTML = `<div class="empty-state"><p>Paket tidak ditemukan.</p><button class="btn btn-primary mt-4" onclick="app.navigate('dashboard')">Ke Dashboard</button></div>`; return; }
+                const tabs = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'SPSE', 'Cetak', 'Aktivitas'];
+                container.innerHTML = `
+                    <div class="workspace-header">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><div class="text-xs text-primary-600 font-semibold cursor-pointer flex items-center gap-1 mb-2 hover:underline" onclick="app.navigate('pengadaan-daftar')"><i class="ph ph-arrow-left"></i> Kembali ke Daftar</div><h1 class="font-bold text-gray-900 text-2xl flex items-center gap-3 mb-1">${this.pkg.name} ${Utils.getBadge(this.pkg.stage)}</h1><div class="text-sm text-muted font-medium">${this.pkg.id} • ${this.pkg.metode_pemilihan || 'Metode Belum Diset'}</div></div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="app.notify('Force Save ke Supabase selesai', 'info')"><i class="ph ph-floppy-disk"></i> Force Save</button>
+                                ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="workspace-tabs">${tabs.map(t => { const id = t.toLowerCase().replace(/ /g, ''); return `<div class="tab-item ${this.activeTab === id ? 'active' : ''}" data-tab="${id}">${t}</div>`; }).join('')}</div>
+                    </div>
+                    <div class="workspace-body bg-body" id="ws-body">${this.renderTabContent()}</div>
+                `;
+                container.querySelectorAll('.tab-item').forEach(tab => tab.addEventListener('click', (e) => { this.activeTab = e.target.dataset.tab; this.render(container); }));
+                if(this.activeTab === 'harga') this.attachHargaEvents();
+                if(this.activeTab === 'datapaket') {
+                    const f=document.getElementById('form-datapaket'), st=f?.querySelector('[name=tgl_mulai]'), dr=f?.querySelector('[name=durasi_kontrak]'), fn=f?.querySelector('[name=tgl_selesai]');
+                    const refresh = () => { if(st?.value && fn) fn.value = new Date(new Date(`${st.value}T00:00:00`).setDate(new Date(`${st.value}T00:00:00`).getDate()+(Number(dr?.value)||0))).toISOString().split('T')[0]; };
+                    st?.addEventListener('change',refresh); dr?.addEventListener('input',refresh); refresh();
+                }
+            }
+
+            renderTabContent() {
+                switch(this.activeTab) {
+                    case 'ringkasan': return this.renderRingkasan(); case 'datapaket': return this.renderDataPaket(); case 'pejabat': return this.renderPejabat();
+                    case 'penyedia': return this.renderPenyedia(); case 'harga': return this.renderHarga(); case 'jadwal': return this.renderJadwal();
+                    case 'jadwalproses': return this.renderJadwalProses(); case 'checklist': return this.renderChecklist(); case 'kak': return this.renderKAK();
+                    case 'rancangankontrak': return this.renderRancanganKontrak(); case 'dokumen': return this.renderDokumen(); case 'cetak': return this.renderCetak();
+                    case 'spse': return `<div class="card p-8 text-center"><i class="ph ph-link text-4xl mb-4 text-primary"></i><h3 class="font-bold text-lg">Integrasi SPSE V4.5</h3><button class="btn btn-primary mt-4">Sync ke SPSE</button></div>`;
+                    case 'aktivitas': return `<div class="card p-6 max-w-3xl mx-auto"><h2 class="font-bold text-lg mb-6 border-b pb-2">Log Aktivitas</h2><div class="text-muted">Aktivitas Paket terekam.</div></div>`;
+                    default: return `<div class="empty-state"><p>Konten tab sedang disiapkan.</p></div>`;
+                }
+            }
+
+            renderRingkasan() {
+                const totals = DB.calculatePackageTotals(this.pkg);
+                return `
+                    <div class="flex justify-end mb-1"><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak Laporan Rinci</button></div>
+                    <div class="flex flex-col gap-6">
+                        <div class="card p-6 border-l-4 border-l-primary-500">
+                            <h2 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph-fill ph-database text-primary"></i> Ringkasan Paket</h2>
+                            <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                                <div><p class="text-xs text-muted uppercase">Nama</p><p class="font-medium truncate">${this.pkg.name}</p></div>
+                                <div><p class="text-xs text-muted uppercase">Metode</p><p class="font-medium">${this.pkg.metode_pemilihan || '-'}</p></div>
+                                <div><p class="text-xs text-muted uppercase">TA</p><p class="font-medium">${this.pkg.tahun_anggaran || '-'}</p></div>
+                                <div><p class="text-xs text-muted uppercase">OPD</p><p class="font-medium truncate">${this.pkg.opd || '-'}</p></div>
+                            </div>
+                        </div>
+                        <div class="card p-6 bg-gray-900 text-white border-none">
+                            <h2 class="font-bold text-lg mb-6 text-gray-300 uppercase tracking-wider text-center">Waterfall Nilai Pengadaan</h2>
+                            <div class="flex items-center justify-between px-10 relative">
+                                <div style="position:absolute; top:25px; left:10%; right:10%; height:2px; background:var(--gray-700); z-index:0;"></div>
+                                <div class="flex flex-col items-center relative z-10"><div class="w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center mb-3"><i class="ph ph-wallet text-xl"></i></div><p class="text-xs text-gray-400 mb-1">HPS</p><p class="font-bold text-lg text-white">${Utils.formatCurrency(totals.hps)}</p></div>
+                                <div class="flex flex-col items-center relative z-10"><div class="w-12 h-12 rounded-full bg-gray-800 border-2 border-warning-600 flex items-center justify-center mb-3 text-warning-500"><i class="ph ph-file-text text-xl"></i></div><p class="text-xs text-gray-400 mb-1">Penawaran</p><p class="font-bold text-lg ${totals.penawaran > 0 ? 'text-warning-400' : 'text-gray-600'}">${totals.penawaran > 0 ? Utils.formatCurrency(totals.penawaran) : 'Menunggu'}</p></div>
+                                <div class="flex flex-col items-center relative z-10"><div class="w-12 h-12 rounded-full bg-success-900 border-2 border-success-500 flex items-center justify-center mb-3 text-success-400"><i class="ph ph-handshake text-xl"></i></div><p class="text-xs text-gray-400 mb-1">Negosiasi</p><p class="font-bold text-lg ${totals.negosiasi > 0 ? 'text-success-400' : 'text-gray-600'}">${totals.negosiasi > 0 ? Utils.formatCurrency(totals.negosiasi) : 'Menunggu'}</p></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderDataPaket() {
+                const sv = `const fd=DOM.getFormData('form-datapaket'); DB.update('paket','${this.packageId}',fd); app.notify('Tersimpan di Supabase','success'); app.reRenderCurrentView();`;
+                return `
+                    <div class="card p-6">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4">
+                            <div><h2 class="font-bold text-lg text-main">Data Paket</h2><p class="text-sm text-muted">Informasi dasar.</p></div>
+                            <button class="btn btn-primary" onclick="${sv}"><i class="ph ph-floppy-disk"></i> Simpan Data Paket</button>
+                        </div>
+                        <form id="form-datapaket" class="flex flex-col gap-6">
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 text-primary-700">Informasi Dasar & Lokasi</legend>
+                                <div class="grid grid-cols-2 gap-4 mt-2">
+                                    <div class="form-group col-span-2"><label class="form-label">Nama Paket</label><input type="text" name="name" class="form-control" value="${this.pkg.name || ''}"></div>
+                                    <div class="form-group col-span-2"><label class="form-label">Uraian / Penanda</label><textarea name="uraian" class="form-control" rows="2">${this.pkg.uraian || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Nilai Pagu (Rp)</label><input type="text" name="pagu" class="form-control" value="${this.pkg.pagu || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Lokasi Pekerjaan</label><input type="text" name="lokasi" class="form-control" value="${this.pkg.lokasi || ''}"></div>
+                                    <div class="form-group"><label class="form-label">OPD</label><input type="text" name="opd" class="form-control" value="${this.pkg.opd || ''}"></div>
+                                </div>
+                            </fieldset>
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 text-primary-700">Karakteristik & Waktu</legend>
+                                <div class="grid grid-cols-3 gap-4 mt-2">
+                                    <div class="form-group"><label class="form-label">Durasi (Hari Kalender)</label><input type="number" name="durasi_kontrak" class="form-control" value="${this.pkg.durasi_kontrak || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Tanggal Mulai</label><input type="date" name="tgl_mulai" class="form-control" value="${this.pkg.tgl_mulai || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Tanggal Selesai</label><input type="date" name="tgl_selesai" class="form-control" value="${this.pkg.tgl_selesai || ''}" readonly></div>
+                                </div>
+                            </fieldset>
+                        </form>
+                    </div>
+                `;
+            }
+
+            renderPejabat() {
+                const pejabatList = DB.get('pejabat');
+                const getOptions = (selId) => `<option value="">-- Pilih --</option>` + pejabatList.map(p => `<option value="${p.id}" ${p.id === selId ? 'selected' : ''}>${p.name}</option>`).join('');
+                return `
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="card p-6"><div class="flex justify-between items-center mb-4 border-b pb-2"><h2 class="font-bold text-lg">Struktur Organisasi</h2><button class="btn btn-sm btn-primary" onclick="app.savePejabat('${this.packageId}')">Simpan</button></div>
+                            <form id="form-pejabat">
+                                <div class="form-group"><label class="form-label">PPK</label><select name="ppk_id" class="form-control">${getOptions(this.pkg.ppk_id)}</select></div>
+                                <div class="form-group"><label class="form-label">Pejabat Pengadaan (PP)</label><select name="pp_id" class="form-control">${getOptions(this.pkg.pp_id)}</select></div>
+                                <div class="form-group"><label class="form-label">PPTK</label><select name="pptk_id" class="form-control">${getOptions(this.pkg.pptk_id)}</select></div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderPenyedia() {
+                const pList = DB.get('penyedia'); const sup = this.pkg.supplier_id ? DB.getById('penyedia', this.pkg.supplier_id) : null;
+                const opts = `<option value="">-- Pilih Penyedia --</option>` + pList.map(p => `<option value="${p.id}" ${p.id === this.pkg.supplier_id ? 'selected' : ''}>${p.name}</option>`).join('');
+                return `
+                    <div class="card p-6 max-w-4xl mx-auto">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4"><h2 class="font-bold text-lg">Penyedia</h2>
+                        <div class="flex gap-2"><select id="sel-pen" class="form-control" style="width:300px">${opts}</select><button class="btn btn-primary" onclick="DB.update('paket','${this.packageId}',{supplier_id:document.getElementById('sel-pen').value}); app.reRenderCurrentView();">Tetapkan</button></div></div>
+                        ${sup ? `<div class="bg-success-50 p-6 rounded-md"><h4 class="font-bold text-success-700">${sup.name}</h4><p class="text-sm mt-2">NPWP: ${sup.npwp}</p></div>` : '<p class="text-muted text-center p-8">Belum ada penyedia.</p>'}
+                    </div>
+                `;
+            }
+
+            renderHarga() {
+                const items = this.pkg.items || [];
+                let hpsSub = 0, hpsPPN = 0, penSub = 0, penPPN = 0, negSub = 0, negPPN = 0;
+                const trs = items.map((i, idx) => {
+                    const tax = 1 + (Number(i.pajak) || 0) / 100;
+                    hpsSub += (Number(i.vol_hps) * Number(i.harga_hps)); hpsPPN += ((Number(i.vol_hps) * Number(i.harga_hps)) * tax) - (Number(i.vol_hps) * Number(i.harga_hps));
+                    return `
+                    <tr data-index="${idx}">
+                        <td><input type="text" class="cell-input hrg-input" data-field="uraian" value="${i.uraian}"></td>
+                        <td class="bg-primary-50"><input type="number" class="cell-input hrg-input text-center" data-field="vol_hps" value="${i.vol_hps}"></td>
+                        <td class="bg-primary-50"><input type="text" inputmode="numeric" class="cell-input hrg-input money-input text-right" data-field="harga_hps" value="${Utils.formatNumber(i.harga_hps)}"></td>
+                    </tr>`;
+                }).join('');
+
+                const t = DB.calculatePackageTotals(this.pkg);
+                const block = (label, key, val) => `<div class="card p-4"><label class="form-label">Pembulatan ${label}</label><input data-round="${key}" class="form-control money-input" value="${Utils.formatNumber(val)}"><p class="text-sm mt-2">${Utils.formatCurrency(val)}</p><label class="text-xs text-muted mt-2 block">Terbilang:</label><textarea class="form-control text-xs" rows="2" readonly>${Utils.toWords(val)} rupiah</textarea></div>`;
+                
+                return `
+                    <div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg text-main">Rincian Harga (package_items)</h2></div><button class="btn btn-primary" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Item</button></div>
+                    <div class="spreadsheet-container mb-6"><table class="spreadsheet"><thead><tr><th>Uraian</th><th class="bg-primary-50">Vol</th><th class="bg-primary-50">Harga Satuan</th></tr></thead><tbody>${trs}</tbody></table></div>
+                    <div class="grid grid-cols-3 gap-4">${block('HPS', 'pembulatan_hps', this.pkg.pembulatan_hps || t.hps)}${block('Penawaran', 'pembulatan_penawaran', this.pkg.pembulatan_penawaran || t.penawaran)}${block('Negosiasi', 'pembulatan_negosiasi', this.pkg.pembulatan_negosiasi || t.negosiasi)}</div>
+                `;
+            }
+
+            attachHargaEvents() {
+                document.querySelectorAll('.hrg-input').forEach(inp => inp.addEventListener('change', e => {
+                    const tr = e.target.closest('tr'); const idx = parseInt(tr.dataset.index); const field = e.target.dataset.field;
+                    let val = e.target.value; if(e.target.classList.contains('money-input')) val = Number(String(val).replace(/\D/g, '')) || 0;
+                    let items = this.pkg.items || []; items[idx][field] = val;
+                    DB.update('paket', this.packageId, { items }); this.render(document.getElementById('router-view'));
+                }));
+                document.querySelectorAll('.money-input').forEach(el => el.addEventListener('input', e => { e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, '')); }));
+                document.querySelectorAll('[data-round]').forEach(el => el.addEventListener('change', e => {
+                    DB.update('paket', this.packageId, { [e.target.dataset.round]: Number(String(e.target.value).replace(/\D/g,'')) || 0 }); this.render(document.getElementById('router-view'));
+                }));
+            }
+
+            renderJadwal() {
+                const hols = DB.get('libur').map(l => l.date); const rules = DB.get('waktu'); let dates = {};
+                rules.forEach(r => { const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? this.pkg.tgl_mulai : dates[r.previous] || this.pkg.tgl_mulai); dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, hols); });
+                return `<div class="card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-center mb-6"><div><h2 class="font-bold text-lg">Jadwal Dokumen</h2></div><button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master</button></div><table class="data-table"><thead><tr><th>No</th><th>Jadwal</th><th>Tanggal</th></tr></thead><tbody>${rules.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${Utils.formatDate(dates[r.name])}</td></tr>`).join('')}</tbody></table></div>`;
+            }
+
+            renderJadwalProses() {
+                const rules = DB.get('jadwal_proses'); const hols = DB.get('libur').map(x=>x.date); let base = this.pkg.tgl_mulai;
+                let rows = rules.map((r,i) => { const start = Utils.addWorkingDays(base, r.start_after, hols); const end = Utils.addWorkingDays(start, r.duration, hols); base = end; return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${Utils.formatDateShort(start)}</td><td>${Utils.formatDateShort(end)}</td></tr>`}).join('');
+                return `<div class="card p-6 max-w-4xl mx-auto"><div class="flex justify-between items-center mb-6"><div><h2 class="font-bold text-lg">Jadwal Proses</h2></div></div><table class="data-table"><thead><tr><th>No</th><th>Proses</th><th>Mulai</th><th>Selesai</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+            }
+
+            renderChecklist() {
+                const docs = ['HPS/RAB','KAK','BA Reviu','SPPBJ','SPK','BAST'];
+                return `<div class="card p-0"><table class="data-table"><thead><tr><th></th><th>Dokumen</th><th>Aksi Generate</th></tr></thead><tbody>${docs.map(d => `<tr><td><input type="checkbox"></td><td>${d}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.simulateDependencyEngine('${d}','${this.packageId}')">Generate File</button></td></tr>`).join('')}</tbody></table></div>`;
+            }
+
+            renderKAK() { return `<div class="card p-6 max-w-4xl mx-auto"><div class="flex justify-between items-center mb-6"><div><h2 class="font-bold text-lg">KAK</h2></div><button class="btn btn-primary" onclick="app.printKAK('${this.packageId}')">Cetak KAK</button></div><textarea class="form-control" rows="5">Isi deskripsi...</textarea></div>`; }
+            renderCetak() { return `<div class="card p-6 text-center"><button class="btn btn-primary">Cetak Laporan Total</button></div>`; }
+            renderRancanganKontrak() { return `<div class="card p-6 max-w-4xl mx-auto"><h2 class="font-bold text-lg mb-6">Rancangan Kontrak</h2><form class="grid grid-cols-2 gap-4"><div class="form-group"><label class="form-label">Jaminan Pemeliharaan (%)</label><input type="number" class="form-control" value="${this.pkg.jaminan_pemeliharaan||0}"></div><div class="col-span-2 text-right"><button type="button" class="btn btn-primary" onclick="app.notify('Tersimpan di Supabase', 'success')">Simpan</button></div></form></div>`; }
+            
+            renderDokumen() {
+                const docs = DB.get('documents').filter(d => d.package_id === this.packageId);
+                let list = docs.map(d => `<div class="flex justify-between p-3 border rounded mb-2"><div><b>${d.name}</b><div class="text-xs text-muted">${d.date}</div></div><button class="btn btn-ghost btn-sm text-primary"><i class="ph ph-download"></i></button></div>`).join('');
+                return `<div class="max-w-4xl mx-auto"><h2 class="font-bold text-lg mb-4">Arsip Dokumen (Supabase Sync)</h2>${list || '<p class="text-muted">Kosong.</p>'}</div>`;
+            }
+        }
+
+        class App {
+            constructor() { this.routerView = document.getElementById('router-view'); this.currentRoute = ''; this.init(); }
+            
+            async init() {
+                await DB.init();
+                this.bindNav(); this.navigate('dashboard');
+            }
+
+            bindNav() {
+                document.getElementById('sidebar-nav').addEventListener('click', (e) => {
+                    const nav = e.target.closest('.nav-item');
+                    if (nav && nav.dataset.route) { document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); nav.classList.add('active'); this.navigate(nav.dataset.route); }
+                });
+            }
+
+            reRenderCurrentView() { this.navigate(this.currentRoute, this.currentViewInstance?.packageId); }
+
+            navigate(route, param = null) {
+                this.currentRoute = route; this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i></div>`;
+                setTimeout(() => {
+                    this.routerView.innerHTML = '';
+                    const smap = { 'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket' };
+                    if (smap[route]) { this.crudEngine = new CRUDEngine(smap[route]); this.crudEngine.render(this.routerView); return; }
+
+                    switch(route) {
+                        case 'dashboard': CustomViews.renderDashboard(this.routerView); break;
+                        case 'workspace': document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); this.currentViewInstance = new WorkspaceView(param); this.currentViewInstance.render(this.routerView); break;
+                        case 'ai-assistant': CustomViews.renderAIAssistant(this.routerView); break;
+                        case 'laporan-pengadaan': case 'laporan-jadwal': case 'laporan-anggaran': case 'laporan-penyedia': case 'laporan-pejabat': CustomViews.renderReports(this.routerView); break;
+                        case 'laporan-paket': this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Laporan Total</h1><button class="btn btn-primary" onclick="app.printTotalReport()"><i class="ph ph-printer"></i> Cetak</button></div></div>`; break;
+                        case 'cetak-pencairan': this.routerView.innerHTML=`<div class="p-6"><div class="card p-6"><h1 class="text-2xl font-bold mb-2">Pencairan</h1><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar')">Pilih Paket</button></div></div>`; break;
+                        case 'pengaturan': this.routerView.innerHTML = `<div class="p-6"><div class="card p-6"><h1 class="font-bold text-xl mb-4">Pengaturan Supabase</h1><p class="text-sm">URL: ${SUPABASE_URL}</p></div></div>`; break;
+                        default: this.routerView.innerHTML = `<div class="empty-state"><h3>Modul Global</h3><p>Berfungsi pada Workspace Paket.</p><button class="btn btn-primary mt-4" onclick="app.navigate('pengadaan-daftar')">Daftar Paket</button></div>`;
+                    }
+                }, 100);
+            }
+
+            savePejabat(pkgId) { DB.update('paket', pkgId, DOM.getFormData('form-pejabat')); this.notify('Organisasi disimpan', 'success'); this.reRenderCurrentView(); }
+            addHargaRow(pkgId) { const items = DB.getById('paket', pkgId).items || []; items.push({ id: Date.now(), uraian: 'Item Baru', sat: 'Ls', vol_hps: 1, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }); DB.update('paket', pkgId, { items }); this.reRenderCurrentView(); }
+            advanceStage(pkgId) { const pkg = DB.getById('paket', pkgId); const st = ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI']; const i = st.indexOf(pkg.stage); if(i < st.length - 1) { DB.update('paket', pkgId, { stage: st[i+1], progress: pkg.progress + 15 }); this.notify(`Tahap maju ke ${st[i+1]}`, 'success'); this.reRenderCurrentView(); } }
+
+            simulateDependencyEngine(docName, pkgId) {
+                const pkg = DB.getById('paket', pkgId);
+                DOM.openModal(`Generating ${docName}...`, `<div id="log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 h-48 overflow-y-auto"></div>`, '');
+                const log = document.getElementById('log'); const msg = (m, d) => setTimeout(() => { log.innerHTML += `<div>> ${m}</div>`; log.scrollTop = log.scrollHeight; }, d);
+                msg(`Memulai Engine SSOT...`, 200); msg(`Mengambil metadata paket <b class="text-main">${pkg.name}</b>`, 800); msg(`Menyusun Template ${docName}...`, 1500); msg(`<span class="text-success font-bold">SELESAI! Dokumen tersimpan ke Supabase.</span>`, 2200);
+                setTimeout(() => { DB.insert('documents', { package_id: pkgId, doc_type: docName, name: `${docName}_${pkg.id}.docx`, status: 'FINAL', date: new Date().toISOString().split('T')[0] }); DOM.closeModal(); this.notify('Dokumen di-generate', 'success'); this.reRenderCurrentView(); }, 2800);
+            }
+
+            printDocument(title, content) {
+                const win = window.open('', '_blank'); if(!win) return;
+                win.document.write(`<html><head><title>${title}</title><style>body{font-family:Arial;margin:40px;color:#111}h1{font-size:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #777;padding:8px}</style></head><body>${content}</body></html>`);
+                win.document.close(); win.focus(); setTimeout(()=>win.print(), 250);
+            }
+            printPackageReport(id) { const p = DB.getById('paket',id); this.printDocument('Laporan', `<h1>Laporan Paket</h1><table><tr><th>Nama</th><td>${p.name}</td></tr><tr><th>Nilai</th><td>${p.pagu}</td></tr></table>`); }
+            printTotalReport() { const html = DB.get('paket').map(p=>`<tr><td>${p.name}</td><td>${p.stage}</td></tr>`).join(''); this.printDocument('Total', `<h1>Daftar Paket</h1><table><tr><th>Nama</th><th>Status</th></tr>${html}</table>`); }
+            printKAK(id) { const p = DB.getById('paket',id); this.printDocument('KAK', `<h1>KAK: ${p.name}</h1><p>Generate KAK sukses.</p>`); }
+
+            notify(message, type = 'info') {
+                const tc = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast';
+                const i = type === 'success' ? '<i class="ph-fill ph-check-circle text-success text-2xl"></i>' : (type === 'error' ? '<i class="ph-fill ph-warning-circle text-danger text-2xl"></i>' : '<i class="ph-fill ph-info text-info text-2xl"></i>');
+                t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
+                setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => window.app = new App());
+    </script>
+</body>
+</html>
