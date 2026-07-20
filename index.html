@@ -1576,7 +1576,74 @@
                 DB.update('paket', pkgId, { items: items });
                 this.reRenderCurrentView();
             }
+// Tambahkan fungsi ini di dalam class App (atau sebagai helper method)
+prepareDocumentPayload(pkgId, docName) {
+    const pkg = DB.getById('paket', pkgId);
+    const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
+    const pjb = DB.get('pejabat');
+    
+    // Cari data pejabat terkait dari database
+    const ppk = pjb.find(p => p.id === pkg.ppk_id) || { name: '...', nip: '...' };
+    const pp = pjb.find(p => p.id === pkg.pp_id) || { name: 'Detty Hegartika, S.E, MM.Si.', nip: '-' };
 
+    // Kalkulasi nilai total dari item paket
+    const totals = DB.calculatePackageTotals(pkg);
+    const hpsRound = pkg.pembulatan_hps || totals.hps;
+    const penRound = pkg.pembulatan_penawaran || totals.penawaran;
+    const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
+
+    // Mapping item untuk tabel lampiran
+    const itemsPayload = (pkg.items || []).map((item, index) => ({
+        no: index + 1,
+        uraian: item.uraian,
+        sat: item.sat,
+        vol_hps: item.vol_hps,
+        harga_hps: Utils.formatNumber(item.harga_hps),
+        vol_pen: item.vol_pen,
+        harga_pen: Utils.formatNumber(item.harga_pen),
+        vol_neg: item.vol_neg,
+        harga_neg: Utils.formatNumber(item.harga_neg)
+    }));
+
+    // Payload lengkap yang siap dikirim ke Supabase Edge Function / docxtemplater
+    return {
+        nomor_ba: `027/04/${pkg.keyword_penomoran || 'PKT'}/BKAD/V/2026`,
+        hari_tanggal: "Rabu, 06 Mei 2026",
+        nama_paket: pkg.name,
+        kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019",
+        nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan",
+        sumber_dana: "APBD Kota Bogor",
+        tahun_anggaran: pkg.tahun_anggaran || "2026",
+        waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
+        nama_penyedia: supplier.name,
+        nama_direktur: supplier.direktur || "Direktur",
+        
+        // Terbilang & Format Angka
+        nilai_hps_formatted: Utils.formatNumber(hpsRound),
+        terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
+        nilai_penawaran_formatted: Utils.formatNumber(penRound),
+        terbilang_penawaran: Utils.toWords(penRound) + " rupiah",
+        nilai_negosiasi_formatted: Utils.formatNumber(negoRound),
+        terbilang_negosiasi: Utils.toWords(negoRound) + " rupiah",
+        
+        // Informasi Lampiran
+        nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah",
+        nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
+        lokasi: pkg.lokasi || "Kota Bogor",
+        jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
+        
+        // Looping Items untuk Tabel Lampiran
+        items: itemsPayload,
+        
+        total_hps_formatted: Utils.formatNumber(hpsRound),
+        total_penawaran_formatted: Utils.formatNumber(penRound),
+        total_negosiasi_formatted: Utils.formatNumber(negoRound),
+        
+        // Pejabat
+        nama_pejabat_pengadaan: pp.name,
+        nip_pejabat_pengadaan: pp.nip || "-"
+    };
+}
             reRenderCurrentView() { 
                 // Only re-render the workspace, keep current active tab
                 if (this.currentRoute === 'workspace' && this.currentViewInstance) {
