@@ -1735,8 +1735,47 @@
                     {id:'WKT-14', name:'BAP', previous:'Tanggal Selesai', days:0, anchor:'selesai'}
                 ]);
                 this.save('penomoran', [
-                    {id:'NUM-01',code:'BA Reviu',format:'027/{urut}/{keyword}/PP/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-02',code:'SDP',format:'027/{urut}/{keyword}/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-03',code:'BA Evaluasi',format:'027/{urut}/{keyword}/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-04',code:'BA Negosiasi',format:'027/{urut}/{keyword}/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-05',code:'SPPBJ',format:'027/{urut}/{keyword}/PPK/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-06',code:'SPK',format:'027/{urut}/{keyword}/PPK/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-07',code:'SPMK',format:'027/{urut}/{keyword}/PPK/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-08',code:'BAST',format:'027/{urut}/{keyword}/PPK/BKAD/{bulan}/{tahun}',counter:1}, {id:'NUM-09',code:'BAP',format:'027/{urut}/{keyword}/PPK/BKAD/{bulan}/{tahun}',counter:1}
-                ]);
+    {id:'DNR_BA_REVIU', code:'BA_REVIU', format:'027/01/[uraian]/PP/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_SDP', code:'SDP', format:'027/01/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_BA_EVALUASI', code:'BA_EVALUASI', format:'027/02/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_BA_PEMBUKTIAN', code:'BA_PEMBUKTIAN', format:'027/03/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_BA_NEGOSIASI', code:'BA_NEGOSIASI', format:'027/04/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_UNDANGAN', code:'UNDANGAN', format:'027/01_[uraian]/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_BA_HASIL', code:'BA_HASIL', format:'027/05/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_SPPBJ', code:'SPPBJ', format:'027/01/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_SPK', code:'SPK', format:'027/02/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_SPMK', code:'SPMK', format:'027/03/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_BAST', code:'BAST', format:'027/04/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
+    {id:'DNR_BAP', code:'BAP', format:'027/05/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0}
+]);
+                if (!localStorage.getItem('pf_libur') || DB.get('libur').length < 24) {
+    this.save('libur', [
+        { id: 'HOL-01', date: '2026-01-01', desc: 'Tahun Baru Masehi' },
+        { id: 'HOL-02', date: '2026-01-16', desc: 'Isra Mikraj' },
+        { id: 'HOL-03', date: '2026-02-16', desc: 'Tahun Baru Imlek' },
+        { id: 'HOL-04', date: '2026-02-17', desc: 'Cuti Bersama Imlek' },
+        { id: 'HOL-05', date: '2026-03-18', desc: 'Hari Suci Nyepi' },
+        { id: 'HOL-06', date: '2026-03-19', desc: 'Cuti Bersama Nyepi' },
+        { id: 'HOL-07', date: '2026-03-20', desc: 'Idul Fitri' },
+        { id: 'HOL-08', date: '2026-03-21', desc: 'Idul Fitri' },
+        { id: 'HOL-09', date: '2026-03-22', desc: 'Cuti Bersama Idul Fitri' },
+        { id: 'HOL-10', date: '2026-03-23', desc: 'Cuti Bersama Idul Fitri' },
+        { id: 'HOL-11', date: '2026-03-24', desc: 'Cuti Bersama Idul Fitri' },
+        { id: 'HOL-12', date: '2026-04-03', desc: 'Wafat Yesus Kristus' },
+        { id: 'HOL-13', date: '2026-04-05', desc: 'Paskah' },
+        { id: 'HOL-14', date: '2026-05-01', desc: 'Hari Buruh' },
+        { id: 'HOL-15', date: '2026-05-14', desc: 'Kenaikan Yesus Kristus' },
+        { id: 'HOL-16', date: '2026-05-15', desc: 'Cuti Bersama Kenaikan YK' },
+        { id: 'HOL-17', date: '2026-05-27', desc: 'Idul Adha' },
+        { id: 'HOL-18', date: '2026-05-28', desc: 'Cuti Bersama Idul Adha' },
+        { id: 'HOL-19', date: '2026-06-01', desc: 'Hari Lahir Pancasila' },
+        { id: 'HOL-20', date: '2026-06-16', desc: 'Tahun Baru Islam' },
+        { id: 'HOL-21', date: '2026-08-17', desc: 'Hari Kemerdekaan RI' },
+        { id: 'HOL-22', date: '2026-08-25', desc: 'Maulid Nabi Muhammad SAW' },
+        { id: 'HOL-23', date: '2026-12-25', desc: 'Hari Raya Natal' },
+        { id: 'HOL-24', date: '2026-12-26', desc: 'Cuti Bersama Natal' }
+    ]);
+}
                 localStorage.setItem('eproc_flow_migrated_v1', 'true');
             }
         };
@@ -1783,14 +1822,26 @@
             return dates;
         };
         App.prototype.getDocumentMeta = function(pkg, doc) {
-            const aliases = {'BA Reviu Dok Persiapan':'BA Reviu'};
-            const code = aliases[doc] || doc;
-            const rule = DB.get('penomoran').find(r => r.code === code);
-            const date = documentSchedule(pkg)[doc] || documentSchedule(pkg)[code] || pkg.tgl_mulai;
-            if (!rule) return { number:'-', date };
-            const d = new Date(`${date}T00:00:00`), mm = String(d.getMonth()+1).padStart(2,'0'), yyyy=d.getFullYear();
-            return { number: rule.format.replace('{urut}', String(rule.counter).padStart(3,'0')).replace('{keyword}',pkg.keyword_penomoran || 'PKT').replace('{bulan}',mm).replace('{tahun}',yyyy), date };
-        };
+    // ...
+    // Ubah baris 'return { number: ... }' menjadi seperti ini:
+    
+    // Fungsi bantuan untuk ubah bulan ke Romawi
+    const toRoman = (num) => {
+        const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+        return roman[num - 1] || "";
+    };
+    
+    const uraian = pkg.keyword_penomoran || 'PKT';
+    const bulanRomawi = toRoman(d.getMonth() + 1);
+    
+    return { 
+        number: rule.format
+            .replace('[uraian]', uraian)
+            .replace('[bulan]', bulanRomawi)
+            .replace('[tahun]', yyyy), 
+        date 
+    };
+};
         App.prototype.printDocument = function(title, content) {
             const page = window.open('', '_blank'); if (!page) { this.notify('Izinkan pop-up untuk mencetak dokumen.', 'error'); return; }
             page.document.write(`<!doctype html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#111}h1{font-size:20px}h2{font-size:15px;margin-top:24px}p{white-space:pre-wrap;line-height:1.5}.meta{color:#555;margin-bottom:22px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:8px;text-align:left}</style></head><body>${content}</body></html>`); page.document.close(); page.focus(); setTimeout(()=>page.print(),250);
