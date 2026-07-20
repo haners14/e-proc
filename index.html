@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EProc Flow by ersandyf_ (Enterprise Edition - Supabase Sync)</title>
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -157,6 +160,25 @@
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .page-btn.active { background: var(--primary-600); color: white; border-color: var(--primary-600); }
         
+        /* Chat UI Specifics */
+        .chat-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: var(--bg-body); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+        .chat-msg { display: flex; gap: var(--space-3); max-width: 80%; }
+        .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+        .chat-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .chat-bubble { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: 0.875rem; line-height: 1.5; }
+        .chat-msg.bot .chat-avatar { background: var(--primary-100); color: var(--primary-600); }
+        .chat-msg.bot .chat-bubble { background: var(--bg-surface); border: 1px solid var(--border-color); border-top-left-radius: 0; }
+        .chat-msg.user .chat-avatar { background: var(--gray-200); color: var(--gray-700); }
+        .chat-msg.user .chat-bubble { background: var(--primary-600); color: white; border-top-right-radius: 0; }
+        .chat-input-area { padding: var(--space-4); background: var(--bg-surface); border-top: 1px solid var(--border-color); }
+        .chat-input-box { display: flex; align-items: flex-end; gap: var(--space-2); background: var(--gray-50); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-2); }
+        .chat-input-box textarea { flex: 1; background: transparent; border: none; resize: none; padding: 8px; max-height: 120px; min-height: 40px; font-family: inherit; font-size: 0.875rem; outline: none; }
+        .chat-input-box button { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-600); color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+        .chat-suggestions { display: flex; gap: var(--space-2); padding-bottom: var(--space-3); overflow-x: auto; scrollbar-width: none;}
+        .chat-suggestion-chip { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-full); padding: 6px 12px; font-size: 0.75rem; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+        .chat-suggestion-chip:hover { border-color: var(--primary-500); color: var(--primary-600); background: var(--primary-50); }
+        
         #global-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
     </style>
 </head>
@@ -226,8 +248,8 @@
                     <span style="font-size: 0.75rem;">Pengelola Pengadaan Barang/Jasa • BKAD Kota Bogor (Supabase Sync)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: var(--space-4);">
-                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu', 'info')">
-                        <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... 
+                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu (Ctrl+K)', 'info')">
+                        <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
                     </div>
                     <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
                     <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">FE</div>
@@ -712,19 +734,23 @@
                     input.value = '';
                     chatArea.scrollTop = chatArea.scrollHeight;
 
-                    const id = 'bot-' + Date.now();
+                    // Menggunakan UUID generator agar ID chat unik dan tidak bentrok
+                    const id = 'bot-' + Utils.generateId() + Date.now();
                     chatArea.innerHTML += `<div class="chat-msg bot" id="${id}"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble flex gap-1"><span class="animate-pulse">.</span><span class="animate-pulse" style="animation-delay: 0.2s">.</span><span class="animate-pulse" style="animation-delay: 0.4s">.</span></div></div>`;
                     chatArea.scrollTop = chatArea.scrollHeight;
 
                     setTimeout(() => {
-                        let response = "Berdasarkan Perpres pengadaan, untuk pertanyaan tersebut disarankan merujuk pada standar dokumen LKPP terbaru. Anda dapat memanfaatkan fitur Generate di tab Rancangan Kontrak.";
-                        if(msg.toLowerCase().includes('kak') || msg.toLowerCase().includes('laptop')) {
-                            response = "Tentu, saya telah membuatkan kerangka dasar KAK untuk Pengadaan Laptop. Anda bisa menyalinnya atau menggunakan Document Dependency Engine di Workspace.<br><br><b>Spesifikasi Minimal:</b><br>- Prosesor: Core i5 gen 12+<br>- RAM: 16GB DDR4<br>- Storage: 512GB NVMe<br>- TKDN: Minimal 25% (Jika ada)";
-                        } else if(msg.toLowerCase().includes('kelengkapan')) {
-                            response = "Memeriksa paket...<br>Silakan buka tab <b>Checklist</b> pada masing-masing paket pengadaan untuk melihat persentase dokumen yang belum dilengkapi.";
+                        const targetElement = document.getElementById(id);
+                        if(targetElement) {
+                            let response = "Berdasarkan Perpres pengadaan, untuk pertanyaan tersebut disarankan merujuk pada standar dokumen LKPP terbaru. Anda dapat memanfaatkan fitur Generate di tab Rancangan Kontrak.";
+                            if(msg.toLowerCase().includes('kak') || msg.toLowerCase().includes('laptop')) {
+                                response = "Tentu, saya telah membuatkan kerangka dasar KAK untuk Pengadaan Laptop. Anda bisa menyalinnya atau menggunakan Document Dependency Engine di Workspace.<br><br><b>Spesifikasi Minimal:</b><br>- Prosesor: Core i5 gen 12+<br>- RAM: 16GB DDR4<br>- Storage: 512GB NVMe<br>- TKDN: Minimal 25% (Jika ada)";
+                            } else if(msg.toLowerCase().includes('kelengkapan')) {
+                                response = "Memeriksa paket...<br>Silakan buka tab <b>Checklist</b> pada masing-masing paket pengadaan untuk melihat persentase dokumen yang belum dilengkapi.";
+                            }
+                            targetElement.innerHTML = `<div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">${response}</div>`;
+                            chatArea.scrollTop = chatArea.scrollHeight;
                         }
-                        document.getElementById(id).innerHTML = `<div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">${response}</div>`;
-                        chatArea.scrollTop = chatArea.scrollHeight;
                     }, 1000);
                 };
 
@@ -1114,6 +1140,7 @@
                     <div class="flex justify-between items-center mb-4">
                         <div><h2 class="font-bold text-lg text-main">Rincian Harga (HPS, Penawaran, Negosiasi)</h2><p class="text-sm text-muted">Perubahan otomatis disimpan ke Supabase.</p></div>
                         <div class="flex gap-2">
+                            <button class="btn btn-outline text-warning-600 border-warning-200 hover:bg-warning-50" onclick="app.simulateDependencyEngine('BA Negosiasi', '${this.packageId}'); app.printHPS('${this.packageId}');"><i class="ph ph-file-pdf"></i> Cetak BA Negosiasi PDF</button>
                             <button class="btn btn-primary" onclick="app.printHPS('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak PDF HPS</button>
                             <button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button>
                         </div>
@@ -1184,6 +1211,7 @@
                         
                         let items = this.pkg.items || [];
                         items[idx][field] = val;
+                        // Autosave without resetting active tab
                         DB.update('paket', this.packageId, { items });
                         app.notify('Autosave: Harga diperbarui ke API', 'info');
                         this.render(document.getElementById('router-view')); 
@@ -1217,7 +1245,10 @@
                     <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
                             <div><h2 class="font-bold text-lg">Jadwal Otomatis (Dokumen)</h2><p class="text-sm text-muted">Dihitung dari Master Waktu dalam hari kerja mulai dari Tanggal Awal Persiapan.</p></div>
-                            <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'doc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
+                                <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
+                            </div>
                         </div>
                         <table class="data-table">
                             <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Selisih Hari Kerja</th><th>Tanggal Selesai</th></tr></thead>
@@ -1245,7 +1276,10 @@
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
                             <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Perhitungan dinamis berantai dimulai dari Tanggal Awal Persiapan.</p></div>
-                            <button class="btn btn-outline" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal Proses</button>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
+                                <button class="btn btn-outline btn-sm" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal</button>
+                            </div>
                         </div>
                         <table class="data-table">
                             <thead><tr><th>No</th><th>Proses</th><th>Tanggal Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
@@ -1608,6 +1642,40 @@
                 else { chk.push({ doc, status, date: new Date().toISOString().split('T')[0], pic: 'Sistem' }); }
                 DB.update('paket', pkgId, { checklists: chk });
                 this.reRenderCurrentView();
+            }
+
+            editManualJadwal(pkgId, type) {
+                const pkg = DB.getById('paket', pkgId);
+                const holidays = DB.get('libur').map(l => l.date); 
+                let listHtml = '';
+
+                if (type === 'doc') {
+                    const rules = DB.get('waktu');
+                    let dates = {};
+                    listHtml = rules.map((r, i) => {
+                        const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (pkg.tgl_awal || pkg.tgl_mulai) : dates[r.previous] || (pkg.tgl_awal || pkg.tgl_mulai)); 
+                        dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                        return `<div class="form-group"><label class="form-label">${r.name}</label><input type="date" class="form-control" name="doc_${r.id}" value="${dates[r.name]}"></div>`;
+                    }).join('');
+                } else {
+                    const rules = DB.get('jadwal_proses');
+                    let base = pkg.tgl_awal || pkg.tgl_mulai; 
+                    listHtml = rules.map((r, i) => {
+                        const start = Utils.addWorkingDays(base, r.start_after, holidays);
+                        const end = Utils.addWorkingDays(start, r.duration, holidays);
+                        base = end; 
+                        return `<div class="form-group"><label class="form-label">${r.name} (Selesai)</label><input type="date" class="form-control" name="proc_${r.id}" value="${end}"></div>`;
+                    }).join('');
+                }
+
+                const body = `
+                    <div class="bg-warning-50 text-warning-700 p-3 text-sm rounded mb-4">
+                        <b>Perhatian:</b> Fitur ini disiapkan untuk *override* data hasil kalkulasi Master Engine Supabase di masa mendatang.
+                    </div>
+                    <form id="form-manual-jadwal" style="max-height: 50vh; overflow-y:auto; padding-right:8px;">${listHtml}</form>
+                `;
+                
+                DOM.openModal('Edit Manual Jadwal', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.notify('Fitur simpan override tanggal belum diaktifkan', 'info'); DOM.closeModal();">Simpan Overrides</button>`);
             }
 
             // --- Document Dependency Engine ---
