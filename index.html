@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EProc Flow by ersandyf_</title>
+    <title>EProc Flow by ersandyf_ (Enterprise Supabase Edition)</title>
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -50,11 +50,7 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: var(--font-sans); background-color: var(--bg-body);
-            color: var(--text-main); line-height: 1.5; -webkit-font-smoothing: antialiased;
-            overflow: hidden; 
-        }
+        body { font-family: var(--font-sans); background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; -webkit-font-smoothing: antialiased; overflow: hidden; }
         button, input, textarea, select { font-family: inherit; outline: none; }
         
         /* Utility Classes */
@@ -71,45 +67,24 @@
 
         .app-layout { display: flex; height: 100vh; width: 100vw; position: relative; }
         
-        .sidebar {
-            width: 260px; background: var(--bg-surface-glass); backdrop-filter: blur(16px);
-            border-right: 1px solid var(--border-color); display: flex; flex-direction: column;
-            z-index: 40; flex-shrink: 0;
-        }
-        .sidebar-header { 
-            height: 64px; display: flex; flex-direction: column; justify-content: center; 
-            padding: 0 var(--space-4); border-bottom: 1px solid var(--border-color); 
-        }
+        .sidebar { width: 260px; background: var(--bg-surface-glass); backdrop-filter: blur(16px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 40; flex-shrink: 0; }
+        .sidebar-header { height: 64px; display: flex; flex-direction: column; justify-content: center; padding: 0 var(--space-4); border-bottom: 1px solid var(--border-color); }
         .logo-container { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; font-size: 1.125rem; color: var(--primary-600); letter-spacing: -0.02em; }
         .logo-subtitle { font-size: 0.65rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
         
         .sidebar-nav { flex: 1; padding: var(--space-4) var(--space-3); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-5); }
-        .sidebar-nav::-webkit-scrollbar { width: 4px; }
-        .sidebar-nav::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
-        
+        .sidebar-nav::-webkit-scrollbar { width: 4px; } .sidebar-nav::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
         .nav-group { display: flex; flex-direction: column; gap: 2px; }
         .nav-group-title { font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: var(--gray-400); padding: 0 var(--space-3) var(--space-2) var(--space-3); }
-        .nav-item {
-            display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
-            border-radius: var(--radius-sm); color: var(--text-muted); font-weight: 500; font-size: 0.875rem;
-            cursor: pointer; transition: all var(--transition-fast);
-        }
+        .nav-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--text-muted); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition-fast); }
         .nav-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
         .nav-item.active { background-color: var(--primary-50); color: var(--primary-600); font-weight: 600; }
         
         .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-body); position: relative;}
-        .top-header {
-            height: 64px; background: var(--bg-surface-glass); backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--border-color); display: flex; align-items: center;
-            justify-content: space-between; padding: 0 var(--space-6); z-index: 30; flex-shrink: 0;
-        }
+        .top-header { height: 64px; background: var(--bg-surface-glass); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-6); z-index: 30; flex-shrink: 0; }
         .content-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
 
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
-            padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.875rem;
-            cursor: pointer; transition: all var(--transition-fast); border: 1px solid transparent;
-        }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition-fast); border: 1px solid transparent; }
         .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
         .btn-primary { background-color: var(--primary-600); color: white; box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2); }
         .btn-primary:hover { background-color: var(--primary-700); transform: translateY(-1px); }
@@ -118,7 +93,6 @@
         .btn-ghost { background-color: transparent; color: var(--text-muted); }
         .btn-ghost:hover { background-color: var(--bg-hover); color: var(--text-main); }
         .btn-danger { background-color: var(--danger-500); color: white; }
-        .btn-danger:hover { background-color: var(--danger-500); opacity: 0.9;}
 
         .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; }
         .badge-success { background: var(--success-50); color: var(--success-600); border: 1px solid rgba(22,163,74,0.2); }
@@ -138,7 +112,6 @@
         .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
         .data-table th { background: var(--gray-50); padding: var(--space-3) var(--space-4); font-weight: 600; color: var(--gray-600); border-bottom: 1px solid var(--border-color); white-space: nowrap;}
         .data-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-color); color: var(--gray-800); }
-        .data-table tr:last-child td { border-bottom: none; }
         .data-table tr:hover td { background-color: var(--gray-50); }
         
         /* Forms & Inputs */
@@ -180,18 +153,12 @@
         .timeline-indicator { display: flex; flex-direction: column; align-items: center; width: 14px; margin-top: 4px; }
         .timeline-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border-color); background: var(--bg-surface); z-index: 2; transition: all 0.3s; }
         .timeline-dot.completed { border-color: var(--success-500); background: var(--success-500); }
-        .timeline-dot.active { border-color: var(--primary-600); background: var(--bg-surface); border-width: 4px; box-shadow: 0 0 0 4px var(--primary-100); }
         .timeline-content { flex: 1; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-sm); }
-        .timeline-node.active .timeline-content { border-color: var(--primary-200); background: var(--primary-50); }
 
         /* Toast */
         .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
         .toast { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; box-shadow: var(--shadow-float); display: flex; align-items: center; gap: 12px; font-size: 0.875rem; font-weight: 500; animation: slideIn 0.3s ease forwards; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-        /* Document Grid */
-        .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
-        .doc-card { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-4); background: var(--bg-surface); display: flex; flex-direction: column; gap: var(--space-3); }
 
         /* Chat UI */
         .chat-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: var(--bg-body); }
@@ -208,7 +175,6 @@
         .chat-input-box { display: flex; align-items: flex-end; gap: var(--space-2); background: var(--gray-50); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-2); }
         .chat-input-box textarea { flex: 1; background: transparent; border: none; resize: none; padding: 8px; max-height: 120px; min-height: 40px; font-family: inherit; font-size: 0.875rem; }
         .chat-input-box button { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-600); color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
-        .chat-input-box button:hover { background: var(--primary-700); }
         .chat-suggestions { display: flex; gap: var(--space-2); padding-bottom: var(--space-3); overflow-x: auto; scrollbar-width: none;}
         .chat-suggestion-chip { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-full); padding: 6px 12px; font-size: 0.75rem; white-space: nowrap; cursor: pointer; transition: 0.2s; }
         .chat-suggestion-chip:hover { border-color: var(--primary-500); color: var(--primary-600); background: var(--primary-50); }
@@ -223,11 +189,13 @@
         .page-btn:hover:not(:disabled) { background: var(--gray-50); }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .page-btn.active { background: var(--primary-600); color: white; border-color: var(--primary-600); }
+        
+        #global-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
     </style>
 </head>
 <body>
 
-    <div class="app-layout" id="app-root">
+    <div class="app-layout" id="app-root" style="display: none;">
         
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -288,10 +256,10 @@
             <header class="top-header">
                 <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column;">
                     <span class="font-semibold text-main">Farhan Ersandy</span>
-                    <span style="font-size: 0.75rem;">Pengelola Pengadaan Barang/Jasa • BKAD Kota Bogor</span>
+                    <span style="font-size: 0.75rem;">Pengelola Pengadaan Barang/Jasa • BKAD Kota Bogor (Supabase Sync)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: var(--space-4);">
-                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Spotlight Search (Ctrl+K) dipicu', 'info')">
+                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu (Ctrl+K)', 'info')">
                         <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
                     </div>
                     <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
@@ -319,18 +287,30 @@
         <div class="toast-container" id="toast-container"></div>
     </div>
 
+    <!-- Global Loader -->
+    <div id="global-loader">
+        <i class="ph ph-spinner ph-spin text-5xl text-primary-600"></i>
+        <p class="font-medium text-gray-600">Menghubungkan ke Supabase...</p>
+    </div>
+
     <script>
+        // -----------------------------------------------------
+        // 1. UTILITIES
+        // -----------------------------------------------------
         const Utils = {
-            formatCurrency: (amount) => amount ? new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amount) : 'Rp 0',
-            formatDate: (dateString) => {
-                if(!dateString) return '-';
-                const d = new Date(dateString);
-                return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+            formatNumber: (amount) => new Intl.NumberFormat('id-ID').format(Number(amount) || 0),
+            formatCurrency: (amount) => { 
+                const v = Number(amount); 
+                return Number.isFinite(v) && v !== 0 ? new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0,maximumFractionDigits:0}).format(v) : ''; 
             },
-            formatDateTime: (dateString) => {
-                if(!dateString) return '-';
-                const d = new Date(dateString);
-                return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour:'2-digit', minute:'2-digit' }).format(d);
+            formatDate: (dateString) => { 
+                if(!dateString) return '-'; 
+                return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(dateString)); 
+            },
+            formatDateShort: (dateString) => { 
+                if(!dateString) return '-'; 
+                const d = new Date(dateString); 
+                return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; 
             },
             getBadge: (status) => {
                 const text = status ? status.toString().toUpperCase() : 'UNKNOWN';
@@ -343,124 +323,146 @@
                 return `<span class="badge ${map[text] || 'badge-neutral'}">${text}</span>`;
             },
             generateId: () => {
-                try {
-                    return crypto.randomUUID().split('-')[0].toUpperCase();
-                } catch(e) {
-                    return Math.random().toString(36).substring(2, 10).toUpperCase();
-                }
+                try { return crypto.randomUUID().split('-')[0].toUpperCase(); } 
+                catch(e) { return Math.random().toString(36).substring(2, 10).toUpperCase(); }
             },
             addWorkingDays: (startDate, days, holidays = []) => {
-                let date = new Date(startDate);
-                let added = 0;
-                while (added < days) {
-                    date.setDate(date.getDate() + 1);
-                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                    const dateStr = date.toISOString().split('T')[0];
-                    const isHoliday = holidays.includes(dateStr);
-                    if (!isWeekend && !isHoliday) added++;
+                let date = new Date(startDate); let added = 0;
+                while (added < days) { 
+                    date.setDate(date.getDate() + 1); 
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6; 
+                    const dateStr = date.toISOString().split('T')[0]; 
+                    if (!isWeekend && !holidays.includes(dateStr)) added++; 
                 }
                 return date.toISOString().split('T')[0];
+            },
+            toWords: function(n) {
+                const a=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas']; 
+                n = Math.floor(Number(n)||0);
+                if(n<12) return a[n]; 
+                if(n<20) return this.toWords(n-10)+' belas'; 
+                if(n<100) return this.toWords(Math.floor(n/10))+' puluh '+this.toWords(n%10);
+                if(n<200) return 'seratus '+this.toWords(n-100); 
+                if(n<1000) return this.toWords(Math.floor(n/100))+' ratus '+this.toWords(n%100);
+                if(n<2000) return 'seribu '+this.toWords(n-1000); 
+                if(n<1000000) return this.toWords(Math.floor(n/1000))+' ribu '+this.toWords(n%1000);
+                if(n<1000000000) return this.toWords(Math.floor(n/1000000))+' juta '+this.toWords(n%1000000); 
+                return String(n);
             }
         };
 
+        // -----------------------------------------------------
+        // 2. SUPABASE CONFIG & DB LOGIC
+        // -----------------------------------------------------
+        const SUPABASE_URL = 'https://wduukpwuhmvzzccdaopr.supabase.co/rest/v1';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkdXVrcHd1aG12enpjY2Rhb3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzNjQwOTksImV4cCI6MjA5OTk0MDA5OX0.pDrPLzLDbkmvUBbwfv3KxNieHeFDQpoJJJaLre5XQrM';
+
+        const TABLE_MAP = {
+            'pejabat': 'profiles', 'penyedia': 'suppliers', 'template': 'document_templates', 'penomoran': 'document_number_rules',
+            'waktu': 'schedule_document_rules', 'jadwal_proses': 'schedule_process_rules', 'paket': 'packages', 'documents': 'generated_documents',
+            'jenis': 'jenis_pengadaan', 'kontrak': 'jenis_kontrak', 'libur': 'libur'
+        };
+
+        const DEFAULTS = {
+            lokasi: 'BKAD Kota Bogor, Jl. Pemuda No.31, RT.01/RW.06, Tanah Sareal, Kota Bogor, Jawa Barat 16162',
+            opd: 'BKAD Kota Bogor', bidang: 'Bidang Pengelolaan Barang Milik Daerah',
+            kode_program: '5.02.03', program: 'PROGRAM PENGELOLAAN BARANG MILIK DAERAH',
+            kode_kegiatan: '5.02.03.2.01', kegiatan: 'Pengelolaan Barang Milik Daerah',
+            metode_pemilihan: 'Pengadaan Langsung', durasi_kontrak: 30
+        };
+
         const DB = {
-            init() {
-                if (!localStorage.getItem('db_initialized_v2')) {
-                    const seedData = {
-                        packages: [
-                            { 
-                                id: 'PKT-26-A1', name: 'Pengadaan Laptop Kedinasan', stage: 'PERSIAPAN', progress: 15,
-                                // Data Paket (Single Source of Truth)
-                                lokasi: 'Kota Bogor', tahun_anggaran: '2026', opd: 'Badan Keuangan dan Aset Daerah', bidang: 'Bidang Pengelolaan Barang Milik Daerah', program: 'Program Dukungan Manajemen', kegiatan: 'Penyediaan Peralatan dan Perlengkapan Kantor', sub_kegiatan: 'Pengadaan Alat Kantor', kode_program: '1.01.01', kode_kegiatan: '1.01.01.2.06', kode_sub_kegiatan: '1.01.01.2.06.02', nama_sub_kegiatan: 'Pengadaan Alat Kantor', kode_rekening: '5.2.2.01.01', nama_rekening: 'Belanja Modal Komputer', kode_rup: '45678912', kode_mak: '01.02.03.04', jenis_pengadaan: 'Barang', jenis_kontrak: 'Lumsum', metode_pemilihan: 'E-Purchasing', keyword_penomoran: 'PENGADAAN-IT', sumber_dana: 'APBD', cara_pembayaran: 'Sekaligus', durasi_kontrak: 30, tgl_mulai: '2026-08-01', tgl_selesai: '2026-08-30',
-                                // Pejabat
-                                ppk_id: 'PJB-01', pp_id: 'PJB-03', pptk_id: '', bendahara_id: '', tim_teknis: [],
-                                // Penyedia
-                                supplier_id: '',
-                                // Harga Items
-                                items: [
-                                    { id: 1, uraian: 'Laptop Core i5 Gen 12', sat: 'Unit', vol_hps: 10, harga_hps: 15000000, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }
-                                ],
-                                // Checklist
-                                checklists: [
-                                    { doc: 'KAK', status: true, date: '2026-07-15', pic: 'PPK' }, { doc: 'HPS', status: false, date: '', pic: 'PPK' }
-                                ]
-                            },
-                            { 
-                                id: 'PKT-26-B2', name: 'Renovasi Gedung Arsip Utama', stage: 'KONTRAK', progress: 75,
-                                lokasi: 'Kota Bogor', tahun_anggaran: '2026', opd: 'Badan Keuangan dan Aset Daerah', bidang: 'Bidang Arsip', program: 'Program Penataan Bangunan', kegiatan: 'Rehabilitasi Gedung', sub_kegiatan: 'Renovasi Interior', kode_program: '2.01', kode_kegiatan: '2.01.1', kode_sub_kegiatan: '2.01.1.1', nama_sub_kegiatan: 'Renovasi', kode_rekening: '5.2.3.01', nama_rekening: 'Belanja Modal Gedung', kode_rup: '98765432', kode_mak: '02.03.04', jenis_pengadaan: 'Pekerjaan Konstruksi', jenis_kontrak: 'Harga Satuan', metode_pemilihan: 'Tender', keyword_penomoran: 'RENOV-ARSIP', sumber_dana: 'APBD', cara_pembayaran: 'Termin', durasi_kontrak: 90, tgl_mulai: '2026-07-01', tgl_selesai: '2026-09-30',
-                                ppk_id: 'PJB-01', pp_id: '', pptk_id: 'PJB-02', bendahara_id: '', tim_teknis: [{nama: 'Andi ST', nip: '1990', jabatan: 'Ahli Sipil'}],
-                                supplier_id: 'VND-01',
-                                items: [
-                                    { id: 1, uraian: 'Pekerjaan Persiapan', sat: 'Ls', vol_hps: 1, harga_hps: 50000000, vol_pen: 1, harga_pen: 49000000, vol_neg: 1, harga_neg: 49000000, pajak: 11 },
-                                    { id: 2, uraian: 'Pekerjaan Arsitektur', sat: 'Ls', vol_hps: 1, harga_hps: 795000000, vol_pen: 1, harga_pen: 791000000, vol_neg: 1, harga_neg: 786000000, pajak: 11 }
-                                ],
-                                checklists: [
-                                    { doc: 'KAK', status: true, date: '2026-05-10', pic: 'PPK' }, { doc: 'HPS', status: true, date: '2026-05-15', pic: 'PPK' }, { doc: 'BA Reviu', status: true, date: '2026-05-20', pic: 'Pokja' }, { doc: 'SPK/Kontrak', status: true, date: '2026-07-15', pic: 'PPK & Penyedia' }
-                                ]
-                            }
-                        ],
-                        pejabat: [
-                            { id: 'PJB-01', nip: '198001012005011001', name: 'Drs. H. Ahmad Rizal', role: 'PPK', department: 'Bidang A', status: 'Aktif' },
-                            { id: 'PJB-02', nip: '197505052000031002', name: 'Ir. Budi Santoso', role: 'PPTK', department: 'Bidang B', status: 'Aktif' },
-                            { id: 'PJB-03', nip: '198212122008012003', name: 'Siti Aminah, S.Kom', role: 'Pejabat Pengadaan', department: 'Umum', status: 'Aktif' }
-                        ],
-                        penyedia: [
-                            { id: 'VND-01', name: 'PT. Bangun Nusantara', direktur: 'Budi Hartono', jabatan_direktur: 'Direktur Utama', npwp: '01.234.567.8-901.000', nib: '1234567890123', no_izin: 'IUJK-2023-001', address: 'Jl. Merdeka No. 1, Bogor', email: 'contact@bangun.co.id', telepon: '0251-123456', bank: 'Bank Jabar Banten (BJB)', no_rekening: '123-456-789', an_rekening: 'PT Bangun Nusantara', type: 'Badan Usaha', status: 'Aktif' },
-                            { id: 'VND-02', name: 'CV. Maju Jaya', direktur: 'Agus Salim', jabatan_direktur: 'Direktur', npwp: '02.345.678.9-012.000', nib: '3210987654321', no_izin: 'NIB-2021-99', address: 'Jl. Sudirman No. 10, Bogor', email: 'maju@jaya.com', telepon: '0251-654321', bank: 'Bank Mandiri', no_rekening: '098-765-432', an_rekening: 'CV Maju Jaya', type: 'Badan Usaha', status: 'Aktif' }
-                        ],
-                        templates: [
-                            { id: 'TPL-01', code: 'KAK-01', name: 'Template KAK Barang', type: 'Barang', last_updated: '2026-01-10' },
-                            { id: 'TPL-02', code: 'HPS-01', name: 'Template HPS Standar', type: 'Umum', last_updated: '2026-01-15' }
-                        ],
-                        penomoran: [
-                            { id: 'NUM-01', code: 'SPK', format: '000/SPK/[DEPT]/[MM]/[YYYY]', counter: 15 },
-                            { id: 'NUM-02', code: 'BAST', format: '000/BAST/[DEPT]/[MM]/[YYYY]', counter: 8 }
-                        ],
-                        jenis_pengadaan: [ { id: 'JP-1', name: 'Barang' }, { id: 'JP-2', name: 'Pekerjaan Konstruksi' }, { id: 'JP-3', name: 'Jasa Konsultansi' }, { id: 'JP-4', name: 'Jasa Lainnya' } ],
-                        jenis_kontrak: [ { id: 'JK-1', name: 'Lumsum' }, { id: 'JK-2', name: 'Harga Satuan' }, { id: 'JK-3', name: 'Gabungan' }, { id: 'JK-4', name: 'Katalog' } ],
-                        libur: [ { id: 'HOL-1', date: '2026-08-17', desc: 'Hari Kemerdekaan RI' } ],
-                        documents: [
-                            { id: 'DOC-1', packageId: 'PKT-26-B2', docType: 'KAK', name: 'KAK_PKT-26-B2_v1.pdf', status: 'FINAL', category: 'Sistem', date: '2026-05-10' },
-                            { id: 'DOC-2', packageId: 'PKT-26-B2', docType: 'HPS', name: 'HPS_PKT-26-B2_v1.pdf', status: 'FINAL', category: 'Sistem', date: '2026-05-15' }
-                        ],
-                        activities: [],
-                        settings: [ { id: 'SET-1', key: 'app_name', value: 'ProcFlow Enterprise' }, { id: 'SET-2', key: 'theme', value: 'light' } ]
-                    };
-                    
-                    for (const [table, data] of Object.entries(seedData)) {
-                        localStorage.setItem(`pf_${table}`, JSON.stringify(data));
-                    }
-                    localStorage.setItem('db_initialized_v2', 'true');
+            cache: {}, isReady: false,
+            
+            async init() {
+                if (this.isReady) return;
+                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'generated_documents', 'package_items', 'jenis_pengadaan', 'jenis_kontrak', 'libur'];
+                
+                await Promise.all(coreTables.map(async (table) => {
+                    try {
+                        const res = await fetch(`${SUPABASE_URL}/${table}?order=created_at.desc`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
+                        this.cache[table] = res.ok ? await res.json() : [];
+                    } catch(e) { this.cache[table] = []; }
+                }));
+
+                // Relational logic: attach items to packages
+                if (this.cache['packages'] && this.cache['package_items']) {
+                    this.cache['packages'].forEach(pkg => pkg.items = this.cache['package_items'].filter(i => i.package_id === pkg.id) || []);
                 }
+
+                this.isReady = true;
+                const loader = document.getElementById('global-loader'); if(loader) loader.style.display = 'none';
+                const appRoot = document.getElementById('app-root'); if(appRoot) appRoot.style.display = 'flex';
             },
-            get(table) { return JSON.parse(localStorage.getItem(`pf_${table}`) || '[]'); },
+
+            async _sync(method, localTable, payload = null, id = null) {
+                const sbTable = TABLE_MAP[localTable] || localTable;
+                let url = `${SUPABASE_URL}/${sbTable}`;
+                if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
+                
+                const options = { method, headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' } };
+                if (payload && method !== 'DELETE') options.body = JSON.stringify(payload);
+                try { await fetch(url, options); } catch(e) { console.error('Sync Error', e); }
+            },
+
+            get(table) { return this.cache[TABLE_MAP[table] || table] || []; },
             getById(table, id) { return this.get(table).find(i => i.id === id); },
-            save(table, data) { localStorage.setItem(`pf_${table}`, JSON.stringify(data)); },
+            
             insert(table, payload) {
-                const data = this.get(table);
+                const sbTable = TABLE_MAP[table] || table;
                 const newItem = { id: Utils.generateId(), created_at: new Date().toISOString(), ...payload };
-                data.unshift(newItem);
-                this.save(table, data);
+                if(!this.cache[sbTable]) this.cache[sbTable] = [];
+                this.cache[sbTable].unshift(newItem);
+                this._sync('POST', table, newItem);
                 return newItem;
             },
+
             update(table, id, payload) {
+                const sbTable = TABLE_MAP[table] || table;
                 const data = this.get(table);
                 const index = data.findIndex(i => i.id === id);
                 if(index > -1) {
-                    data[index] = { ...data[index], ...payload };
-                    this.save(table, data);
-                    return data[index];
+                    if (table === 'paket') {
+                        if (payload.pagu !== undefined) payload.pagu = Number(String(payload.pagu).replace(/\D/g, '')) || 0;
+                        const current = data[index] || {};
+                        const start = payload.tgl_mulai || current.tgl_mulai;
+                        const duration = Number(payload.durasi_kontrak !== undefined ? payload.durasi_kontrak : current.durasi_kontrak);
+                        if (start && Number.isFinite(duration)) { 
+                            const end = new Date(`${start}T00:00:00`); 
+                            end.setDate(end.getDate() + duration); 
+                            payload.tgl_selesai = end.toISOString().split('T')[0]; 
+                        }
+                    }
+
+                    const updated = { ...data[index], ...payload };
+                    data[index] = updated;
+
+                    if (sbTable === 'packages' && payload.items !== undefined) {
+                        const items = payload.items.map(item => ({ ...item, package_id: id }));
+                        (async () => {
+                            try {
+                                await fetch(`${SUPABASE_URL}/package_items?package_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
+                                if(items.length > 0) await fetch(`${SUPABASE_URL}/package_items`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(items) });
+                            } catch (e) { console.error(e); }
+                        })();
+                        const cpy = { ...payload }; delete cpy.items;
+                        this._sync('PATCH', table, cpy, id);
+                    } else {
+                        this._sync('PATCH', table, payload, id);
+                    }
+                    return updated;
                 }
                 return null;
             },
+
             delete(table, id) {
-                let data = this.get(table);
-                data = data.filter(i => i.id !== id);
-                this.save(table, data);
+                const sbTable = TABLE_MAP[table] || table;
+                this.cache[sbTable] = this.cache[sbTable].filter(i => i.id !== id);
+                this._sync('DELETE', table, null, id);
             },
-            // Helper for dynamic calculation
+            
             calculatePackageTotals(pkg) {
-                let pagu = 0, hps = 0, penawaran = 0, negosiasi = 0;
+                let pagu = Number(pkg.pagu) || 0, hps = 0, penawaran = 0, negosiasi = 0;
                 if(pkg.items && pkg.items.length > 0) {
                     pkg.items.forEach(i => {
                         const tax = 1 + (Number(i.pajak) || 0) / 100;
@@ -473,290 +475,138 @@
             }
         };
 
+        // -----------------------------------------------------
+        // 3. SCHEMAS
+        // -----------------------------------------------------
         const Schemas = {
-            pejabat: {
-                title: 'Data Pejabat', table: 'pejabat',
-                fields: [
-                    { key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' },
-                    { key: 'name', label: 'Nama Lengkap', type: 'text', required: true },
-                    { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true },
-                    { key: 'department', label: 'Unit Kerja', type: 'text', required: true },
-                    { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }
-                ]
-            },
-            penyedia: {
-                title: 'Data Penyedia', table: 'penyedia',
-                fields: [
-                    { key: 'name', label: 'Nama Perusahaan', type: 'text', required: true },
-                    { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' },
-                    { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true },
-                    { key: 'type', label: 'Bentuk Usaha', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true },
-                    { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }
-                ]
-            },
-            template: {
-                title: 'Template Dokumen', table: 'templates',
-                fields: [
-                    { key: 'code', label: 'Kode', type: 'text', required: true, width: '100px' },
-                    { key: 'name', label: 'Nama Template', type: 'text', required: true },
-                    { key: 'type', label: 'Jenis', type: 'select', options: ['Barang', 'Konstruksi', 'Konsultansi', 'Jasa Lainnya', 'Umum'], required: true },
-                    { key: 'last_updated', label: 'Tgl Update', type: 'date', formatter: Utils.formatDate }
-                ]
-            },
-            penomoran: {
-                title: 'Format Penomoran', table: 'penomoran',
-                fields: [
-                    { key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' },
-                    { key: 'format', label: 'Format Penomoran', type: 'text', required: true },
-                    { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }
-                ]
-            },
-            jenis: { title: 'Jenis Pengadaan', table: 'jenis_pengadaan', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
-            kontrak: { title: 'Jenis Kontrak', table: 'jenis_kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
+            pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
+            penyedia: { title: 'Data Penyedia', table: 'penyedia', fields: [{ key: 'name', label: 'Nama Perusahaan', type: 'text', required: true }, { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, { key: 'type', label: 'Bentuk Usaha', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, { key: 'no_izin', label: 'Nomor Izin (IUJK/dll)', type: 'text', hideInTable: true }, { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, { key: 'bank', label: 'Bank', type: 'text', hideInTable: true }, { key: 'no_rekening', label: 'Nomor Rekening', type: 'text', hideInTable: true }, { key: 'an_rekening', label: 'Atas Nama Rekening', type: 'text', hideInTable: true }, { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }] },
+            template: { title: 'Template Dokumen', table: 'template', fields: [{ key: 'code', label: 'Kode', type: 'text', required: true, width: '100px' }, { key: 'name', label: 'Nama Template', type: 'text', required: true }, { key: 'type', label: 'Jenis', type: 'select', options: ['Barang', 'Konstruksi', 'Konsultansi', 'Jasa Lainnya', 'Umum'], required: true }, { key: 'last_updated', label: 'Tgl Update', type: 'date', formatter: Utils.formatDate }] },
+            penomoran: { title: 'Format Penomoran', table: 'penomoran', fields: [{ key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' }, { key: 'format', label: 'Format Penomoran', type: 'text', required: true }, { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }] },
+            jenis: { title: 'Jenis Pengadaan', table: 'jenis', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
+            kontrak: { title: 'Jenis Kontrak', table: 'kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
             libur: { title: 'Hari Libur Nasional', table: 'libur', fields: [{ key: 'date', label: 'Tanggal', type: 'date', required: true, formatter: Utils.formatDate }, { key: 'desc', label: 'Keterangan', type: 'text', required: true }] },
-            paket: {
-                title: 'Daftar Paket Pengadaan', table: 'packages',
-                fields: [
-                    { key: 'id', label: 'ID Paket', type: 'text', readOnly: true },
-                    { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true },
-                    { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true },
-                    { key: 'stage', label: 'Tahapan', type: 'select', options: ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge },
-                    { key: 'tahun_anggaran', label: 'T.A', type: 'text' }
-                ]
-            }
+            waktu: { title: 'Master Waktu Dokumen', table: 'waktu', fields: [{ key: 'name', label: 'Tahap/Dokumen', type: 'text', required: true }, { key: 'previous', label: 'Mengikuti Jadwal Sebelumnya', type: 'text', required: true }, { key: 'days', label: 'Selisih Hari Kerja', type: 'number', required: true }, { key: 'anchor', label: 'Acuan', type: 'select', options: ['mulai', 'selesai'] }] },
+            jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
+            paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
         };
 
         const DOM = {
             openModal(title, bodyHTML, footerHTML) {
-                document.getElementById('modal-title').innerText = title;
-                document.getElementById('modal-body').innerHTML = bodyHTML;
-                document.getElementById('modal-footer').innerHTML = footerHTML;
+                document.getElementById('modal-title').innerText = title; 
+                document.getElementById('modal-body').innerHTML = bodyHTML; 
+                document.getElementById('modal-footer').innerHTML = footerHTML; 
                 document.getElementById('global-modal').classList.add('active');
             },
-            closeModal() {
-                document.getElementById('global-modal').classList.remove('active');
-            },
-            getFormData(formId) {
-                const form = document.getElementById(formId);
-                const formData = new FormData(form);
-                return Object.fromEntries(formData.entries());
+            closeModal() { document.getElementById('global-modal').classList.remove('active'); },
+            getFormData(formId) { 
+                const formData = new FormData(document.getElementById(formId)); 
+                return Object.fromEntries(formData.entries()); 
             }
         };
 
+        // -----------------------------------------------------
+        // 4. CRUD ENGINE
+        // -----------------------------------------------------
         class CRUDEngine {
             constructor(schemaKey) {
-                this.schemaKey = schemaKey;
-                this.schema = Schemas[schemaKey];
-                if(!this.schema) throw new Error(`Schema ${schemaKey} not found`);
-                this.data = [];
-                this.filteredData = [];
-                this.currentPage = 1;
-                this.itemsPerPage = 10;
-                this.searchQuery = '';
+                this.schemaKey = schemaKey; this.schema = Schemas[schemaKey];
+                this.filteredData = []; this.currentPage = 1; this.itemsPerPage = 10; this.searchQuery = '';
             }
 
-            async loadData() {
-                this.data = DB.get(this.schema.table);
-                // Reverse data so newest is first
-                this.data.reverse(); 
-                this.applyFilters();
-            }
-
-            applyFilters() {
+            loadData() {
+                const data = [...DB.get(this.schema.table)];
                 if(this.searchQuery) {
-                    const lowerQ = this.searchQuery.toLowerCase();
-                    this.filteredData = this.data.filter(item => {
-                        return Object.values(item).some(val => String(val).toLowerCase().includes(lowerQ));
-                    });
-                } else {
-                    this.filteredData = [...this.data];
-                }
-                this.currentPage = 1;
+                    const lq = this.searchQuery.toLowerCase();
+                    this.filteredData = data.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(lq)));
+                } else { this.filteredData = data; }
             }
 
             render(container) {
-                let html = `
+                this.loadData();
+                container.innerHTML = `
                     <div class="p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6">
-                            <div>
-                                <h1 class="text-2xl font-bold text-main">${this.schema.title}</h1>
-                                <p class="text-muted text-sm mt-1">Manajemen data ${this.schema.title.toLowerCase()} sistem.</p>
-                            </div>
+                            <div><h1 class="text-2xl font-bold text-main">${this.schema.title}</h1><p class="text-muted text-sm mt-1">Live Sync dari Supabase.</p></div>
                             <button class="btn btn-primary" onclick="app.crudEngine.showForm()"><i class="ph ph-plus"></i> Tambah Data</button>
                         </div>
-                        
                         <div class="card flex-1 flex flex-col overflow-hidden">
                             <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                                 <div class="flex gap-2 items-center w-full max-w-md">
-                                    <div class="form-control flex items-center gap-2 bg-white" style="padding:4px 12px;">
-                                        <i class="ph ph-magnifying-glass text-muted"></i>
-                                        <input type="text" id="crud-search" placeholder="Cari data..." style="border:none; outline:none; background:transparent; width:100%; padding:4px 0;" value="${this.searchQuery}">
-                                    </div>
+                                    <div class="form-control flex items-center gap-2 bg-white" style="padding:4px 12px;"><i class="ph ph-magnifying-glass text-muted"></i><input type="text" id="crud-search" placeholder="Cari data..." style="border:none; outline:none; background:transparent; width:100%; padding:4px 0;" value="${this.searchQuery}"></div>
                                     <button class="btn btn-outline btn-sm" onclick="app.crudEngine.handleSearch()"><i class="ph ph-funnel"></i> Cari</button>
                                 </div>
-                                <div class="flex gap-2">
-                                    <button class="btn btn-ghost btn-sm" onclick="app.crudEngine.refresh()"><i class="ph ph-arrows-clockwise"></i></button>
-                                </div>
+                                <div class="flex gap-2"><button class="btn btn-ghost btn-sm" onclick="app.crudEngine.refresh()"><i class="ph ph-arrows-clockwise"></i> Sync API</button></div>
                             </div>
-                            
-                            <div class="flex-1 overflow-auto">
-                                ${this.renderTable()}
-                            </div>
-                            
+                            <div class="flex-1 overflow-auto">${this.renderTable()}</div>
                             ${this.renderPagination()}
                         </div>
                     </div>
                 `;
-                container.innerHTML = html;
-                
-                const searchInput = document.getElementById('crud-search');
-                if(searchInput) {
-                    searchInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') this.handleSearch(); });
-                }
+                const si = document.getElementById('crud-search');
+                if(si) si.addEventListener('keypress', (e) => { if(e.key === 'Enter') this.handleSearch(); });
             }
 
-            handleSearch() {
-                this.searchQuery = document.getElementById('crud-search').value;
-                this.applyFilters();
-                app.reRenderCurrentView();
-            }
-
-            refresh() {
-                this.searchQuery = '';
-                this.loadData();
-                app.reRenderCurrentView();
-                app.notify('Data diperbarui', 'info');
-            }
+            handleSearch() { this.searchQuery = document.getElementById('crud-search').value; this.currentPage = 1; app.reRenderCurrentView(); }
+            async refresh() { this.searchQuery = ''; app.reRenderCurrentView(); app.notify('Sinkronisasi selesai', 'info'); }
 
             renderTable() {
                 if(this.filteredData.length === 0) return `<div class="empty-state"><i class="ph ph-database text-4xl mb-3"></i><p>Tidak ada data ditemukan.</p></div>`;
-
-                const start = (this.currentPage - 1) * this.itemsPerPage;
-                const paginatedData = this.filteredData.slice(start, start + this.itemsPerPage);
-                const fields = this.schema.fields.filter(f => !f.hideInTable);
-
+                const start = (this.currentPage - 1) * this.itemsPerPage; const paginated = this.filteredData.slice(start, start + this.itemsPerPage); const fields = this.schema.fields.filter(f => !f.hideInTable);
                 let thead = `<tr><th style="width:50px">No</th>` + fields.map(f => `<th style="width:${f.width||'auto'}">${f.label}</th>`).join('') + `<th style="width:100px; text-align:right;">Aksi</th></tr>`;
-                
-                let tbody = paginatedData.map((item, index) => {
-                    let tds = `<td>${start + index + 1}</td>`;
-                    tds += fields.map(f => {
-                        let val = item[f.key] || '-';
-                        if(f.formatter) val = f.formatter(val);
-                        return `<td>${val}</td>`;
-                    }).join('');
-                    
-                    let actions = `
-                        <div class="flex justify-end gap-1">
-                            ${this.schemaKey === 'paket' 
-                                ? `<button class="btn btn-ghost btn-sm text-primary" title="Buka Workspace Paket" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button><button class="btn btn-ghost btn-sm text-primary" title="Edit Paket" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" title="Hapus Paket" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`
-                                : `<button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
-                                   <button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`}
-                        </div>`;
-                    
-                    return `<tr>${tds}<td>${actions}</td></tr>`;
+                let tbody = paginated.map((item, index) => {
+                    let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
+                    let act = this.schemaKey === 'paket' 
+                        ? `<button class="btn btn-ghost btn-sm text-primary" title="Buka Workspace" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button><button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>` 
+                        : `<button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
+                    return `<tr>${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
                 }).join('');
-
                 return `<table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
             }
 
             renderPagination() {
                 const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
                 if(totalPages <= 1) return '';
-
-                let btns = '';
-                for(let i=1; i<=totalPages; i++) {
-                    btns += `<button class="page-btn ${this.currentPage === i ? 'active' : ''}" onclick="app.crudEngine.changePage(${i})">${i}</button>`;
-                }
-
-                return `
-                    <div class="pagination">
-                        <div class="page-info">Menampilkan ${this.filteredData.length} data</div>
-                        <div class="page-controls">
-                            <button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage-1})"><i class="ph ph-caret-left"></i></button>
-                            ${btns}
-                            <button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage+1})"><i class="ph ph-caret-right"></i></button>
-                        </div>
-                    </div>
-                `;
+                let btns = ''; for(let i=1; i<=totalPages; i++) btns += `<button class="page-btn ${this.currentPage === i ? 'active' : ''}" onclick="app.crudEngine.changePage(${i})">${i}</button>`;
+                return `<div class="pagination"><div class="page-info">Menampilkan ${this.filteredData.length} data</div><div class="page-controls"><button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage-1})"><i class="ph ph-caret-left"></i></button>${btns}<button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage+1})"><i class="ph ph-caret-right"></i></button></div></div>`;
             }
 
-            changePage(page) {
-                this.currentPage = page;
-                app.reRenderCurrentView();
-            }
+            changePage(page) { this.currentPage = page; app.reRenderCurrentView(); }
 
             showForm(id = null) {
                 if(this.schemaKey === 'paket' && !id) {
-                    // Create basic package skeleton and route to workspace
-                    const newPkg = DB.insert('packages', { 
-                        name: 'Paket Pengadaan Baru', stage: 'PERSIAPAN', progress: 0, 
-                        opd: 'Badan Keuangan dan Aset Daerah', bidang: 'Bidang Pengelolaan Barang Milik Daerah',
-                        tahun_anggaran: new Date().getFullYear().toString(),
-                        items: [], checklists: []
-                    });
-                    app.navigate('workspace', newPkg.id);
-                    return;
+                    const today = new Date().toISOString().split('T')[0];
+                    const pjb = DB.get('pejabat'); const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
+                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[] });
+                    app.navigate('workspace', newPkg.id); return;
                 }
-
-                const item = (id ? DB.getById(this.schema.table, id) : {}) || {};
-                const title = id ? `Edit ${this.schema.title}` : `Tambah ${this.schema.title}`;
-                
-                let fieldsHtml = this.schema.fields.map(f => {
-                    let input = '';
-                    const val = item[f.key] !== undefined ? item[f.key] : '';
-                    const required = f.required ? 'required' : '';
-                    const readOnly = f.readOnly ? 'readonly disabled' : '';
-
-                    if(f.type === 'select') {
-                        let opts = f.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('');
-                        input = `<select name="${f.key}" class="form-control" ${required} ${readOnly}><option value="">Pilih...</option>${opts}</select>`;
-                    } else if(f.type === 'textarea') {
-                        input = `<textarea name="${f.key}" class="form-control" rows="3" ${required} ${readOnly}>${val}</textarea>`;
-                    } else {
-                        input = `<input type="${f.type}" name="${f.key}" class="form-control" value="${val}" ${required} ${readOnly}>`;
-                    }
-                    return `<div class="form-group"><label class="form-label">${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>${input}</div>`;
+                const item = id ? DB.getById(this.schema.table, id) : {};
+                const fieldsHtml = this.schema.fields.map(f => {
+                    let inp = ''; const val = item[f.key] !== undefined ? item[f.key] : ''; const req = f.required ? 'required' : ''; const ro = f.readOnly ? 'readonly disabled' : '';
+                    if(f.type === 'select') inp = `<select name="${f.key}" class="form-control" ${req} ${ro}><option value="">Pilih...</option>${f.options.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
+                    else if(f.type === 'textarea') inp = `<textarea name="${f.key}" class="form-control" rows="3" ${req} ${ro}>${val}</textarea>`;
+                    else inp = `<input type="${f.type}" name="${f.key}" class="form-control" value="${val}" ${req} ${ro}>`;
+                    return `<div class="form-group"><label class="form-label">${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>${inp}</div>`;
                 }).join('');
-
-                const body = `<form id="crud-form">${fieldsHtml}</form>`;
-                const footer = `
-                    <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
-                    <button class="btn btn-primary" onclick="app.crudEngine.saveData('${id || ''}')">Simpan Data</button>
-                `;
-
-                DOM.openModal(title, body, footer);
+                DOM.openModal(id ? `Edit ${this.schema.title}` : `Tambah ${this.schema.title}`, `<form id="crud-form">${fieldsHtml}</form>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.crudEngine.saveData('${id||''}')">Simpan</button>`);
             }
 
             saveData(id) {
                 const data = DOM.getFormData('crud-form');
-                for(let f of this.schema.fields) {
-                    if(f.required && !data[f.key]) {
-                        app.notify(`${f.label} wajib diisi`, 'error');
-                        return;
-                    }
-                }
-
-                if(id) DB.update(this.schema.table, id, data);
-                else DB.insert(this.schema.table, data);
-                
-                DOM.closeModal();
-                app.notify('Data berhasil disimpan', 'success');
-                this.refresh();
+                for(let f of this.schema.fields) { if(f.required && !data[f.key]) { app.notify(`${f.label} wajib diisi`, 'error'); return; } }
+                if(this.schemaKey === 'paket' && data.pagu) data.pagu = Number(String(data.pagu).replace(/\D/g, '')) || 0;
+                id ? DB.update(this.schema.table, id, data) : DB.insert(this.schema.table, data);
+                DOM.closeModal(); app.notify('Data berhasil disinkron', 'success'); app.reRenderCurrentView();
             }
-
-            deleteData(id) {
-                if(confirm('Yakin ingin menghapus data ini? Aksi ini tidak dapat dibatalkan.')) {
-                    DB.delete(this.schema.table, id);
-                    app.notify('Data dihapus', 'success');
-                    this.refresh();
-                }
-            }
+            deleteData(id) { if(confirm('Hapus data secara permanen?')) { DB.delete(this.schema.table, id); app.notify('Data dihapus', 'success'); app.reRenderCurrentView(); } }
         }
 
+        // -----------------------------------------------------
+        // 5. CUSTOM VIEWS (Dashboard, Reports, AI)
+        // -----------------------------------------------------
         class CustomViews {
             static renderDashboard(container) {
-                const packages = DB.get('packages');
-                
+                const packages = DB.get('paket');
                 container.innerHTML = `
                     <div style="padding: var(--space-8); max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8);">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end;">
@@ -764,46 +614,19 @@
                                 <h1 class="font-bold text-main" style="font-size: 2rem; letter-spacing: -0.02em;">Selamat Pagi, Farhan 👋</h1>
                                 <p class="text-muted text-lg mt-1">Berikut adalah ringkasan pengadaan hari ini.</p>
                             </div>
-                            <button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar'); setTimeout(()=>app.crudEngine.showForm(), 250);"><i class="ph ph-plus-circle"></i> Tambah Paket</button>
+                            <button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar'); setTimeout(()=>app.crudEngine.showForm(), 250);"><i class="ph ph-plus-circle"></i> Tambah Paket Baru</button>
                         </div>
-
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5);">
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--primary-500);">
-                                <div class="flex items-center gap-3 mb-2 text-primary"><i class="ph-fill ph-briefcase text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Total Paket</span></div>
-                                <div class="text-3xl font-bold mb-1">${packages.length} Paket</div>
-                                <div class="text-sm text-muted">Tahun Anggaran 2026</div>
-                            </div>
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--warning-500);">
-                                <div class="flex items-center gap-3 mb-2 text-warning"><i class="ph-fill ph-clock-countdown text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Dalam Proses</span></div>
-                                <div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage !== 'SELESAI').length} Paket</div>
-                                <div class="text-sm text-muted">Perlu tindak lanjut</div>
-                            </div>
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--success-500);">
-                                <div class="flex items-center gap-3 mb-2 text-success"><i class="ph-fill ph-check-circle text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Selesai</span></div>
-                                <div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage === 'SELESAI').length} Paket</div>
-                                <div class="text-sm text-muted">Telah terkontrak penuh</div>
-                            </div>
+                            <div class="card p-5 border-l-4" style="border-left-color: var(--primary-500);"><div class="flex items-center gap-3 mb-2 text-primary"><i class="ph-fill ph-briefcase text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Total Paket</span></div><div class="text-3xl font-bold mb-1">${packages.length} Paket</div><div class="text-sm text-muted">Tahun Anggaran 2026</div></div>
+                            <div class="card p-5 border-l-4" style="border-left-color: var(--warning-500);"><div class="flex items-center gap-3 mb-2 text-warning"><i class="ph-fill ph-clock-countdown text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Dalam Proses</span></div><div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage !== 'SELESAI').length} Paket</div><div class="text-sm text-muted">Perlu tindak lanjut</div></div>
+                            <div class="card p-5 border-l-4" style="border-left-color: var(--success-500);"><div class="flex items-center gap-3 mb-2 text-success"><i class="ph-fill ph-check-circle text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Selesai</span></div><div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage === 'SELESAI').length} Paket</div><div class="text-sm text-muted">Telah terkontrak penuh</div></div>
                         </div>
-
                         <div>
-                            <h2 class="font-semibold text-lg mb-4 text-gray-800 flex justify-between"><span>Paket Aktif</span> <button class="btn btn-ghost btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button></h2>
+                            <h2 class="font-semibold text-lg mb-4 text-gray-800 flex justify-between"><span>Paket Aktif Terbaru</span> <button class="btn btn-ghost btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button></h2>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
                                 ${packages.filter(p => p.stage !== 'SELESAI').slice(0,4).map(pkg => {
                                     const totals = DB.calculatePackageTotals(pkg);
-                                    return `
-                                    <div class="card card-interactive p-4 flex flex-col gap-3" onclick="app.navigate('workspace', '${pkg.id}')">
-                                        <div class="flex justify-between items-start">
-                                            <div><h3 class="font-bold text-main">${pkg.name}</h3><p class="text-xs text-muted">${pkg.id} • ${pkg.metode_pemilihan || '-'}</p></div>
-                                            ${Utils.getBadge(pkg.stage)}
-                                        </div>
-                                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                            <span class="text-xs font-semibold text-muted">HPS: <span class="text-main">${Utils.formatCurrency(totals.hps)}</span></span>
-                                            <div class="flex gap-2">
-                                                <span class="text-xs font-medium text-primary bg-primary-50 px-2 py-1 rounded">Progress: ${pkg.progress}%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    `;
+                                    return `<div class="card card-interactive p-4 flex flex-col gap-3" onclick="app.navigate('workspace', '${pkg.id}')"><div class="flex justify-between items-start"><div><h3 class="font-bold text-main">${pkg.name}</h3><p class="text-xs text-muted">${pkg.id} • ${pkg.metode_pemilihan || '-'}</p></div>${Utils.getBadge(pkg.stage)}</div><div class="flex justify-between items-center bg-gray-50 p-2 rounded"><span class="text-xs font-semibold text-muted">HPS: <span class="text-main">${Utils.formatCurrency(totals.hps)}</span></span><div class="flex gap-2"><span class="text-xs font-medium text-primary bg-primary-50 px-2 py-1 rounded">Progress: ${pkg.progress}%</span></div></div></div>`;
                                 }).join('')}
                             </div>
                         </div>
@@ -866,18 +689,9 @@
             static renderAIAssistant(container) {
                 container.innerHTML = `
                     <div class="chat-container">
-                        <div class="p-4 border-b border-gray-200 bg-surface flex justify-between items-center shadow-sm z-10">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xl"><i class="ph-fill ph-sparkle"></i></div>
-                                <div><h2 class="font-bold">ProcFlow AI</h2><p class="text-xs text-muted">Asisten Ahli Pengadaan (Perpres 16/2018 jo. 12/2021)</p></div>
-                            </div>
-                            <button class="btn btn-ghost btn-sm" onclick="app.reRenderCurrentView()"><i class="ph ph-trash"></i> Bersihkan Obrolan</button>
-                        </div>
+                        <div class="p-4 border-b border-gray-200 bg-surface flex justify-between items-center shadow-sm z-10"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xl"><i class="ph-fill ph-sparkle"></i></div><div><h2 class="font-bold">ProcFlow AI</h2><p class="text-xs text-muted">Asisten Ahli Pengadaan (Perpres 16/2018 jo. 12/2021)</p></div></div><button class="btn btn-ghost btn-sm" onclick="app.reRenderCurrentView()"><i class="ph ph-trash"></i> Bersihkan Obrolan</button></div>
                         <div class="chat-messages" id="chat-messages">
-                            <div class="chat-msg bot">
-                                <div class="chat-avatar"><i class="ph-fill ph-robot"></i></div>
-                                <div class="chat-bubble">Halo Farhan! Saya adalah Asisten AI Anda. Saya dapat membantu menyusun dokumen KAK, mengecek regulasi, memberikan rekomendasi Harga, atau meninjau kelengkapan paket Anda (Checklist). Apa yang ingin Anda kerjakan hari ini?</div>
-                            </div>
+                            <div class="chat-msg bot"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">Halo Farhan! Saya adalah Asisten AI Anda. Saya dapat membantu menyusun dokumen KAK, mengecek regulasi, memberikan rekomendasi Harga, atau meninjau kelengkapan paket. Apa yang ingin Anda kerjakan hari ini?</div></div>
                         </div>
                         <div class="chat-input-area">
                             <div class="chat-suggestions">
@@ -885,10 +699,7 @@
                                 <div class="chat-suggestion-chip" onclick="DOM.sendChat('Cek kelengkapan paket PKT-26-A1')">Cek Kelengkapan Paket</div>
                                 <div class="chat-suggestion-chip" onclick="DOM.sendChat('Berapa lama standar SPPBJ?')">Aturan SPPBJ</div>
                             </div>
-                            <div class="chat-input-box">
-                                <textarea id="chat-input" placeholder="Tanyakan seputar pengadaan... (Shift+Enter untuk baris baru)"></textarea>
-                                <button onclick="DOM.sendChat()"><i class="ph-bold ph-paper-plane-right"></i></button>
-                            </div>
+                            <div class="chat-input-box"><textarea id="chat-input" placeholder="Tanyakan seputar pengadaan..."></textarea><button onclick="DOM.sendChat()"><i class="ph-bold ph-paper-plane-right"></i></button></div>
                         </div>
                     </div>
                 `;
@@ -939,10 +750,10 @@
                             <button class="btn btn-primary mt-2" onclick="app.notify('Profil disimpan', 'success')">Simpan Profil</button>
                         </div>
                         <div class="card p-6">
-                            <h2 class="font-bold mb-4 border-b pb-2">Konfigurasi Aplikasi & Document Engine</h2>
+                            <h2 class="font-bold mb-4 border-b pb-2">Konfigurasi Database (Supabase)</h2>
                             <div class="form-group">
-                                <label class="form-label">Format Penomoran Otomatis</label>
-                                <input type="text" class="form-control" value="[NO]/[KODE]/[OPD]/[TAHUN]">
+                                <label class="form-label">Supabase URL</label>
+                                <input type="text" class="form-control" value="${SUPABASE_URL}" readonly disabled>
                             </div>
                             <div class="form-group flex items-center gap-3">
                                 <input type="checkbox" checked class="w-4 h-4 accent-primary">
@@ -950,7 +761,7 @@
                             </div>
                             <div class="form-group flex items-center gap-3">
                                 <input type="checkbox" checked class="w-4 h-4 accent-primary">
-                                <label class="text-sm font-medium">Lewati hari libur nasional (API) saat kalkulasi Jadwal</label>
+                                <label class="text-sm font-medium">Lewati hari libur nasional saat kalkulasi Jadwal</label>
                             </div>
                             <button class="btn btn-primary mt-4" onclick="app.notify('Pengaturan disimpan', 'success')">Simpan Konfigurasi</button>
                         </div>
@@ -959,19 +770,20 @@
             }
         }
 
+        // -----------------------------------------------------
+        // 6. WORKSPACE VIEW (Paket Detail)
+        // -----------------------------------------------------
         class WorkspaceView {
             constructor(packageId) {
                 this.packageId = packageId;
                 this.activeTab = 'ringkasan';
-                this.pkg = DB.getById('packages', packageId);
             }
 
             render(container) {
-                // Refresh data
-                this.pkg = DB.getById('packages', this.packageId);
+                this.pkg = DB.getById('paket', this.packageId);
                 
                 if(!this.pkg) {
-                    container.innerHTML = `<div class="empty-state"><p>Paket tidak ditemukan.</p><button class="btn btn-primary mt-4" onclick="app.navigate('dashboard')">Ke Dashboard</button></div>`;
+                    container.innerHTML = `<div class="empty-state"><p>Paket tidak ditemukan di Database.</p><button class="btn btn-primary mt-4" onclick="app.navigate('dashboard')">Ke Dashboard</button></div>`;
                     return;
                 }
                 
@@ -986,7 +798,7 @@
                                 <div class="text-sm text-muted font-medium">${this.pkg.id} • ${this.pkg.metode_pemilihan || 'Metode Belum Diset'}</div>
                             </div>
                             <div class="flex gap-2">
-                                <button class="btn btn-outline" onclick="app.notify('Tersimpan di Single Source of Truth', 'info')"><i class="ph ph-floppy-disk"></i> Force Save</button>
+                                <button class="btn btn-outline" onclick="app.notify('Data sudah tersinkron via Realtime API', 'info')"><i class="ph ph-floppy-disk"></i> Force Save</button>
                                 ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
                             </div>
                         </div>
@@ -1009,9 +821,14 @@
                     });
                 });
 
-                // Attach table events if needed
+                // Attach dynamic events
                 if(this.activeTab === 'harga') this.attachHargaEvents();
-                if(this.activeTab === 'pejabat') this.attachTimTeknisEvents();
+                if(this.activeTab === 'rancangankontrak') this.attachKontrakEvents();
+                if(this.activeTab === 'datapaket'){ 
+                    const f=document.getElementById('form-datapaket'), start=f?.querySelector('[name=tgl_mulai]'), dur=f?.querySelector('[name=durasi_kontrak]'), finish=f?.querySelector('[name=tgl_selesai]'); 
+                    const refresh=()=>{if(start?.value&&finish){const d=new Date(`${start.value}T00:00:00`);d.setDate(d.getDate()+(Number(dur?.value)||0));finish.value=d.toISOString().split('T')[0];}}; 
+                    start?.addEventListener('change',refresh); dur?.addEventListener('input',refresh); refresh(); 
+                }
             }
 
             renderTabContent() {
@@ -1039,6 +856,7 @@
                 const efisiensi = totals.hps > 0 && totals.negosiasi > 0 ? totals.hps - totals.negosiasi : 0;
                 
                 return `
+                    <div class="flex justify-end mb-1"><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak Laporan Rinci Paket</button></div>
                     <div class="flex flex-col gap-6">
                         <div class="card p-6 border-l-4 border-l-primary-500">
                             <h2 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph-fill ph-database text-primary"></i> Ringkasan Informasi Paket</h2>
@@ -1053,7 +871,6 @@
                         <div class="card p-6 bg-gray-900 text-white border-none">
                             <h2 class="font-bold text-lg mb-6 text-gray-300 uppercase tracking-wider text-center">Waterfall Nilai Pengadaan</h2>
                             <div class="flex items-center justify-between px-10 relative">
-                                <!-- Connecting Line -->
                                 <div style="position:absolute; top:25px; left:10%; right:10%; height:2px; background:var(--gray-700); z-index:0;"></div>
                                 
                                 <div class="flex flex-col items-center relative z-10">
@@ -1087,8 +904,8 @@
             renderDataPaket() {
                 const saveFunc = `
                     const fd = DOM.getFormData('form-datapaket');
-                    DB.update('packages', '${this.packageId}', fd);
-                    app.notify('Data Paket berhasil disimpan', 'success');
+                    DB.update('paket', '${this.packageId}', fd);
+                    app.notify('Data Paket berhasil disimpan ke API', 'success');
                     app.reRenderCurrentView();
                 `;
                 return `
@@ -1103,6 +920,8 @@
                                 <legend class="font-semibold text-sm px-2 text-primary-700">Informasi Dasar & Lokasi</legend>
                                 <div class="grid grid-cols-2 gap-4 mt-2">
                                     <div class="form-group col-span-2"><label class="form-label">Nama Paket</label><input type="text" name="name" class="form-control" value="${this.pkg.name || ''}"></div>
+                                    <div class="form-group col-span-2"><label class="form-label">Uraian / Penanda Paket</label><textarea name="uraian" class="form-control" rows="2">${this.pkg.uraian || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Nilai Pagu (Rp)</label><input type="text" name="pagu" inputmode="numeric" class="form-control money-input" value="${Utils.formatNumber(this.pkg.pagu)}"></div>
                                     <div class="form-group"><label class="form-label">Lokasi Pekerjaan</label><input type="text" name="lokasi" class="form-control" value="${this.pkg.lokasi || ''}"></div>
                                     <div class="form-group"><label class="form-label">Tahun Anggaran</label><input type="text" name="tahun_anggaran" class="form-control" value="${this.pkg.tahun_anggaran || ''}"></div>
                                     <div class="form-group"><label class="form-label">OPD</label><input type="text" name="opd" class="form-control" value="${this.pkg.opd || 'Badan Keuangan dan Aset Daerah'}"></div>
@@ -1121,8 +940,6 @@
                                     <div class="form-group"><label class="form-label">Kode Sub Kegiatan</label><input type="text" name="kode_sub_kegiatan" class="form-control" value="${this.pkg.kode_sub_kegiatan || ''}"></div>
                                     <div class="form-group"><label class="form-label">Nama Rekening</label><input type="text" name="nama_rekening" class="form-control" value="${this.pkg.nama_rekening || ''}"></div>
                                     <div class="form-group"><label class="form-label">Kode Rekening</label><input type="text" name="kode_rekening" class="form-control" value="${this.pkg.kode_rekening || ''}"></div>
-                                    <div class="form-group"><label class="form-label">Kode RUP</label><input type="text" name="kode_rup" class="form-control" value="${this.pkg.kode_rup || ''}"></div>
-                                    <div class="form-group"><label class="form-label">Kode MAK</label><input type="text" name="kode_mak" class="form-control" value="${this.pkg.kode_mak || ''}"></div>
                                 </div>
                             </fieldset>
 
@@ -1132,8 +949,6 @@
                                     <div class="form-group"><label class="form-label">Jenis Pengadaan</label><select name="jenis_pengadaan" class="form-control"><option value="Barang" ${this.pkg.jenis_pengadaan==='Barang'?'selected':''}>Barang</option><option value="Pekerjaan Konstruksi" ${this.pkg.jenis_pengadaan==='Pekerjaan Konstruksi'?'selected':''}>Pekerjaan Konstruksi</option><option value="Jasa Konsultansi" ${this.pkg.jenis_pengadaan==='Jasa Konsultansi'?'selected':''}>Jasa Konsultansi</option><option value="Jasa Lainnya" ${this.pkg.jenis_pengadaan==='Jasa Lainnya'?'selected':''}>Jasa Lainnya</option></select></div>
                                     <div class="form-group"><label class="form-label">Metode Pemilihan</label><select name="metode_pemilihan" class="form-control"><option value="E-Purchasing" ${this.pkg.metode_pemilihan==='E-Purchasing'?'selected':''}>E-Purchasing</option><option value="Tender" ${this.pkg.metode_pemilihan==='Tender'?'selected':''}>Tender</option><option value="Pengadaan Langsung" ${this.pkg.metode_pemilihan==='Pengadaan Langsung'?'selected':''}>Pengadaan Langsung</option></select></div>
                                     <div class="form-group"><label class="form-label">Jenis Kontrak</label><select name="jenis_kontrak" class="form-control"><option value="Lumsum" ${this.pkg.jenis_kontrak==='Lumsum'?'selected':''}>Lumsum</option><option value="Harga Satuan" ${this.pkg.jenis_kontrak==='Harga Satuan'?'selected':''}>Harga Satuan</option></select></div>
-                                    <div class="form-group"><label class="form-label">Cara Pembayaran</label><select name="cara_pembayaran" class="form-control"><option value="Sekaligus" ${this.pkg.cara_pembayaran==='Sekaligus'?'selected':''}>Sekaligus</option><option value="Termin" ${this.pkg.cara_pembayaran==='Termin'?'selected':''}>Termin</option></select></div>
-                                    <div class="form-group"><label class="form-label">Sumber Dana</label><input type="text" name="sumber_dana" class="form-control" value="${this.pkg.sumber_dana || 'APBD'}"></div>
                                     <div class="form-group"><label class="form-label">Kata Kunci Penomoran</label><input type="text" name="keyword_penomoran" class="form-control" value="${this.pkg.keyword_penomoran || ''}"></div>
                                 </div>
                             </fieldset>
@@ -1143,10 +958,9 @@
                                 <div class="grid grid-cols-3 gap-4 mt-2">
                                     <div class="form-group"><label class="form-label">Durasi (Hari Kalender)</label><input type="number" name="durasi_kontrak" class="form-control" value="${this.pkg.durasi_kontrak || ''}"></div>
                                     <div class="form-group"><label class="form-label">Tanggal Mulai</label><input type="date" name="tgl_mulai" class="form-control" value="${this.pkg.tgl_mulai || ''}"></div>
-                                    <div class="form-group"><label class="form-label">Tanggal Selesai</label><input type="date" name="tgl_selesai" class="form-control" value="${this.pkg.tgl_selesai || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Tanggal Selesai</label><input type="date" name="tgl_selesai" class="form-control" value="${this.pkg.tgl_selesai || ''}" readonly></div>
                                 </div>
                             </fieldset>
-
                         </form>
                     </div>
                 `;
@@ -1195,7 +1009,6 @@
             renderPenyedia() {
                 const pList = DB.get('penyedia');
                 const sup = this.pkg.supplier_id ? DB.getById('penyedia', this.pkg.supplier_id) : null;
-
                 const getOptions = () => `<option value="">-- Pilih Dari Database Master --</option>` + pList.map(p => `<option value="${p.id}" ${p.id === this.pkg.supplier_id ? 'selected' : ''}>${p.name} (NPWP: ${p.npwp})</option>`).join('');
 
                 return `
@@ -1205,8 +1018,7 @@
                             <div class="flex gap-2 items-center">
                                 <select id="select-penyedia" class="form-control" style="width:300px">${getOptions()}</select>
                                 <button class="btn btn-primary" onclick="
-                                    const v = document.getElementById('select-penyedia').value;
-                                    DB.update('packages', '${this.packageId}', {supplier_id: v});
+                                    DB.update('paket', '${this.packageId}', {supplier_id: document.getElementById('select-penyedia').value});
                                     app.reRenderCurrentView();
                                     app.notify('Penyedia di-set', 'success');
                                 ">Tetapkan</button>
@@ -1219,24 +1031,20 @@
                                     <h4 class="font-bold text-success-700 mb-3 uppercase tracking-wider text-xs">Identitas Perusahaan</h4>
                                     <div class="mb-2"><span class="text-xs text-muted block">Nama Perusahaan</span><span class="font-semibold">${sup.name}</span></div>
                                     <div class="mb-2"><span class="text-xs text-muted block">Alamat</span><span class="font-semibold">${sup.address}</span></div>
-                                    <div class="mb-2"><span class="text-xs text-muted block">Bentuk Usaha</span><span class="font-semibold">${sup.type}</span></div>
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-success-700 mb-3 uppercase tracking-wider text-xs">Legalitas & Perizinan</h4>
                                     <div class="mb-2"><span class="text-xs text-muted block">NPWP</span><span class="font-semibold">${sup.npwp}</span></div>
                                     <div class="mb-2"><span class="text-xs text-muted block">NIB</span><span class="font-semibold">${sup.nib}</span></div>
-                                    <div class="mb-2"><span class="text-xs text-muted block">Nomor Izin (IUJK/dll)</span><span class="font-semibold">${sup.no_izin}</span></div>
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-success-700 mb-3 uppercase tracking-wider text-xs">Direksi</h4>
                                     <div class="mb-2"><span class="text-xs text-muted block">Nama Direktur</span><span class="font-semibold">${sup.direktur}</span></div>
-                                    <div class="mb-2"><span class="text-xs text-muted block">Jabatan</span><span class="font-semibold">${sup.jabatan_direktur}</span></div>
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-success-700 mb-3 uppercase tracking-wider text-xs">Informasi Pembayaran</h4>
                                     <div class="mb-2"><span class="text-xs text-muted block">Bank</span><span class="font-semibold">${sup.bank}</span></div>
                                     <div class="mb-2"><span class="text-xs text-muted block">Nomor Rekening</span><span class="font-semibold">${sup.no_rekening}</span></div>
-                                    <div class="mb-2"><span class="text-xs text-muted block">Atas Nama Rekening</span><span class="font-semibold">${sup.an_rekening}</span></div>
                                 </div>
                             </div>
                         ` : `<div class="text-center p-12 text-muted bg-gray-50 rounded-md border border-dashed border-gray-300">Belum ada penyedia yang ditetapkan. Silahkan pilih dari dropdown di atas.</div>`}
@@ -1275,10 +1083,32 @@
                     `;
                 }).join('');
 
-                return `
+                const t = DB.calculatePackageTotals(this.pkg);
+                const hpsRound = this.pkg.pembulatan_hps || t.hps;
+                const offerRound = this.pkg.pembulatan_penawaran || t.penawaran;
+                const negoRound = this.pkg.pembulatan_negosiasi || t.negosiasi;
+                const alerts = [];
+                if(Number(this.pkg.pagu)>0 && t.hps>Number(this.pkg.pagu)) alerts.push('Total HPS melebihi nilai pagu.');
+                if(t.penawaran>0 && t.penawaran>t.hps) alerts.push('Total penawaran melebihi HPS.');
+                if(t.negosiasi>0 && t.penawaran>0 && t.negosiasi>t.penawaran) alerts.push('Total negosiasi melebihi penawaran.');
+                
+                const note = alerts.length ? `<div class="card p-4 mb-4" style="border-color:#dc2626;color:#b91c1c"><b>Perhatian nilai:</b><br>${alerts.join('<br>')}</div>` : '';
+                const block = (label, key, value) => `
+                    <div class="card p-4">
+                        <label class="form-label">Pembulatan ${label}</label>
+                        <input data-round="${key}" class="form-control money-input" inputmode="numeric" value="${Utils.formatNumber(value)}">
+                        <p class="text-sm font-semibold mt-2">${Utils.formatCurrency(value)}</p>
+                        <label class="form-label mt-3">Terbilang</label>
+                        <textarea class="form-control text-xs" rows="3" readonly>${Utils.toWords(value).trim()} rupiah</textarea>
+                    </div>`;
+
+                return note + `
                     <div class="flex justify-between items-center mb-4">
-                        <div><h2 class="font-bold text-lg text-main">Rincian Harga (HPS, Penawaran, Negosiasi)</h2><p class="text-sm text-muted">Perubahan otomatis disimpan ke database dan memperbarui Dashboard.</p></div>
-                        <div class="flex gap-2"><button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button></div>
+                        <div><h2 class="font-bold text-lg text-main">Rincian Harga (HPS, Penawaran, Negosiasi)</h2><p class="text-sm text-muted">Perubahan otomatis disimpan ke Supabase.</p></div>
+                        <div class="flex gap-2">
+                            <button class="btn btn-primary" onclick="app.printHPS('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak PDF HPS</button>
+                            <button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button>
+                        </div>
                     </div>
                     <div class="spreadsheet-container mb-6" style="max-height: 500px;">
                         <table class="spreadsheet" id="table-harga">
@@ -1301,7 +1131,6 @@
                             </thead>
                             <tbody>
                                 ${trs}
-                                <!-- Summary Rows -->
                                 <tr>
                                     <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">Subtotal (Sebelum Pajak)</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50">${Utils.formatCurrency(hpsSub)}</td>
@@ -1326,12 +1155,16 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        ${block('HPS', 'pembulatan_hps', hpsRound)}
+                        ${block('Penawaran', 'pembulatan_penawaran', offerRound)}
+                        ${block('Negosiasi', 'pembulatan_negosiasi', negoRound)}
+                    </div>
                 `;
             }
 
             attachHargaEvents() {
-                const inputs = document.querySelectorAll('.hrg-input');
-                inputs.forEach(inp => {
+                document.querySelectorAll('.hrg-input').forEach(inp => {
                     inp.addEventListener('change', (e) => {
                         const tr = e.target.closest('tr');
                         const idx = parseInt(tr.dataset.index);
@@ -1342,131 +1175,171 @@
                         
                         let items = this.pkg.items || [];
                         items[idx][field] = val;
-                        DB.update('packages', this.packageId, { items });
-                        app.notify('Autosave: Harga diperbarui', 'info');
-                        this.render(document.getElementById('router-view')); // Re-render to show calculations
+                        DB.update('paket', this.packageId, { items });
+                        app.notify('Autosave: Harga diperbarui ke API', 'info');
+                        this.render(document.getElementById('router-view')); 
+                    });
+                });
+                // Attach formatter money input
+                document.querySelectorAll('.money-input').forEach(el => {
+                    el.addEventListener('input', e => { e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, '')); });
+                });
+                // Attach Rounding Data updates
+                document.querySelectorAll('[data-round]').forEach(el => {
+                    el.addEventListener('change', e => {
+                        DB.update('paket', this.packageId, { [e.target.dataset.round]: Number(String(e.target.value).replace(/\D/g, '')) || 0 });
+                        this.render(document.getElementById('router-view'));
                     });
                 });
             }
 
             renderJadwal() {
-                const startDate = this.pkg.tgl_mulai || new Date().toISOString().split('T')[0];
-                const holidays = DB.get('libur').map(l => l.date);
+                const holidays = DB.get('libur').map(l => l.date); 
+                const rules = DB.get('waktu'); 
+                let dates = {};
                 
-                // Logic based on stages duration (dummy rules for demo)
-                const dReviu = Utils.addWorkingDays(startDate, 2, holidays);
-                const dPemilihan = Utils.addWorkingDays(dReviu, 5, holidays);
-                const dNegosiasi = Utils.addWorkingDays(dPemilihan, 3, holidays);
-                const dKontrak = Utils.addWorkingDays(dNegosiasi, 2, holidays);
-
+                rules.forEach(r => { 
+                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? this.pkg.tgl_mulai : dates[r.previous] || this.pkg.tgl_mulai); 
+                    dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                });
+                
                 return `
-                    <div class="card p-6 max-w-4xl mx-auto">
+                    <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Timeline Automatisasi Jadwal</h2><p class="text-sm text-muted">Dihitung otomatis mengabaikan Sabtu, Minggu, dan Hari Libur Nasional.</p></div>
-                            <button class="btn btn-outline btn-sm"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
+                            <div><h2 class="font-bold text-lg">Jadwal Otomatis (Dokumen)</h2><p class="text-sm text-muted">Dihitung dari Master Waktu dalam hari kerja, melompati hari libur nasional (Supabase).</p></div>
+                            <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>Tahapan Pengadaan</th><th>Estimasi Selesai</th><th>Status</th></tr></thead>
+                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Selisih Hari Kerja</th><th>Tanggal Selesai</th></tr></thead>
                             <tbody>
-                                <tr><td class="font-medium">1. Persiapan Dokumen (KAK & HPS)</td><td>${Utils.formatDate(startDate)}</td><td><span class="badge badge-success">Selesai</span></td></tr>
-                                <tr><td class="font-medium">2. Reviu PPK & Pejabat Pengadaan</td><td>${Utils.formatDate(dReviu)}</td><td>${this.pkg.stage === 'PERSIAPAN' ? '<span class="badge badge-primary">Berjalan</span>' : '<span class="badge badge-success">Selesai</span>'}</td></tr>
-                                <tr><td class="font-medium">3. Proses Pemilihan / Undangan E-Purchasing</td><td>${Utils.formatDate(dPemilihan)}</td><td>${['PERSIAPAN','REVIU'].includes(this.pkg.stage) ? '<span class="badge badge-neutral">Menunggu</span>' : '<span class="badge badge-primary">Berjalan</span>'}</td></tr>
-                                <tr><td class="font-medium">4. Klarifikasi & Negosiasi</td><td>${Utils.formatDate(dNegosiasi)}</td><td><span class="badge badge-neutral">Menunggu</span></td></tr>
-                                <tr><td class="font-medium">5. Penandatanganan Kontrak / SPK</td><td>${Utils.formatDate(dKontrak)}</td><td><span class="badge badge-neutral">Menunggu</span></td></tr>
+                                ${rules.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous}</td><td>+${r.days} hari kerja</td><td>${Utils.formatDate(dates[r.name])}</td></tr>`).join('')}
                             </tbody>
                         </table>
                     </div>
                 `;
             }
 
-            renderChecklist() {
-                const checks = this.pkg.checklists || [];
-                const docsReq = ['Nota Dinas', 'KAK', 'HPS', 'Spesifikasi Teknis', 'Rancangan Kontrak', 'BA Reviu', 'SPPBJ', 'SPK/Kontrak'];
+            renderJadwalProses() {
+                const rules = DB.get('jadwal_proses'); 
+                const holidays = DB.get('libur').map(x=>x.date); 
+                let base = this.pkg.tgl_mulai;
                 
-                let rows = docsReq.map(doc => {
-                    const c = checks.find(x => x.doc === doc);
-                    const isChecked = c && c.status;
-                    const date = isChecked ? Utils.formatDate(c.date) : '-';
-                    const pic = isChecked ? c.pic : '-';
-                    
-                    return `
-                    <tr>
-                        <td style="width:40px"><input type="checkbox" class="w-4 h-4 accent-primary" ${isChecked?'checked':''} onclick="app.toggleChecklist('${this.packageId}', '${doc}', this.checked)"></td>
-                        <td class="font-medium">${doc}</td>
-                        <td>${isChecked ? '<span class="badge badge-success">Ada</span>' : '<span class="badge badge-warning">Kosong</span>'}</td>
-                        <td>${date}</td>
-                        <td>${pic}</td>
-                        <td>
-                            <div class="flex gap-1">
-                                <button class="btn btn-ghost btn-sm text-primary" onclick="app.simulateDependencyEngine('${doc}', '${this.packageId}')" title="Generate Otomatis via Engine"><i class="ph ph-magic-wand"></i> Generate</button>
-                                <button class="btn btn-ghost btn-sm" title="Upload Manual"><i class="ph ph-upload-simple"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    `;
+                let rows = rules.map((r,i) => {
+                    const start = Utils.addWorkingDays(base, r.start_after, holidays);
+                    const end = Utils.addWorkingDays(start, r.duration, holidays);
+                    base = end; 
+                    return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${Utils.formatDateShort(start)}</td><td>${Utils.formatDateShort(end)}</td><td>${r.duration} hari kerja</td></tr>`
                 }).join('');
-
+                
                 return `
-                    <div class="card p-0 overflow-hidden">
-                        <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                            <div><h3 class="font-bold text-main">Audit Kelengkapan Dokumen Paket</h3><p class="text-xs text-muted">Checklist ini wajib dipenuhi sesuai standar operasional prosedur.</p></div>
+                    <div class="card p-6 max-w-4xl mx-auto">
+                        <div class="flex justify-between items-center mb-6 border-b pb-2">
+                            <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Upload, evaluasi, negosiasi, dan kontrak dikelola terpisah dari jadwal dokumen.</p></div>
+                            <button class="btn btn-outline" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal Proses</button>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th></th><th>Nama Dokumen / Item</th><th>Status</th><th>Tgl Terpenuhi</th><th>Penanggung Jawab</th><th>Aksi</th></tr></thead>
+                            <thead><tr><th>No</th><th>Proses</th><th>Tanggal Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
                             <tbody>${rows}</tbody>
                         </table>
                     </div>
                 `;
             }
 
-            renderKAK() {
-                const fields = [['uraian_kak','Uraian KAK'],['dasar_hukum','Dasar Hukum'],['latar_belakang','Latar Belakang'],['maksud_tujuan','Maksud & Tujuan'],['sasaran','Sasaran'],['lokasi_kak','Lokasi'],['ruang_lingkup','Ruang Lingkup'],['spesifikasi_teknis','Spesifikasi Teknis'],['output_kak','Output'],['outcome','Outcome']];
-                const body = fields.map(([key,label]) => `<div class="form-group"><label class="form-label">${label}</label><textarea name="${key}" class="form-control" rows="3">${this.pkg[key] || (key === 'lokasi_kak' ? this.pkg.lokasi || '' : '')}</textarea></div>`).join('');
-                return `<div class="card p-6 max-w-4xl mx-auto"><div class="flex justify-between items-center mb-6 border-b pb-4"><div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Sumber data untuk template KAK dan dokumen persiapan.</p></div><button class="btn btn-primary" onclick="app.saveKAK('${this.packageId}')"><i class="ph ph-floppy-disk"></i> Simpan KAK</button></div><form id="form-kak">${body}</form></div>`;
+            renderChecklist() {
+                const groups = [
+                    {title: 'Checklist Dokumen Pengadaan', docs: ['HPS/RAB','KAK','BA Reviu Dok Persiapan','SDP','BA Evaluasi','BA Pembuktian Kualifikasi','BA Negosiasi','Undangan Pengadaan Langsung','BA Hasil Pemilihan','SPPBJ','Undangan Pengadaan (Kontrak)','SPK','SSUK','SSKK','SPMK','BAST','BAP']},
+                    {title: 'Checklist Pengajuan Pencairan', docs: ['Summary Report','Surat Permohonan Pemilihan Penyedia','Surat Penawaran','Lampiran Penawaran (Profil Perusahaan dll)','Persyaratan Kualifikasi Peserta','Surat Pernyataan Sanggup Menyelesaikan Pekerjaan','Surat Permohonan Pencairan dari Penyedia','Invoice Lampiran Pembayaran Personil dan Non Personil','Kelengkapan Dokumen Lampiran (misal laporan)','Jaminan Pemeliharaan (Fisik)','Mutual Check / Laporan Kemajuan (Fisik)','KTP dan NPWP','Surat Referensi Bank','Faktur Pajak','Kwitansi']}
+                ];
+                
+                const row = doc => { 
+                    const c = (this.pkg.checklists || []).find(x => x.doc === doc);
+                    const ok = c && c.status;
+                    const m = app.getDocumentMeta(this.pkg, doc);
+                    const short = m.date ? Utils.formatDateShort(m.date) : '-'; 
+                    return `
+                    <tr>
+                        <td><input type="checkbox" ${ok?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${doc}',this.checked)"></td>
+                        <td class="font-medium">${doc}</td>
+                        <td><input class="form-control" style="min-width:250px" readonly value="${m.number}" onclick="this.select()"></td>
+                        <td>${m.date ? Utils.formatDate(m.date) : '-'}</td>
+                        <td><input class="form-control" style="min-width:115px" readonly value="${short}" onclick="this.select()"></td>
+                        <td>${ok ? '<span class="badge badge-success">Ada</span>' : '<span class="badge badge-warning">Kosong</span>'}</td>
+                        <td><button class="btn btn-ghost btn-sm text-primary" onclick="app.simulateDependencyEngine('${doc}','${this.packageId}')">Generate</button></td>
+                    </tr>`; 
+                };
+                
+                return groups.map(g => `
+                    <div class="card p-0 mb-6" style="overflow:visible">
+                        <div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">${g.title}</h3></div>
+                        <div class="table-container" style="border:0;border-radius:0;overflow-x:auto">
+                            <table class="data-table">
+                                <thead><tr><th></th><th>Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Tanggal DD-MM-YYYY</th><th>Status</th><th>Aksi</th></tr></thead>
+                                <tbody>${g.docs.map(row).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `).join('');
             }
 
-            renderCetak() {
-                return `<div class="card p-6 max-w-3xl mx-auto"><h2 class="font-bold text-lg mb-2">Cetak Pengajuan Pencairan</h2><p class="text-sm text-muted mb-6">Area disiapkan untuk template pengajuan pencairan dan tanda tangan terima.</p><div class="grid grid-cols-2 gap-4"><button class="btn btn-outline" onclick="app.notify('Template pengajuan pencairan belum diisi.', 'info')"><i class="ph ph-printer"></i> Cetak Pengajuan Pencairan</button><button class="btn btn-outline" onclick="app.notify('Template tanda tangan terima belum diisi.', 'info')"><i class="ph ph-signature"></i> Tanda Tangan Terima</button></div></div>`;
+            renderKAK() {
+                const fields=[['uraian_kak','Uraian KAK'],['dasar_hukum','Dasar Hukum'],['latar_belakang','Latar Belakang'],['maksud_tujuan','Maksud & Tujuan'],['sasaran','Sasaran'],['lokasi_kak','Lokasi'],['ruang_lingkup','Ruang Lingkup'],['spesifikasi_teknis','Spesifikasi Teknis'],['output_kak','Output'],['outcome','Outcome']]; 
+                return `
+                    <div class="card p-6 max-w-4xl mx-auto">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4">
+                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Data siap dicetak sebagai KAK atau uraian singkat pekerjaan.</p></div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}',true)"><i class="ph ph-printer"></i> Cetak Uraian Singkat</button>
+                                <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak KAK</button>
+                                <button class="btn btn-primary" onclick="app.saveKAK('${this.packageId}')">Simpan API</button>
+                            </div>
+                        </div>
+                        <form id="form-kak">
+                            ${fields.map(([k,l])=>`<div class="form-group"><label class="form-label">${l}</label><textarea name="${k}" class="form-control" rows="3">${this.pkg[k] || (k==='lokasi_kak'?this.pkg.lokasi||'':'')}</textarea></div>`).join('')}
+                        </form>
+                    </div>`; 
             }
 
             renderRancanganKontrak() {
+                const n = DB.calculatePackageTotals(this.pkg).negosiasi;
+                const round = this.pkg.pembulatan_negosiasi || n;
+                const guarantee = round * (Number(this.pkg.jaminan_pemeliharaan)||0) / 100;
+                
                 return `
                     <div class="card p-6 max-w-4xl mx-auto border-t-4 border-t-primary-600">
-                        <div class="flex items-center gap-3 mb-6 border-b pb-4">
-                            <i class="ph-fill ph-file-signature text-3xl text-primary-600"></i>
-                            <div><h2 class="font-bold text-lg">Penyusunan Rancangan Kontrak (SSKK & SSUK)</h2><p class="text-sm text-muted">Syarat Syarat Umum Kontrak (SSUK) otomatis dilampirkan berdasarkan jenis pengadaan.</p></div>
+                        <div class="flex justify-between items-center mb-6 border-b pb-4">
+                            <div><h2 class="font-bold text-lg">Rancangan Kontrak</h2><p class="text-sm text-muted">Nilai kontrak mengikuti pembulatan tahap negosiasi.</p></div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="app.simulateDependencyEngine('SSUK','${this.packageId}')">Generate SSUK</button>
+                                <button class="btn btn-outline" onclick="app.simulateDependencyEngine('SSKK','${this.packageId}')">Generate SSKK</button>
+                                <button class="btn btn-outline" onclick="app.simulateDependencyEngine('SPK','${this.packageId}')">Generate SPK</button>
+                                <button class="btn btn-primary" onclick="app.simulateDependencyEngine('SPMK','${this.packageId}')">Generate SPMK</button>
+                            </div>
                         </div>
-                        
-                        <div class="bg-info-50 text-info-700 p-4 rounded text-sm mb-6 flex items-start gap-3 border border-info-200">
-                            <i class="ph-fill ph-info text-xl"></i>
-                            <div>Jenis Pengadaan terdeteksi: <b>${this.pkg.jenis_pengadaan || 'Belum Diatur'}</b>. SSUK akan menyesuaikan regulasi standar LKPP untuk kategori ini.</div>
-                        </div>
-
-                        <form class="flex flex-col gap-4">
-                            <fieldset class="border border-gray-200 p-4 rounded">
-                                <legend class="font-semibold text-sm px-2">Syarat Syarat Khusus Kontrak (SSKK)</legend>
-                                <div class="grid grid-cols-2 gap-4 mt-2">
-                                    <div class="form-group"><label class="form-label">Nilai Kontrak (Rp)</label><input type="text" class="form-control" value="${Utils.formatCurrency(DB.calculatePackageTotals(this.pkg).negosiasi)}" readonly disabled></div>
-                                    <div class="form-group"><label class="form-label">Penyedia</label><input type="text" class="form-control" value="${this.pkg.supplier_id ? (DB.getById('penyedia', this.pkg.supplier_id)?.name || 'Data Terhapus') : 'Belum ditetapkan'}" readonly disabled></div>
-                                    <div class="form-group"><label class="form-label">Masa Berlaku Kontrak (Hari)</label><input type="number" class="form-control" value="${this.pkg.durasi_kontrak || 30}"></div>
-                                    <div class="form-group"><label class="form-label">Masa Pemeliharaan (Hari)</label><input type="number" class="form-control" value="0"></div>
-                                    <div class="form-group"><label class="form-label">Lokasi Pengiriman/Pekerjaan</label><input type="text" class="form-control" value="${this.pkg.lokasi || ''}"></div>
-                                    <div class="form-group"><label class="form-label">Denda Keterlambatan</label><input type="text" class="form-control" value="1/1000 dari nilai kontrak per hari"></div>
-                                </div>
-                            </fieldset>
-                            <button type="button" class="btn btn-primary self-end mt-2" onclick="app.simulateDependencyEngine('Draft Kontrak', '${this.packageId}')"><i class="ph ph-magic-wand"></i> Generate Draft Kontrak Lengkap (Word)</button>
+                        <form id="form-kontrak" class="grid grid-cols-2 gap-4">
+                            <div class="form-group"><label class="form-label">Nilai Negosiasi Otomatis</label><input class="form-control" value="${Utils.formatCurrency(n)}" readonly></div>
+                            <div class="form-group"><label class="form-label">Masa Berlaku Kontrak (Hari)</label><input class="form-control" value="${this.pkg.durasi_kontrak||0}" readonly></div>
+                            <div class="form-group"><label class="form-label">Pembulatan Negosiasi / Nilai Kontrak</label><input name="pembulatan_negosiasi" inputmode="numeric" class="form-control money-input" value="${Utils.formatNumber(round)}"></div>
+                            <div class="form-group"><label class="form-label">Jaminan Pemeliharaan (%)</label><input name="jaminan_pemeliharaan" type="number" class="form-control" value="${this.pkg.jaminan_pemeliharaan||0}"></div>
+                            <div class="form-group"><label class="form-label">Nilai Jaminan Pemeliharaan</label><input class="form-control" value="${Utils.formatCurrency(guarantee)}" readonly></div>
+                            <div class="form-group"><label class="form-label">Lokasi</label><input class="form-control" value="${this.pkg.lokasi||''}" readonly></div>
+                            <div class="col-span-2 text-right"><button type="button" class="btn btn-primary" onclick="app.saveContract('${this.packageId}')">Simpan Rancangan Kontrak</button></div>
                         </form>
-                    </div>
-                `;
+                    </div>`;
+            }
+
+            attachKontrakEvents() {
+                document.querySelectorAll('#form-kontrak .money-input').forEach(el => {
+                    el.addEventListener('input', e => { e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, '')); });
+                });
             }
 
             renderDokumen() {
-                const docs = DB.get('documents').filter(d => d.packageId === this.packageId);
-                let docList = docs.map(d => `
+                const docs = DB.get('documents').filter(d => d.package_id === this.packageId);
+                let list = docs.map(d => `
                     <div class="flex justify-between items-center p-3 border border-gray-200 rounded mb-2 bg-white shadow-sm">
                         <div class="flex items-center gap-3">
                             <i class="ph-fill ph-file-doc text-primary-600 text-2xl"></i>
-                            <div><div class="font-bold text-sm">${d.name}</div><div class="text-xs text-muted">Dibuat via Engine • ${d.date}</div></div>
+                            <div><div class="font-bold text-sm">${d.name}</div><div class="text-xs text-muted">Engine Sync • ${d.date}</div></div>
                         </div>
                         <div class="flex gap-1">
                             <button class="btn btn-ghost btn-sm text-primary" title="Preview"><i class="ph ph-eye"></i></button>
@@ -1474,408 +1347,287 @@
                         </div>
                     </div>
                 `).join('');
-                
-                if(!docList) docList = '<div class="text-center text-sm text-muted p-12 bg-gray-50 rounded border border-dashed border-gray-300">Belum ada dokumen yang dihasilkan sistem. Gunakan tab Checklist atau Rancangan Kontrak untuk generate.</div>';
+                if(!list) list = '<div class="text-center text-sm text-muted p-12 bg-gray-50 rounded border border-dashed border-gray-300">Belum ada dokumen yang dihasilkan sistem. Gunakan tab Checklist atau Rancangan Kontrak.</div>';
 
                 return `
                     <div class="max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-4">
-                            <div><h2 class="font-bold text-lg text-main">Arsip Dokumen Otomatis</h2><p class="text-sm text-muted">Kumpulan dokumen yang menyimpan metadata link ke database.</p></div>
+                            <div><h2 class="font-bold text-lg text-main">Arsip Dokumen Otomatis (Supabase Storage)</h2></div>
                         </div>
-                        <div class="flex flex-col gap-2 bg-gray-50 p-4 rounded-md border border-gray-200">${docList}</div>
+                        <div class="flex flex-col gap-2 bg-gray-50 p-4 rounded-md border border-gray-200">${list}</div>
                     </div>
                 `;
             }
+            
+            renderCetak() { 
+                return `<div class="card p-6 max-w-3xl mx-auto"><h2 class="font-bold text-lg mb-2">Cetak Pengajuan Pencairan</h2><p class="text-sm text-muted mb-6">Area disiapkan untuk template pengajuan pencairan dan tanda tangan terima.</p><div class="grid grid-cols-2 gap-4"><button class="btn btn-outline" onclick="app.notify('Template pengajuan pencairan belum diisi.', 'info')"><i class="ph ph-printer"></i> Cetak Pengajuan Pencairan</button><button class="btn btn-outline" onclick="app.notify('Template tanda tangan terima belum diisi.', 'info')"><i class="ph ph-signature"></i> Tanda Tangan Terima</button></div></div>`; 
+            }
 
             renderAktivitas() {
-                // Mock activity for demo
-                const html = `
+                const pkgIdStr = this.pkg.supplier_id ? `ID Penyedia: ${this.pkg.supplier_id}` : '';
+                return `
                     <div class="card p-6 max-w-3xl mx-auto">
                         <h2 class="font-bold text-lg mb-6 border-b pb-2">Log Aktivitas Sistem (Audit Trail)</h2>
                         <div class="timeline-container">
                             <div class="timeline-node"><div class="timeline-indicator mt-0"><div class="timeline-dot completed"></div></div>
-                            <div><p class="font-bold text-sm">Paket Dibuat</p><p class="text-xs text-muted">Sistem / Initial</p></div></div>
+                            <div><p class="font-bold text-sm">Paket Dibuat di Supabase</p><p class="text-xs text-muted">Sistem / Initial</p></div></div>
                             ${this.pkg.supplier_id ? `<div class="timeline-node"><div class="timeline-indicator mt-0"><div class="timeline-dot completed"></div></div>
-                            <div><p class="font-bold text-sm">Penyedia Ditetapkan</p><p class="text-xs text-muted">ID: ${this.pkg.supplier_id}</p></div></div>` : ''}
+                            <div><p class="font-bold text-sm">Penyedia Ditetapkan</p><p class="text-xs text-muted">${pkgIdStr}</p></div></div>` : ''}
                         </div>
                     </div>
                 `;
-                return html;
             }
         }
 
+        // -----------------------------------------------------
+        // 7. APP CONTROLLER (Includes Printer Extensions)
+        // -----------------------------------------------------
         class App {
-            constructor() {
-                this.routerView = document.getElementById('router-view');
-                this.crudEngine = null;
-                this.currentViewInstance = null;
-                this.currentRoute = '';
-                this.init();
+            constructor() { 
+                this.routerView = document.getElementById('router-view'); 
+                this.currentRoute = ''; 
+                this.init(); 
             }
-
-            init() {
-                DB.init(); 
-                this.bindNavigation();
+            
+            async init() {
+                await DB.init();
+                this.bindNav(); 
                 this.navigate('dashboard');
             }
 
-            bindNavigation() {
+            bindNav() {
                 document.getElementById('sidebar-nav').addEventListener('click', (e) => {
-                    const navItem = e.target.closest('.nav-item');
-                    if (navItem && navItem.dataset.route) {
-                        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-                        navItem.classList.add('active');
-                        this.navigate(navItem.dataset.route);
+                    const nav = e.target.closest('.nav-item');
+                    if (nav && nav.dataset.route) { 
+                        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+                        nav.classList.add('active'); 
+                        this.navigate(nav.dataset.route); 
                     }
                 });
             }
 
-            reRenderCurrentView() {
-                if(this.currentRoute.startsWith('master-') || this.currentRoute === 'pengadaan-daftar') {
-                    if (this.crudEngine) this.crudEngine.render(this.routerView);
-                } else if(this.currentRoute === 'workspace' && this.currentViewInstance) {
-                    this.currentViewInstance.render(this.routerView);
-                } else {
-                    this.navigate(this.currentRoute);
-                }
+            reRenderCurrentView() { 
+                this.navigate(this.currentRoute, this.currentViewInstance?.packageId); 
             }
 
             navigate(route, param = null) {
-                this.currentRoute = route;
-                this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Memuat modul...</p></div>`;
+                this.currentRoute = route; 
+                this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Memuat modul dari Supabase...</p></div>`;
                 
                 setTimeout(() => {
-                    this.routerView.innerHTML = ''; 
-                    try {
-                        const schemaMap = {
-                            'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 
-                            'master-template': 'template', 'master-penomoran': 'penomoran',
-                            'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'master-waktu': 'waktu',
-                            'pengadaan-daftar': 'paket'
-                        };
+                    this.routerView.innerHTML = '';
+                    const schemaMap = { 
+                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket' 
+                    };
+                    
+                    if (schemaMap[route]) { 
+                        this.crudEngine = new CRUDEngine(schemaMap[route]); 
+                        this.crudEngine.render(this.routerView); 
+                        return; 
+                    }
 
-                        if (schemaMap[route]) {
-                            this.crudEngine = new CRUDEngine(schemaMap[route]);
-                            this.crudEngine.loadData();
-                            this.crudEngine.render(this.routerView);
-                            return;
-                        }
-
-                        switch(route) {
-                            case 'dashboard':
-                                CustomViews.renderDashboard(this.routerView); break;
-                            case 'workspace':
-                                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-                                this.currentViewInstance = new WorkspaceView(param);
-                                this.currentViewInstance.render(this.routerView); break;
-                            case 'laporan-pengadaan': case 'laporan-jadwal': case 'laporan-anggaran': case 'laporan-penyedia': case 'laporan-pejabat':
-                                CustomViews.renderReports(this.routerView); break;
-                            case 'ai-assistant':
-                                CustomViews.renderAIAssistant(this.routerView); break;
-                            case 'pengaturan':
-                                CustomViews.renderSettings(this.routerView); break;
-                            case 'dokumen-sistem': case 'dokumen-pendukung': case 'dokumen-spse': case 'dokumen-arsip':
-                                this.routerView.innerHTML = `<div class="p-6 h-full flex flex-col"><h1 class="text-2xl font-bold mb-4">Manajemen Dokumen (Global)</h1><div class="card p-8 flex-1 flex flex-col items-center justify-center text-muted"><i class="ph ph-files text-5xl mb-4"></i><p>Pilih paket pengadaan di "Daftar Paket" dan buka Workspace tab "Dokumen" untuk Document Dependency Engine.</p><button class="btn btn-primary mt-4" onclick="app.navigate('pengadaan-daftar')">Ke Daftar Paket</button></div></div>`; break;
-                            default:
-                                this.routerView.innerHTML = `<div class="empty-state"><i class="ph ph-hammer text-4xl mb-4"></i><h2 class="text-lg font-bold text-main">Halaman Belum Tersedia</h2></div>`;
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        this.notify('Gagal memuat antarmuka.', 'error');
+                    switch(route) {
+                        case 'dashboard': CustomViews.renderDashboard(this.routerView); break;
+                        case 'workspace': 
+                            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+                            this.currentViewInstance = new WorkspaceView(param); 
+                            this.currentViewInstance.render(this.routerView); 
+                            break;
+                        case 'ai-assistant': CustomViews.renderAIAssistant(this.routerView); break;
+                        case 'laporan-pengadaan': case 'laporan-jadwal': case 'laporan-anggaran': case 'laporan-penyedia': case 'laporan-pejabat': 
+                            CustomViews.renderReports(this.routerView); 
+                            break;
+                        case 'laporan-paket': 
+                            this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Laporan Total Paket</h1><p class="text-muted mb-5">Mencakup seluruh paket, lokasi, pagu, HPS, dan tahapan.</p><button class="btn btn-primary" onclick="app.printTotalReport()"><i class="ph ph-printer"></i> Cetak Laporan Total Paket</button></div></div>`; 
+                            break;
+                        case 'cetak-pencairan': 
+                            this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Cetak Pengajuan Pencairan</h1><p class="text-muted mb-6">Pilih paket terlebih dahulu, kemudian gunakan checklist pencairan untuk melengkapi data.</p><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar')">Pilih Paket</button></div></div>`; 
+                            break;
+                        case 'pengaturan': CustomViews.renderSettings(this.routerView); break;
+                        case 'dokumen-sistem': case 'dokumen-pendukung': case 'dokumen-spse': case 'dokumen-arsip':
+                            this.routerView.innerHTML = `<div class="p-6 h-full flex flex-col"><h1 class="text-2xl font-bold mb-4">Manajemen Dokumen (Global)</h1><div class="card p-8 flex-1 flex flex-col items-center justify-center text-muted"><i class="ph ph-files text-5xl mb-4"></i><p>Pilih paket pengadaan di "Daftar Paket" dan buka Workspace tab "Dokumen" untuk Document Dependency Engine.</p><button class="btn btn-primary mt-4" onclick="app.navigate('pengadaan-daftar')">Ke Daftar Paket</button></div></div>`; 
+                            break;
+                        default: 
+                            this.routerView.innerHTML = `<div class="empty-state"><i class="ph ph-hammer text-4xl mb-4"></i><h2 class="text-lg font-bold text-main">Halaman Belum Tersedia</h2></div>`;
                     }
                 }, 150);
             }
 
-            // Global Actions for Workspace
-            savePejabat(pkgId) {
-                const fd = DOM.getFormData('form-pejabat');
-                DB.update('packages', pkgId, fd);
-                this.notify('Struktur Organisasi disimpan', 'success');
-                this.reRenderCurrentView();
+            savePejabat(pkgId) { 
+                DB.update('paket', pkgId, DOM.getFormData('form-pejabat')); 
+                this.notify('Struktur Organisasi disimpan ke API', 'success'); 
+                this.reRenderCurrentView(); 
             }
-
+            
             addTimTeknis(pkgId) {
-                const pkg = DB.getById('packages', pkgId);
+                const pkg = DB.getById('paket', pkgId);
                 const fd = DOM.getFormData('form-tt');
                 if(!fd.nama || !fd.nip || !fd.jabatan) { this.notify('Isi lengkap form tim teknis', 'warning'); return; }
-                const tt = pkg.tim_teknis || [];
-                tt.push(fd);
-                DB.update('packages', pkgId, { tim_teknis: tt });
+                const tt = pkg.tim_teknis || []; tt.push(fd);
+                DB.update('paket', pkgId, { tim_teknis: tt });
                 this.notify('Anggota Tim Teknis ditambahkan', 'success');
                 this.reRenderCurrentView();
             }
 
             removeTimTeknis(pkgId, index) {
-                const pkg = DB.getById('packages', pkgId);
-                let tt = pkg.tim_teknis || [];
-                tt.splice(index, 1);
-                DB.update('packages', pkgId, { tim_teknis: tt });
+                const pkg = DB.getById('paket', pkgId);
+                let tt = pkg.tim_teknis || []; tt.splice(index, 1);
+                DB.update('paket', pkgId, { tim_teknis: tt });
                 this.reRenderCurrentView();
             }
-
-            addHargaRow(pkgId) {
-                const pkg = DB.getById('packages', pkgId);
-                const items = pkg.items || [];
-                items.push({ id: Date.now(), uraian: 'Item Baru', sat: 'Ls', vol_hps: 0, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 });
-                DB.update('packages', pkgId, { items });
-                this.reRenderCurrentView();
+            
+            addHargaRow(pkgId) { 
+                const items = DB.getById('paket', pkgId).items || []; 
+                items.push({ id: Date.now(), uraian: 'Item Baru', sat: 'Ls', vol_hps: 1, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }); 
+                DB.update('paket', pkgId, { items }); 
+                this.reRenderCurrentView(); 
+            }
+            
+            advanceStage(pkgId) { 
+                const pkg = DB.getById('paket', pkgId); 
+                const st = ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI']; 
+                const i = st.indexOf(pkg.stage); 
+                if(i < st.length - 1) { 
+                    DB.update('paket', pkgId, { stage: st[i+1], progress: pkg.progress + 15 }); 
+                    this.notify(`Tahap maju ke ${st[i+1]}`, 'success'); 
+                    this.reRenderCurrentView(); 
+                } 
             }
 
             toggleChecklist(pkgId, doc, status) {
-                const pkg = DB.getById('packages', pkgId);
+                const pkg = DB.getById('paket', pkgId);
                 let chk = pkg.checklists || [];
                 const exist = chk.find(x => x.doc === doc);
                 if(exist) { exist.status = status; exist.date = new Date().toISOString().split('T')[0]; }
                 else { chk.push({ doc, status, date: new Date().toISOString().split('T')[0], pic: 'Sistem' }); }
-                DB.update('packages', pkgId, { checklists: chk });
+                DB.update('paket', pkgId, { checklists: chk });
                 this.reRenderCurrentView();
             }
 
-            advanceStage(pkgId) {
-                const pkg = DB.getById('packages', pkgId);
-                const stages = ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI'];
-                const idx = stages.indexOf(pkg.stage);
-                if(idx < stages.length - 1) {
-                    DB.update('packages', pkgId, { stage: stages[idx+1], progress: pkg.progress + 15 });
-                    this.notify(`Tahap dimajukan ke ${stages[idx+1]}`, 'success');
-                    this.reRenderCurrentView();
-                }
+            saveKAK(pkgId) { 
+                DB.update('paket', pkgId, DOM.getFormData('form-kak')); 
+                this.notify('Data KAK disimpan ke Supabase', 'success'); 
+                this.reRenderCurrentView(); 
+            }
+            
+            saveContract(pkgId) {
+                const fd = DOM.getFormData('form-kontrak');
+                fd.pembulatan_negosiasi = Number(String(fd.pembulatan_negosiasi||'').replace(/\D/g,''))||0;
+                fd.jaminan_pemeliharaan = Number(fd.jaminan_pemeliharaan)||0;
+                DB.update('paket', pkgId, fd);
+                this.notify('Rancangan kontrak disimpan ke API', 'success');
+                this.reRenderCurrentView();
+            }
+
+            // --- Document Dependency Engine ---
+            getDocumentMeta(pkg, doc) {
+                const aliases = {'BA Reviu Dok Persiapan':'BA Reviu'};
+                const code = aliases[doc] || doc;
+                const rule = DB.get('penomoran').find(r => r.code === code);
+                
+                // Get scheduled date
+                const holidays = DB.get('libur').map(x => x.date);
+                let dates = {};
+                DB.get('waktu').forEach(r => { 
+                    const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? pkg.tgl_mulai : dates[r.previous] || pkg.tgl_mulai); 
+                    dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                });
+                const date = dates[doc] || dates[code] || pkg.tgl_mulai;
+                
+                if (!rule) return { number:'-', date };
+                const d = new Date(`${date}T00:00:00`);
+                
+                const toRoman = (num) => {
+                    const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+                    return roman[num - 1] || "";
+                };
+                
+                const mm = toRoman(d.getMonth() + 1);
+                const yyyy = d.getFullYear();
+                const uraian = pkg.keyword_penomoran || 'PKT';
+                
+                return { 
+                    number: rule.format.replace('[uraian]', uraian).replace('[bulan]', mm).replace('[tahun]', yyyy), 
+                    date 
+                };
             }
 
             simulateDependencyEngine(docName, pkgId) {
-                const pkg = DB.getById('packages', pkgId);
+                const pkg = DB.getById('paket', pkgId);
                 const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : null;
                 const supplierName = supplier ? supplier.name : 'BELUM DITETAPKAN (DRAFT)';
                 const nilaiNegosiasi = Utils.formatCurrency(DB.calculatePackageTotals(pkg).negosiasi);
 
-                const modalHTML = `
-                    <div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>
-                `;
+                const modalHTML = `<div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>`;
                 DOM.openModal(`Generating ${docName}...`, modalHTML, '');
                 
                 const logEl = document.getElementById('engine-log');
                 const addLog = (msg, delay) => setTimeout(() => { logEl.innerHTML += `<div>> ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; }, delay);
 
                 addLog(`Memulai Document Dependency Engine...`, 200);
-                addLog(`Menghubungkan ke Single Source of Truth...`, 700);
+                addLog(`Menghubungkan ke API Supabase (Single Source of Truth)...`, 700);
                 addLog(`[OK] Mengekstrak Nama Paket: <b class="text-main">${pkg.name}</b>`, 1200);
                 addLog(`[OK] Mengekstrak OPD: <b class="text-main">${pkg.opd}</b>`, 1500);
-                addLog(`[OK] Mengekstrak Nilai (Negosiasi/Akhir): <b class="text-success">${nilaiNegosiasi}</b>`, 1900);
+                addLog(`[OK] Mengekstrak Nilai: <b class="text-success">${nilaiNegosiasi}</b>`, 1900);
                 addLog(`[OK] Mengekstrak Penyedia Terpilih: <b class="text-primary">${supplierName}</b>`, 2300);
                 addLog(`Menyusun Template Dokumen ${docName}...`, 2800);
-                addLog(`Menyisipkan variabel ke MS Word...`, 3400);
-                addLog(`<span class="text-success font-bold">SELESAI! Dokumen ${docName}_Final.docx berhasil dibuat.</span>`, 4000);
+                addLog(`Menyisipkan variabel ke file...`, 3400);
+                addLog(`<span class="text-success font-bold">SELESAI! Dokumen ${docName} berhasil dibuat.</span>`, 4000);
 
                 setTimeout(() => {
-                    DB.insert('documents', { packageId: pkgId, docType: docName, name: `${docName}_${pkg.id}_Generated.docx`, status: 'FINAL', date: new Date().toISOString().split('T')[0] });
-                    this.toggleChecklist(pkgId, docName, true); // Auto check
+                    DB.insert('documents', { package_id: pkgId, doc_type: docName, name: `${docName}_${pkg.id}.docx`, status: 'FINAL', date: new Date().toISOString().split('T')[0] });
+                    this.toggleChecklist(pkgId, docName, true); 
                     DOM.closeModal();
                     this.notify(`${docName} berhasil di-generate via Engine`, 'success');
                     this.reRenderCurrentView();
                 }, 4800);
             }
 
+            // --- Printing Functionalities ---
+            printDocument(title, content) {
+                const win = window.open('', '_blank'); 
+                if(!win) { this.notify('Izinkan pop-up untuk mencetak dokumen.', 'error'); return; }
+                win.document.write(`<!doctype html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#111}h1{font-size:20px}h2{font-size:15px;margin-top:24px}p{white-space:pre-wrap;line-height:1.5}.meta{color:#555;margin-bottom:22px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:8px;text-align:left}</style></head><body>${content}</body></html>`);
+                win.document.close(); win.focus(); setTimeout(()=>win.print(), 250);
+            }
+            
+            printKAK(pkgId, short=false) { 
+                const p = DB.getById('paket',pkgId); 
+                const content = short 
+                    ? `<h1>Uraian Singkat Pekerjaan</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>` 
+                    : `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div>${[['Uraian KAK','uraian_kak'],['Dasar Hukum','dasar_hukum'],['Latar Belakang','latar_belakang'],['Maksud & Tujuan','maksud_tujuan'],['Sasaran','sasaran'],['Lokasi','lokasi_kak'],['Ruang Lingkup','ruang_lingkup'],['Spesifikasi Teknis','spesifikasi_teknis'],['Output','output_kak'],['Outcome','outcome']].map(x=>`<h2>${x[0]}</h2><p>${p[x[1]] || '-'}</p>`).join('')}`; 
+                this.printDocument(short?'Uraian Singkat Pekerjaan':'KAK', content); 
+            }
+            
+            printHPS(pkgId) { 
+                const p = DB.getById('paket',pkgId);
+                const rows = (p.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.uraian}</td><td>${x.sat}</td><td>${x.vol_hps}</td><td>Rp ${Utils.formatNumber(x.harga_hps)}</td><td>Rp ${Utils.formatNumber(Number(x.vol_hps)*Number(x.harga_hps))}</td></tr>`).join(''); 
+                this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class="meta">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
+            }
+            
+            printPackageReport(pkgId) { 
+                const p = DB.getById('paket',pkgId);
+                const t = DB.calculatePackageTotals(p);
+                this.printDocument('Laporan Rinci Paket',`<h1>LAPORAN RINCI PAKET PENGADAAN</h1><table><tr><th>Nama Paket</th><td>${p.name}</td></tr><tr><th>Lokasi</th><td>${p.lokasi||'-'}</td></tr><tr><th>Program</th><td>${p.kode_program||''} ${p.program||''}</td></tr><tr><th>Kegiatan</th><td>${p.kode_kegiatan||''} ${p.kegiatan||''}</td></tr><tr><th>Metode</th><td>${p.metode_pemilihan||'-'}</td></tr><tr><th>Nilai Pagu</th><td>${Utils.formatCurrency(p.pagu)||'-'}</td></tr><tr><th>HPS</th><td>${Utils.formatCurrency(t.hps)||'-'}</td></tr><tr><th>Penawaran</th><td>${Utils.formatCurrency(t.penawaran)||'-'}</td></tr><tr><th>Negosiasi</th><td>${Utils.formatCurrency(t.negosiasi)||'-'}</td></tr></table>`); 
+            }
+            
+            printTotalReport() { 
+                const rows = DB.get('paket').map((p,i)=>{
+                    const t=DB.calculatePackageTotals(p);
+                    return `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.lokasi||'-'}</td><td>${Utils.formatCurrency(p.pagu)||'-'}</td><td>${Utils.formatCurrency(t.hps)||'-'}</td><td>${p.stage}</td></tr>`;
+                }).join('');
+                this.printDocument('Laporan Total Paket',`<h1>LAPORAN TOTAL PAKET PENGADAAN</h1><table><thead><tr><th>No</th><th>Paket</th><th>Lokasi</th><th>Pagu</th><th>HPS</th><th>Tahap</th></tr></thead><tbody>${rows}</tbody></table>`); 
+            }
+
             notify(message, type = 'info') {
-                const tc = document.getElementById('toast-container');
-                const toast = document.createElement('div');
-                toast.className = `toast`;
-                const icon = type === 'success' ? '<i class="ph-fill ph-check-circle text-success text-2xl"></i>' 
-                           : type === 'error' ? '<i class="ph-fill ph-warning-circle text-danger text-2xl"></i>'
-                           : '<i class="ph-fill ph-info text-info text-2xl"></i>';
-                toast.innerHTML = `${icon} <span class="text-main">${message}</span>`;
-                tc.appendChild(toast);
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateX(100%)';
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
+                const tc = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast';
+                const i = type === 'success' ? '<i class="ph-fill ph-check-circle text-success text-2xl"></i>' : (type === 'error' ? '<i class="ph-fill ph-warning-circle text-danger text-2xl"></i>' : '<i class="ph-fill ph-info text-info text-2xl"></i>');
+                t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
+                setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
         }
-
-        /* EProc Flow extensions */
-        Utils.formatNumber = (value) => new Intl.NumberFormat('id-ID').format(Number(value) || 0);
-        const DEFAULTS = {
-            lokasi: 'BKAD Kota Bogor, Jl. Pemuda No.31, RT.01/RW.06, Tanah Sareal, Kota Bogor, Jawa Barat 16162',
-            opd: 'BKAD Kota Bogor', bidang: 'Bidang Pengelolaan Barang Milik Daerah',
-            kode_program: '5.02.03', program: 'PROGRAM PENGELOLAAN BARANG MILIK DAERAH',
-            kode_kegiatan: '5.02.03.2.01', kegiatan: 'Pengelolaan Barang Milik Daerah',
-            metode_pemilihan: 'Pengadaan Langsung', durasi_kontrak: 30
-        };
-        const originalUpdate = DB.update.bind(DB);
-        DB.update = function(table, id, payload) {
-            if (table === 'packages') {
-                if (payload.pagu !== undefined) payload.pagu = Number(String(payload.pagu).replace(/\D/g, '')) || 0;
-                const current = this.getById(table, id) || {};
-                const start = payload.tgl_mulai || current.tgl_mulai;
-                const duration = Number(payload.durasi_kontrak !== undefined ? payload.durasi_kontrak : current.durasi_kontrak);
-                if (start && Number.isFinite(duration)) { const end = new Date(`${start}T00:00:00`); end.setDate(end.getDate() + duration); payload.tgl_selesai = end.toISOString().split('T')[0]; }
-            }
-            return originalUpdate(table, id, payload);
-        };
-        const originalInit = DB.init.bind(DB);
-        DB.init = function() {
-            originalInit();
-            if (!localStorage.getItem('eproc_flow_migrated_v1')) {
-                const packages = this.get('packages').map(p => ({ ...DEFAULTS, ...p, pagu: p.pagu || 0, uraian: p.uraian || '', checklists: p.checklists || [] }));
-                this.save('packages', packages);
-                if (!localStorage.getItem('pf_waktu')) this.save('waktu', [
-                    {id:'WKT-01', name:'KAK', previous:'Tanggal Mulai', days:0, anchor:'mulai'},
-                    {id:'WKT-02', name:'HPS', previous:'KAK', days:1, anchor:'mulai'},
-                    {id:'WKT-03', name:'BA Reviu Dok Persiapan', previous:'HPS', days:1, anchor:'mulai'},
-                    {id:'WKT-04', name:'SDP', previous:'BA Reviu Dok Persiapan', days:1, anchor:'mulai'},
-                    {id:'WKT-05', name:'BA Evaluasi', previous:'SDP', days:1, anchor:'mulai'},
-                    {id:'WKT-06', name:'BA Pembuktian Kualifikasi', previous:'BA Evaluasi', days:1, anchor:'mulai'},
-                    {id:'WKT-07', name:'BA Negosiasi', previous:'BA Pembuktian Kualifikasi', days:1, anchor:'mulai'},
-                    {id:'WKT-08', name:'Undangan Pengadaan Langsung', previous:'BA Negosiasi', days:1, anchor:'mulai'},
-                    {id:'WKT-09', name:'BA Hasil Pemilihan', previous:'Undangan Pengadaan Langsung', days:1, anchor:'mulai'},
-                    {id:'WKT-10', name:'SPPBJ', previous:'BA Hasil Pemilihan', days:1, anchor:'mulai'},
-                    {id:'WKT-11', name:'SPK', previous:'Tanggal Mulai', days:0, anchor:'mulai'},
-                    {id:'WKT-12', name:'SPMK', previous:'Tanggal Mulai', days:0, anchor:'mulai'},
-                    {id:'WKT-13', name:'BAST', previous:'Tanggal Selesai', days:0, anchor:'selesai'},
-                    {id:'WKT-14', name:'BAP', previous:'Tanggal Selesai', days:0, anchor:'selesai'}
-                ]);
-                this.save('penomoran', [
-    {id:'DNR_BA_REVIU', code:'BA_REVIU', format:'027/01/[uraian]/PP/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_SDP', code:'SDP', format:'027/01/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_BA_EVALUASI', code:'BA_EVALUASI', format:'027/02/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_BA_PEMBUKTIAN', code:'BA_PEMBUKTIAN', format:'027/03/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_BA_NEGOSIASI', code:'BA_NEGOSIASI', format:'027/04/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_UNDANGAN', code:'UNDANGAN', format:'027/01_[uraian]/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_BA_HASIL', code:'BA_HASIL', format:'027/05/[uraian]/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_SPPBJ', code:'SPPBJ', format:'027/01/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_SPK', code:'SPK', format:'027/02/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_SPMK', code:'SPMK', format:'027/03/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_BAST', code:'BAST', format:'027/04/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0},
-    {id:'DNR_BAP', code:'BAP', format:'027/05/[uraian]/PPK/BKAD/[bulan]/[tahun]', counter:0}
-]);
-                if (!localStorage.getItem('pf_libur') || DB.get('libur').length < 24) {
-    this.save('libur', [
-        { id: 'HOL-01', date: '2026-01-01', desc: 'Tahun Baru Masehi' },
-        { id: 'HOL-02', date: '2026-01-16', desc: 'Isra Mikraj' },
-        { id: 'HOL-03', date: '2026-02-16', desc: 'Tahun Baru Imlek' },
-        { id: 'HOL-04', date: '2026-02-17', desc: 'Cuti Bersama Imlek' },
-        { id: 'HOL-05', date: '2026-03-18', desc: 'Hari Suci Nyepi' },
-        { id: 'HOL-06', date: '2026-03-19', desc: 'Cuti Bersama Nyepi' },
-        { id: 'HOL-07', date: '2026-03-20', desc: 'Idul Fitri' },
-        { id: 'HOL-08', date: '2026-03-21', desc: 'Idul Fitri' },
-        { id: 'HOL-09', date: '2026-03-22', desc: 'Cuti Bersama Idul Fitri' },
-        { id: 'HOL-10', date: '2026-03-23', desc: 'Cuti Bersama Idul Fitri' },
-        { id: 'HOL-11', date: '2026-03-24', desc: 'Cuti Bersama Idul Fitri' },
-        { id: 'HOL-12', date: '2026-04-03', desc: 'Wafat Yesus Kristus' },
-        { id: 'HOL-13', date: '2026-04-05', desc: 'Paskah' },
-        { id: 'HOL-14', date: '2026-05-01', desc: 'Hari Buruh' },
-        { id: 'HOL-15', date: '2026-05-14', desc: 'Kenaikan Yesus Kristus' },
-        { id: 'HOL-16', date: '2026-05-15', desc: 'Cuti Bersama Kenaikan YK' },
-        { id: 'HOL-17', date: '2026-05-27', desc: 'Idul Adha' },
-        { id: 'HOL-18', date: '2026-05-28', desc: 'Cuti Bersama Idul Adha' },
-        { id: 'HOL-19', date: '2026-06-01', desc: 'Hari Lahir Pancasila' },
-        { id: 'HOL-20', date: '2026-06-16', desc: 'Tahun Baru Islam' },
-        { id: 'HOL-21', date: '2026-08-17', desc: 'Hari Kemerdekaan RI' },
-        { id: 'HOL-22', date: '2026-08-25', desc: 'Maulid Nabi Muhammad SAW' },
-        { id: 'HOL-23', date: '2026-12-25', desc: 'Hari Raya Natal' },
-        { id: 'HOL-24', date: '2026-12-26', desc: 'Cuti Bersama Natal' }
-    ]);
-}
-                localStorage.setItem('eproc_flow_migrated_v1', 'true');
-            }
-        };
-        Schemas.waktu = { title:'Master Waktu Dokumen', table:'waktu', fields:[{key:'name',label:'Tahap/Dokumen',type:'text',required:true},{key:'previous',label:'Mengikuti Jadwal Sebelumnya',type:'text',required:true},{key:'days',label:'Selisih Hari Kerja',type:'number',required:true},{key:'anchor',label:'Acuan',type:'select',options:['mulai','selesai']}] };
-        Schemas.penyedia.fields = [
-            {key:'name',label:'Nama Perusahaan',type:'text',required:true}, {key:'address',label:'Alamat',type:'textarea',required:true,hideInTable:true}, {key:'type',label:'Bentuk Usaha',type:'select',options:['Badan Usaha','Perorangan'],required:true},
-            {key:'npwp',label:'NPWP',type:'text',required:true,width:'180px'}, {key:'nib',label:'NIB',type:'text',hideInTable:true}, {key:'no_izin',label:'Nomor Izin (IUJK/dll)',type:'text',hideInTable:true},
-            {key:'direktur',label:'Nama Direktur',type:'text',required:true}, {key:'jabatan_direktur',label:'Jabatan Direktur',type:'text',hideInTable:true}, {key:'bank',label:'Bank',type:'text',hideInTable:true}, {key:'no_rekening',label:'Nomor Rekening',type:'text',hideInTable:true}, {key:'an_rekening',label:'Atas Nama Rekening',type:'text',hideInTable:true},
-            {key:'status',label:'Status Verifikasi',type:'select',options:['Aktif','Blacklist'],formatter:Utils.getBadge}
-        ];
-        Schemas.paket.fields.splice(2, 0, {key:'uraian',label:'Uraian',type:'text'}, {key:'pagu',label:'Nilai Pagu',type:'text',formatter:Utils.formatCurrency});
-        const originalShowForm = CRUDEngine.prototype.showForm;
-        CRUDEngine.prototype.showForm = function(id=null) {
-            if (this.schemaKey === 'paket' && !id) {
-                const pejabat = DB.get('pejabat');
-                const first = role => (pejabat.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                const today = new Date().toISOString().split('T')[0];
-                const newPkg = DB.insert('packages', {...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[]});
-                app.navigate('workspace', newPkg.id); return;
-            }
-            originalShowForm.call(this, id);
-        };
-        const originalRenderDataPaket = WorkspaceView.prototype.renderDataPaket;
-        WorkspaceView.prototype.renderDataPaket = function() {
-            const html = originalRenderDataPaket.call(this);
-            const add = `<div class="form-group col-span-2"><label class="form-label">Uraian / Penanda Paket</label><textarea name="uraian" class="form-control" rows="2">${this.pkg.uraian || ''}</textarea></div><div class="form-group"><label class="form-label">Nilai Pagu (Rp)</label><input type="text" name="pagu" inputmode="numeric" class="form-control money-input" value="${Utils.formatNumber(this.pkg.pagu)}"></div>`;
-            return html.replace('<div class="form-group col-span-2"><label class="form-label">Nama Paket</label>', add + '<div class="form-group col-span-2"><label class="form-label">Nama Paket</label>').replace('<input type="date" name="tgl_selesai" class="form-control" value="${this.pkg.tgl_selesai || \'\'}">','<input type="date" name="tgl_selesai" class="form-control" value="${this.pkg.tgl_selesai || \'\'}" readonly>');
-        };
-        const originalAttach = WorkspaceView.prototype.attachHargaEvents;
-        WorkspaceView.prototype.attachHargaEvents = function() { originalAttach.call(this); document.querySelectorAll('.money-input').forEach(el => el.addEventListener('input', e => { e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, '')); })); };
-        WorkspaceView.prototype.renderJadwal = function() {
-            const holidays = DB.get('libur').map(l => l.date); const rules = DB.get('waktu'); let dates = {};
-            rules.forEach(r => { const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? this.pkg.tgl_mulai : dates[r.previous] || this.pkg.tgl_mulai); dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); });
-            return `<div class="card p-6 max-w-5xl mx-auto"><div class="flex justify-between items-center mb-6 border-b pb-2"><div><h2 class="font-bold text-lg">Jadwal Otomatis</h2><p class="text-sm text-muted">Tanggal mulai dan selesai dihitung dari Master Waktu dalam hari kerja.</p></div><button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button></div><table class="data-table"><thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Selisih Hari Kerja</th><th>Tanggal Mulai</th></tr></thead><tbody>${rules.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous}</td><td>+${r.days} hari kerja</td><td>${Utils.formatDate(dates[r.name])}</td></tr>`).join('')}</tbody></table></div>`;
-        };
-        WorkspaceView.prototype.renderChecklist = function() {
-            const groups = [{title:'Checklist Dokumen Pengadaan',docs:['HPS/RAB','KAK','BA Reviu Dok Persiapan','SDP','BA Evaluasi','BA Pembuktian Kualifikasi','BA Negosiasi','Undangan Pengadaan Langsung','BA Hasil Pemilihan','SPPBJ','Undangan Pengadaan (Kontrak)','SPK','SSUK','SSKK','SPMK','BAST','BAP']},{title:'Checklist Pengajuan Pencairan',docs:['Summary Report','Surat Permohonan Pemilihan Penyedia','Surat Penawaran','Lampiran Penawaran (Profil Perusahaan dll)','Persyaratan Kualifikasi Peserta','Surat Pernyataan Sanggup Menyelesaikan Pekerjaan','Surat Permohonan Pencairan dari Penyedia','Invoice Lampiran Pembayaran Personil dan Non Personil','Kelengkapan Dokumen Lampiran (misal laporan)','Jaminan Pemeliharaan (Fisik)','Mutual Check / Laporan Kemajuan (Fisik)','KTP dan NPWP','Surat Referensi Bank','Faktur Pajak','Kwitansi']}];
-            const row = doc => { const c=(this.pkg.checklists||[]).find(x=>x.doc===doc), ok=c&&c.status; return `<tr><td><input type="checkbox" ${ok?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${doc}',this.checked)"></td><td class="font-medium">${doc}</td><td>${ok?'<span class="badge badge-success">Ada</span>':'<span class="badge badge-warning">Kosong</span>'}</td><td>${ok?Utils.formatDate(c.date):'-'}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.simulateDependencyEngine('${doc}','${this.packageId}')">Generate</button></td></tr>`; };
-            return groups.map(g=>`<div class="card p-0 overflow-hidden mb-6"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">${g.title}</h3></div><table class="data-table"><thead><tr><th></th><th>Dokumen</th><th>Status</th><th>Tanggal</th><th>Aksi</th></tr></thead><tbody>${g.docs.map(row).join('')}</tbody></table></div>`).join('');
-        };
-        const documentSchedule = (pkg) => {
-            const holidays = DB.get('libur').map(x => x.date), dates = {};
-            DB.get('waktu').forEach(r => { const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? pkg.tgl_mulai : dates[r.previous] || pkg.tgl_mulai); dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); });
-            return dates;
-        };
-        App.prototype.getDocumentMeta = function(pkg, doc) {
-    // ...
-    // Ubah baris 'return { number: ... }' menjadi seperti ini:
-    
-    // Fungsi bantuan untuk ubah bulan ke Romawi
-    const toRoman = (num) => {
-        const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
-        return roman[num - 1] || "";
-    };
-    
-    const uraian = pkg.keyword_penomoran || 'PKT';
-    const bulanRomawi = toRoman(d.getMonth() + 1);
-    
-    return { 
-        number: rule.format
-            .replace('[uraian]', uraian)
-            .replace('[bulan]', bulanRomawi)
-            .replace('[tahun]', yyyy), 
-        date 
-    };
-};
-        App.prototype.printDocument = function(title, content) {
-            const page = window.open('', '_blank'); if (!page) { this.notify('Izinkan pop-up untuk mencetak dokumen.', 'error'); return; }
-            page.document.write(`<!doctype html><html><head><title>${title}</title><style>body{font-family:Arial,sans-serif;margin:36px;color:#111}h1{font-size:20px}h2{font-size:15px;margin-top:24px}p{white-space:pre-wrap;line-height:1.5}.meta{color:#555;margin-bottom:22px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #777;padding:8px;text-align:left}</style></head><body>${content}</body></html>`); page.document.close(); page.focus(); setTimeout(()=>page.print(),250);
-        };
-        App.prototype.printKAK = function(pkgId, short=false) { const p=DB.getById('packages',pkgId); const content=short ? `<h1>Uraian Singkat Pekerjaan</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>` : `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div>${[['Uraian KAK','uraian_kak'],['Dasar Hukum','dasar_hukum'],['Latar Belakang','latar_belakang'],['Maksud & Tujuan','maksud_tujuan'],['Sasaran','sasaran'],['Lokasi','lokasi_kak'],['Ruang Lingkup','ruang_lingkup'],['Spesifikasi Teknis','spesifikasi_teknis'],['Output','output_kak'],['Outcome','outcome']].map(x=>`<h2>${x[0]}</h2><p>${p[x[1]] || '-'}</p>`).join('')}`; this.printDocument(short?'Uraian Singkat Pekerjaan':'KAK',content); };
-        App.prototype.printHPS = function(pkgId) { const p=DB.getById('packages',pkgId), rows=(p.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.uraian}</td><td>${x.sat}</td><td>${x.vol_hps}</td><td>Rp ${Utils.formatNumber(x.harga_hps)}</td><td>Rp ${Utils.formatNumber(Number(x.vol_hps)*Number(x.harga_hps))}</td></tr>`).join(''); this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class="meta">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); };
-        App.prototype.saveKAK = function(pkgId) { DB.update('packages', pkgId, DOM.getFormData('form-kak')); this.notify('Data KAK disimpan', 'success'); this.reRenderCurrentView(); };
-        WorkspaceView.prototype.renderKAK = function() { const fields=[['uraian_kak','Uraian KAK'],['dasar_hukum','Dasar Hukum'],['latar_belakang','Latar Belakang'],['maksud_tujuan','Maksud & Tujuan'],['sasaran','Sasaran'],['lokasi_kak','Lokasi'],['ruang_lingkup','Ruang Lingkup'],['spesifikasi_teknis','Spesifikasi Teknis'],['output_kak','Output'],['outcome','Outcome']]; return `<div class="card p-6 max-w-4xl mx-auto"><div class="flex justify-between items-center mb-6 border-b pb-4"><div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Data siap dicetak sebagai KAK atau uraian singkat pekerjaan.</p></div><div class="flex gap-2"><button class="btn btn-outline" onclick="app.printKAK('${this.packageId}',true)"><i class="ph ph-printer"></i> Cetak Uraian Singkat</button><button class="btn btn-outline" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak KAK</button><button class="btn btn-primary" onclick="app.saveKAK('${this.packageId}')">Simpan</button></div></div><form id="form-kak">${fields.map(([k,l])=>`<div class="form-group"><label class="form-label">${l}</label><textarea name="${k}" class="form-control" rows="3">${this.pkg[k] || (k==='lokasi_kak'?this.pkg.lokasi||'':'')}</textarea></div>`).join('')}</form></div>`; };
-        const beforeHarga = WorkspaceView.prototype.renderHarga;
-        WorkspaceView.prototype.renderHarga = function() { return beforeHarga.call(this).replace('<div class="flex gap-2"><button class="btn btn-outline"','<div class="flex gap-2"><button class="btn btn-primary" onclick="app.printHPS(\'${this.packageId}\')"><i class="ph ph-file-pdf"></i> Cetak PDF HPS</button><button class="btn btn-outline"'); };
-        WorkspaceView.prototype.renderChecklist = function() { const groups=[{title:'Checklist Dokumen Pengadaan',docs:['HPS/RAB','KAK','BA Reviu Dok Persiapan','SDP','BA Evaluasi','BA Pembuktian Kualifikasi','BA Negosiasi','Undangan Pengadaan Langsung','BA Hasil Pemilihan','SPPBJ','Undangan Pengadaan (Kontrak)','SPK','SSUK','SSKK','SPMK','BAST','BAP']},{title:'Checklist Pengajuan Pencairan',docs:['Summary Report','Surat Permohonan Pemilihan Penyedia','Surat Penawaran','Lampiran Penawaran (Profil Perusahaan dll)','Persyaratan Kualifikasi Peserta','Surat Pernyataan Sanggup Menyelesaikan Pekerjaan','Surat Permohonan Pencairan dari Penyedia','Invoice Lampiran Pembayaran Personil dan Non Personil','Kelengkapan Dokumen Lampiran (misal laporan)','Jaminan Pemeliharaan (Fisik)','Mutual Check / Laporan Kemajuan (Fisik)','KTP dan NPWP','Surat Referensi Bank','Faktur Pajak','Kwitansi']}]; const row=doc=>{const c=(this.pkg.checklists||[]).find(x=>x.doc===doc),ok=c&&c.status,m=app.getDocumentMeta(this.pkg,doc),short=m.date?Utils.formatDateShort(m.date):'-'; return `<tr><td><input type="checkbox" ${ok?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${doc}',this.checked)"></td><td class="font-medium">${doc}</td><td><input class="form-control" style="min-width:250px" readonly value="${m.number}" onclick="this.select()"></td><td>${m.date?Utils.formatDate(m.date):'-'}</td><td><input class="form-control" style="min-width:115px" readonly value="${short}" onclick="this.select()"></td><td>${ok?'<span class="badge badge-success">Ada</span>':'<span class="badge badge-warning">Kosong</span>'}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.simulateDependencyEngine('${doc}','${this.packageId}')">Generate</button></td></tr>`}; return groups.map(g=>`<div class="card p-0 mb-6" style="overflow:visible"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">${g.title}</h3></div><div class="table-container" style="border:0;border-radius:0;overflow-x:auto"><table class="data-table"><thead><tr><th></th><th>Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Tanggal DD-MM-YYYY</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${g.docs.map(row).join('')}</tbody></table></div></div>`).join(''); };
-        const originalWorkspaceRender = WorkspaceView.prototype.render;
-        WorkspaceView.prototype.render = function(container) { originalWorkspaceRender.call(this,container); if(this.activeTab==='datapaket'){ const f=document.getElementById('form-datapaket'), start=f?.querySelector('[name=tgl_mulai]'), dur=f?.querySelector('[name=durasi_kontrak]'), finish=f?.querySelector('[name=tgl_selesai]'); const refresh=()=>{if(start?.value&&finish){const d=new Date(`${start.value}T00:00:00`);d.setDate(d.getDate()+(Number(dur?.value)||0));finish.value=d.toISOString().split('T')[0];}}; start?.addEventListener('change',refresh);dur?.addEventListener('input',refresh);refresh(); } };
-        const originalNavigate = App.prototype.navigate;
-        App.prototype.navigate = function(route,param=null) { if(route==='cetak-pencairan'){ this.currentRoute=route; this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Cetak Pengajuan Pencairan</h1><p class="text-muted mb-6">Pilih paket terlebih dahulu, kemudian gunakan checklist pencairan untuk melengkapi data.</p><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar')">Pilih Paket</button></div></div>`; return; } originalNavigate.call(this,route,param); };
-        const originalSavePejabat = App.prototype.savePejabat;
-        App.prototype.savePejabat = function(pkgId) { originalSavePejabat.call(this,pkgId); };
-        /* Final procurement controls */
-        Utils.formatCurrency = amount => { const value = Number(amount); return Number.isFinite(value) && value !== 0 ? new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:2,maximumFractionDigits:2}).format(value) : ''; };
-        Utils.formatDateShort = date => { if(!date) return '-'; const d=new Date(`${date}T00:00:00`); return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; };
-        const toWords = n => { const a=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas']; n=Math.floor(Number(n)||0); if(n<12)return a[n]; if(n<20)return toWords(n-10)+' belas'; if(n<100)return toWords(Math.floor(n/10))+' puluh '+toWords(n%10); if(n<200)return 'seratus '+toWords(n-100); if(n<1000)return toWords(Math.floor(n/100))+' ratus '+toWords(n%100); if(n<2000)return 'seribu '+toWords(n-1000); if(n<1000000)return toWords(Math.floor(n/1000))+' ribu '+toWords(n%1000); if(n<1000000000)return toWords(Math.floor(n/1000000))+' juta '+toWords(n%1000000); return String(n); };
-        Schemas.paket.fields = Schemas.paket.fields.filter(f=>f.key!=='uraian').map(f=>f.key==='pagu'?{...f,formatter:v=>Utils.formatCurrency(v)||'-'}:f);
-        Schemas.paket.fields.splice(2,0,{key:'lokasi',label:'Lokasi',type:'text'});
-        Schemas.jadwal_proses = {title:'Master Jadwal Proses Pengadaan',table:'jadwal_proses',fields:[{key:'name',label:'Proses',type:'select',options:['Upload','Evaluasi','Negosiasi','Kontrak'],required:true},{key:'start_after',label:'Mulai setelah (hari kerja)',type:'number',required:true},{key:'duration',label:'Durasi (hari kerja)',type:'number',required:true}]};
-        const dbInitFinal=DB.init.bind(DB); DB.init=function(){dbInitFinal();if(!localStorage.getItem('eproc_process_v1')){this.save('jadwal_proses',[{id:'PRS-01',name:'Upload',start_after:0,duration:1},{id:'PRS-02',name:'Evaluasi',start_after:1,duration:2},{id:'PRS-03',name:'Negosiasi',start_after:1,duration:1},{id:'PRS-04',name:'Kontrak',start_after:1,duration:1}]);localStorage.setItem('eproc_process_v1','true');}};
-        App.prototype.printPackageReport=function(pkgId){const p=DB.getById('packages',pkgId),t=DB.calculatePackageTotals(p);this.printDocument('Laporan Rinci Paket',`<h1>LAPORAN RINCI PAKET PENGADAAN</h1><table><tr><th>Nama Paket</th><td>${p.name}</td></tr><tr><th>Lokasi</th><td>${p.lokasi||'-'}</td></tr><tr><th>Program</th><td>${p.kode_program||''} ${p.program||''}</td></tr><tr><th>Kegiatan</th><td>${p.kode_kegiatan||''} ${p.kegiatan||''}</td></tr><tr><th>Metode</th><td>${p.metode_pemilihan||'-'}</td></tr><tr><th>Nilai Pagu</th><td>${Utils.formatCurrency(p.pagu)||'-'}</td></tr><tr><th>HPS</th><td>${Utils.formatCurrency(t.hps)||'-'}</td></tr><tr><th>Penawaran</th><td>${Utils.formatCurrency(t.penawaran)||'-'}</td></tr><tr><th>Negosiasi</th><td>${Utils.formatCurrency(t.negosiasi)||'-'}</td></tr></table>`);};
-        App.prototype.printTotalReport=function(){const rows=DB.get('packages').map((p,i)=>{const t=DB.calculatePackageTotals(p);return `<tr><td>${i+1}</td><td>${p.name}</td><td>${p.lokasi||'-'}</td><td>${Utils.formatCurrency(p.pagu)||'-'}</td><td>${Utils.formatCurrency(t.hps)||'-'}</td><td>${p.stage}</td></tr>`}).join('');this.printDocument('Laporan Total Paket',`<h1>LAPORAN TOTAL PAKET PENGADAAN</h1><table><thead><tr><th>No</th><th>Paket</th><th>Lokasi</th><th>Pagu</th><th>HPS</th><th>Tahap</th></tr></thead><tbody>${rows}</tbody></table>`);};
-        WorkspaceView.prototype.renderRingkasan=(function(original){return function(){return original.call(this).replace('<div class="flex flex-col gap-6">','<div class="flex justify-end mb-1"><button class="btn btn-outline" onclick="app.printPackageReport(\'${this.packageId}\')"><i class="ph ph-printer"></i> Cetak Laporan Rinci Paket</button></div><div class="flex flex-col gap-6">');};})(WorkspaceView.prototype.renderRingkasan);
-        WorkspaceView.prototype.renderJadwalProses=function(){const rules=DB.get('jadwal_proses'),holidays=DB.get('libur').map(x=>x.date);let base=this.pkg.tgl_mulai, rows=rules.map((r,i)=>{const start=Utils.addWorkingDays(base,r.start_after,holidays),end=Utils.addWorkingDays(start,r.duration,holidays);base=end;return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${Utils.formatDateShort(start)}</td><td>${Utils.formatDateShort(end)}</td><td>${r.duration} hari kerja</td></tr>`}).join('');return `<div class="card p-6 max-w-4xl mx-auto"><div class="flex justify-between items-center mb-6"><div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Upload, evaluasi, negosiasi, dan kontrak dikelola terpisah dari jadwal dokumen.</p></div><button class="btn btn-outline" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal Proses</button></div><table class="data-table"><thead><tr><th>No</th><th>Proses</th><th>Tanggal Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead><tbody>${rows}</tbody></table></div>`;};
-        App.prototype.saveContract=function(pkgId){const fd=DOM.getFormData('form-kontrak');fd.pembulatan_negosiasi=Number(String(fd.pembulatan_negosiasi||'').replace(/\D/g,''))||0;fd.jaminan_pemeliharaan=Number(fd.jaminan_pemeliharaan)||0;DB.update('packages',pkgId,fd);this.notify('Rancangan kontrak disimpan','success');this.reRenderCurrentView();};
-        WorkspaceView.prototype.renderRancanganKontrak=function(){const n=DB.calculatePackageTotals(this.pkg).negosiasi,round=this.pkg.pembulatan_negosiasi||n,guarantee=round*(Number(this.pkg.jaminan_pemeliharaan)||0)/100;return `<div class="card p-6 max-w-4xl mx-auto"><div class="flex justify-between items-center mb-6"><div><h2 class="font-bold text-lg">Rancangan Kontrak</h2><p class="text-sm text-muted">Nilai kontrak mengikuti pembulatan tahap negosiasi.</p></div><div class="flex gap-2"><button class="btn btn-outline" onclick="app.simulateDependencyEngine('SSUK','${this.packageId}')">Generate SSUK</button><button class="btn btn-outline" onclick="app.simulateDependencyEngine('SSKK','${this.packageId}')">Generate SSKK</button><button class="btn btn-outline" onclick="app.simulateDependencyEngine('SPK','${this.packageId}')">Generate SPK</button><button class="btn btn-primary" onclick="app.simulateDependencyEngine('SPMK','${this.packageId}')">Generate SPMK</button></div></div><form id="form-kontrak" class="grid grid-cols-2 gap-4"><div class="form-group"><label class="form-label">Nilai Negosiasi Otomatis</label><input class="form-control" value="${Utils.formatCurrency(n)}" readonly></div><div class="form-group"><label class="form-label">Masa Berlaku Kontrak (Hari)</label><input class="form-control" value="${this.pkg.durasi_kontrak||0}" readonly></div><div class="form-group"><label class="form-label">Pembulatan Negosiasi / Nilai Kontrak</label><input name="pembulatan_negosiasi" inputmode="numeric" class="form-control money-input" value="${Utils.formatNumber(round)}"></div><div class="form-group"><label class="form-label">Jaminan Pemeliharaan (%)</label><input name="jaminan_pemeliharaan" type="number" class="form-control" value="${this.pkg.jaminan_pemeliharaan||0}"></div><div class="form-group"><label class="form-label">Nilai Jaminan Pemeliharaan</label><input class="form-control" value="${Utils.formatCurrency(guarantee)}" readonly></div><div class="form-group"><label class="form-label">Lokasi</label><input class="form-control" value="${this.pkg.lokasi||''}" readonly></div><div class="col-span-2 text-right"><button type="button" class="btn btn-primary" onclick="app.saveContract('${this.packageId}')">Simpan Rancangan Kontrak</button></div></form></div>`;};
-        const hargaFinal=WorkspaceView.prototype.renderHarga; WorkspaceView.prototype.renderHarga=function(){const t=DB.calculatePackageTotals(this.pkg),hpsRound=this.pkg.pembulatan_hps||t.hps,offerRound=this.pkg.pembulatan_penawaran||t.penawaran,negoRound=this.pkg.pembulatan_negosiasi||t.negosiasi,alerts=[];if(Number(this.pkg.pagu)>0&&t.hps>Number(this.pkg.pagu))alerts.push('Total HPS melebihi nilai pagu.');if(t.penawaran>0&&t.penawaran>t.hps)alerts.push('Total penawaran melebihi HPS.');if(t.negosiasi>0&&t.penawaran>0&&t.negosiasi>t.penawaran)alerts.push('Total negosiasi melebihi penawaran.');const note=alerts.length?`<div class="card p-4 mb-4" style="border-color:#dc2626;color:#b91c1c"><b>Perhatian nilai:</b><br>${alerts.join('<br>')}</div>`:'';const block=(label,key,value)=>`<div class="card p-4"><label class="form-label">Pembulatan ${label}</label><input data-round="${key}" class="form-control money-input" inputmode="numeric" value="${Utils.formatNumber(value)}"><p class="text-sm font-semibold mt-2">${Utils.formatCurrency(value)}</p><label class="form-label mt-3">Terbilang</label><textarea class="form-control" rows="3" readonly>${toWords(value).trim()} rupiah</textarea></div>`;return note+hargaFinal.call(this)+`<div class="grid grid-cols-3 gap-4">${block('HPS','pembulatan_hps',hpsRound)}${block('Penawaran','pembulatan_penawaran',offerRound)}${block('Negosiasi','pembulatan_negosiasi',negoRound)}</div>`;};
-        const workspaceFinal=WorkspaceView.prototype.render;WorkspaceView.prototype.render=function(container){workspaceFinal.call(this,container);document.querySelectorAll('[data-round]').forEach(el=>el.addEventListener('change',e=>{DB.update('packages',this.packageId,{[e.target.dataset.round]:Number(String(e.target.value).replace(/\D/g,''))||0});this.render(container);}));};
-        const navFinal=App.prototype.navigate;App.prototype.navigate=function(route,param=null){if(route==='master-jadwal-proses'){this.currentRoute=route;this.crudEngine=new CRUDEngine('jadwal_proses');this.crudEngine.loadData();this.crudEngine.render(this.routerView);return;}if(route==='laporan-paket'){this.currentRoute=route;this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Laporan Total Paket</h1><p class="text-muted mb-5">Mencakup seluruh paket, lokasi, pagu, HPS, dan tahapan.</p><button class="btn btn-primary" onclick="app.printTotalReport()"><i class="ph ph-printer"></i> Cetak Laporan Total Paket</button></div></div>`;return;}navFinal.call(this,route,param);};
+        
+        // Inisialisasi
         document.addEventListener('DOMContentLoaded', () => { window.app = new App(); });
     </script>
 </body>
