@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EProc Flow by ersandyf_ (Enterprise Edition - Supabase Sync)</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -53,7 +50,6 @@
         body { font-family: var(--font-sans); background-color: var(--bg-body); color: var(--text-main); line-height: 1.5; -webkit-font-smoothing: antialiased; overflow: hidden; }
         button, input, textarea, select { font-family: inherit; outline: none; }
         
-        /* Utility Classes */
         .text-muted { color: var(--text-muted); } .text-primary { color: var(--primary-600); }
         .text-success { color: var(--success-600); } .text-danger { color: var(--danger-500); }
         .text-warning { color: var(--warning-500); }
@@ -104,10 +100,6 @@
         .card-interactive { transition: all var(--transition-fast); cursor: pointer; }
         .card-interactive:hover { border-color: var(--primary-500); box-shadow: var(--shadow-md); transform: translateY(-2px); }
         
-        .progress-track { height: 6px; background: var(--gray-100); border-radius: var(--radius-full); overflow: hidden; width: 100%; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); }
-        .progress-fill { height: 100%; background: var(--primary-600); transition: width 0.5s ease; }
-
-        /* Data Tables */
         .table-container { width: 100%; overflow-x: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
         .data-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
         .data-table th { background: var(--gray-50); padding: var(--space-3) var(--space-4); font-weight: 600; color: var(--gray-600); border-bottom: 1px solid var(--border-color); white-space: nowrap;}
@@ -115,14 +107,12 @@
         .data-table tr:last-child td { border-bottom: none; }
         .data-table tr:hover td { background-color: var(--gray-50); }
         
-        /* Forms & Inputs */
         .form-group { margin-bottom: var(--space-4); }
         .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: var(--gray-700); margin-bottom: var(--space-2); }
         .form-control { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.875rem; transition: border-color var(--transition-fast); background: var(--bg-surface);}
         .form-control:focus { border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
         .form-control:disabled { background: var(--gray-50); color: var(--gray-500); cursor: not-allowed; }
 
-        /* Modal Overlay */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
         .modal-overlay.active { display: flex; opacity: 1; }
         .modal-content { background: var(--bg-surface); border-radius: var(--radius-lg); width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-float); transform: translateY(20px); transition: transform 0.2s; }
@@ -138,7 +128,6 @@
         .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
-        /* Spreadsheet */
         .spreadsheet-container { border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; background: var(--bg-surface); }
         .spreadsheet { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
         .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; color: var(--gray-700); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
@@ -147,7 +136,6 @@
         .cell-input:focus { box-shadow: inset 0 0 0 2px var(--primary-600); background: var(--primary-50); }
         .cell-readonly { padding: var(--space-3); background: var(--gray-50); color: var(--gray-700); font-weight: 500; }
 
-        /* Timeline */
         .timeline-container { display: flex; flex-direction: column; position: relative; padding-left: 12px; }
         .timeline-container::before { content: ''; position: absolute; left: 18px; top: 8px; bottom: 8px; width: 2px; background: var(--gray-200); z-index: 0; }
         .timeline-node { display: flex; gap: var(--space-4); position: relative; z-index: 1; margin-bottom: var(--space-6); }
@@ -156,33 +144,11 @@
         .timeline-dot.completed { border-color: var(--success-500); background: var(--success-500); }
         .timeline-content { flex: 1; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: var(--space-4); box-shadow: var(--shadow-sm); }
 
-        /* Toast */
         .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
         .toast { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; box-shadow: var(--shadow-float); display: flex; align-items: center; gap: 12px; font-size: 0.875rem; font-weight: 500; animation: slideIn 0.3s ease forwards; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* Chat UI */
-        .chat-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: var(--bg-body); }
-        .chat-messages { flex: 1; overflow-y: auto; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
-        .chat-msg { display: flex; gap: var(--space-3); max-width: 80%; }
-        .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
-        .chat-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .chat-bubble { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: 0.875rem; line-height: 1.5; }
-        .chat-msg.bot .chat-avatar { background: var(--primary-100); color: var(--primary-600); }
-        .chat-msg.bot .chat-bubble { background: var(--bg-surface); border: 1px solid var(--border-color); border-top-left-radius: 0; }
-        .chat-msg.user .chat-avatar { background: var(--gray-200); color: var(--gray-700); }
-        .chat-msg.user .chat-bubble { background: var(--primary-600); color: white; border-top-right-radius: 0; }
-        .chat-input-area { padding: var(--space-4); background: var(--bg-surface); border-top: 1px solid var(--border-color); }
-        .chat-input-box { display: flex; align-items: flex-end; gap: var(--space-2); background: var(--gray-50); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--space-2); }
-        .chat-input-box textarea { flex: 1; background: transparent; border: none; resize: none; padding: 8px; max-height: 120px; min-height: 40px; font-family: inherit; font-size: 0.875rem; }
-        .chat-input-box button { width: 40px; height: 40px; border-radius: 50%; background: var(--primary-600); color: white; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
-        .chat-suggestions { display: flex; gap: var(--space-2); padding-bottom: var(--space-3); overflow-x: auto; scrollbar-width: none;}
-        .chat-suggestion-chip { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-full); padding: 6px 12px; font-size: 0.75rem; white-space: nowrap; cursor: pointer; transition: 0.2s; }
-        .chat-suggestion-chip:hover { border-color: var(--primary-500); color: var(--primary-600); background: var(--primary-50); }
-
-        /* Utilities */
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: var(--space-8); text-align: center; color: var(--text-muted); }
-        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .pagination { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); border-top: 1px solid var(--border-color); background: var(--bg-surface);}
         .page-info { font-size: 0.875rem; color: var(--gray-600); }
         .page-controls { display: flex; gap: var(--space-1); }
@@ -260,8 +226,8 @@
                     <span style="font-size: 0.75rem;">Pengelola Pengadaan Barang/Jasa • BKAD Kota Bogor (Supabase Sync)</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: var(--space-4);">
-                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu (Ctrl+K)', 'info')">
-                        <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
+                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu', 'info')">
+                        <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... 
                     </div>
                     <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
                     <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">FE</div>
@@ -488,7 +454,7 @@
             kontrak: { title: 'Jenis Kontrak', table: 'kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
             libur: { title: 'Hari Libur Nasional', table: 'libur', fields: [{ key: 'date', label: 'Tanggal', type: 'date', required: true, formatter: Utils.formatDate }, { key: 'desc', label: 'Keterangan', type: 'text', required: true }] },
             waktu: { title: 'Master Waktu Dokumen', table: 'waktu', fields: [{ key: 'name', label: 'Tahap/Dokumen', type: 'text', required: true }, { key: 'previous', label: 'Mengikuti Jadwal Sebelumnya', type: 'text', required: true }, { key: 'days', label: 'Selisih Hari Kerja', type: 'number', required: true }, { key: 'anchor', label: 'Acuan', type: 'select', options: ['mulai', 'selesai'] }] },
-            jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
+            jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Persiapan', 'Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
             paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
         };
 
@@ -557,9 +523,20 @@
                 let thead = `<tr><th style="width:50px">No</th>` + fields.map(f => `<th style="width:${f.width||'auto'}">${f.label}</th>`).join('') + `<th style="width:100px; text-align:right;">Aksi</th></tr>`;
                 let tbody = paginated.map((item, index) => {
                     let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
-                    let act = this.schemaKey === 'paket' 
-                        ? `<button class="btn btn-ghost btn-sm text-primary" title="Buka Workspace" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button><button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>` 
-                        : `<button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button><button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
+                    
+                    let act = '';
+                    if (this.schemaKey === 'paket') {
+                        const isPinned = DB.cache['pinned_packages']?.includes(item.id);
+                        const pinIcon = isPinned ? 'ph-fill ph-push-pin' : 'ph ph-push-pin';
+                        act = `<button class="btn btn-ghost btn-sm text-warning" title="${isPinned ? 'Lepas Sematan' : 'Sematkan Paket'}" onclick="app.togglePinPackage('${item.id}')"><i class="${pinIcon}"></i></button>
+                               <button class="btn btn-ghost btn-sm text-primary" title="Buka Workspace" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button>
+                               <button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
+                               <button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
+                    } else {
+                        act = `<button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
+                               <button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
+                    }
+                    
                     return `<tr>${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
                 }).join('');
                 return `<table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
@@ -577,8 +554,9 @@
             showForm(id = null) {
                 if(this.schemaKey === 'paket' && !id) {
                     const today = new Date().toISOString().split('T')[0];
-                    const pjb = DB.get('pejabat'); const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[] });
+                    const pjb = DB.get('pejabat'); 
+                    const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
+                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[], notes: '' });
                     app.navigate('workspace', newPkg.id); return;
                 }
                 const item = id ? DB.getById(this.schema.table, id) : {};
@@ -608,6 +586,12 @@
         class CustomViews {
             static renderDashboard(container) {
                 const packages = DB.get('paket');
+                const pinnedIds = DB.cache['pinned_packages'] || [];
+                const pinnedPackages = packages.filter(p => pinnedIds.includes(p.id));
+                
+                const displayPackages = pinnedPackages.length > 0 ? pinnedPackages : packages.filter(p => p.stage !== 'SELESAI').slice(0,4);
+                const displayTitle = pinnedPackages.length > 0 ? 'Paket Disematkan (Pinned)' : 'Paket Aktif Terbaru';
+
                 container.innerHTML = `
                     <div style="padding: var(--space-8); max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8);">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end;">
@@ -623,13 +607,25 @@
                             <div class="card p-5 border-l-4" style="border-left-color: var(--success-500);"><div class="flex items-center gap-3 mb-2 text-success"><i class="ph-fill ph-check-circle text-xl"></i> <span class="font-bold text-sm uppercase tracking-wider">Selesai</span></div><div class="text-3xl font-bold mb-1">${packages.filter(p => p.stage === 'SELESAI').length} Paket</div><div class="text-sm text-muted">Telah terkontrak penuh</div></div>
                         </div>
                         <div>
-                            <h2 class="font-semibold text-lg mb-4 text-gray-800 flex justify-between"><span>Paket Aktif Terbaru</span> <button class="btn btn-ghost btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button></h2>
+                            <h2 class="font-semibold text-lg mb-4 text-gray-800 flex justify-between items-center">
+                                <span><i class="${pinnedPackages.length > 0 ? 'ph-fill ph-push-pin text-warning' : 'ph ph-clock'}"></i> ${displayTitle}</span> 
+                                <button class="btn btn-ghost btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button>
+                            </h2>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
-                                ${packages.filter(p => p.stage !== 'SELESAI').slice(0,4).map(pkg => {
+                                ${displayPackages.length > 0 ? displayPackages.map(pkg => {
                                     const totals = DB.calculatePackageTotals(pkg);
                                     const hpsRound = pkg.pembulatan_hps || totals.hps;
-                                    return `<div class="card card-interactive p-4 flex flex-col gap-3" onclick="app.navigate('workspace', '${pkg.id}')"><div class="flex justify-between items-start"><div><h3 class="font-bold text-main">${pkg.name}</h3><p class="text-xs text-muted">${pkg.id} • ${pkg.metode_pemilihan || '-'}</p></div>${Utils.getBadge(pkg.stage)}</div><div class="flex justify-between items-center bg-gray-50 p-2 rounded"><span class="text-xs font-semibold text-muted">HPS: <span class="text-main">${Utils.formatCurrency(hpsRound)}</span></span><div class="flex gap-2"><span class="text-xs font-medium text-primary bg-primary-50 px-2 py-1 rounded">Progress: ${pkg.progress}%</span></div></div></div>`;
-                                }).join('')}
+                                    return `<div class="card card-interactive p-4 flex flex-col gap-3" onclick="app.navigate('workspace', '${pkg.id}')">
+                                        <div class="flex justify-between items-start">
+                                            <div><h3 class="font-bold text-main">${pkg.name}</h3><p class="text-xs text-muted">${pkg.id} • ${pkg.metode_pemilihan || '-'}</p></div>
+                                            ${Utils.getBadge(pkg.stage)}
+                                        </div>
+                                        <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                            <span class="text-xs font-semibold text-muted">HPS: <span class="text-main">${Utils.formatCurrency(hpsRound)}</span></span>
+                                            <div class="flex gap-2"><span class="text-xs font-medium text-primary bg-primary-50 px-2 py-1 rounded">Progress: ${pkg.progress}%</span></div>
+                                        </div>
+                                    </div>`;
+                                }).join('') : '<p class="text-muted col-span-2 p-8 text-center border border-dashed rounded bg-gray-50">Belum ada paket aktif atau disematkan.</p>'}
                             </div>
                         </div>
                     </div>
@@ -789,7 +785,7 @@
                     return;
                 }
                 
-                const tabsList = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'SPSE', 'Aktivitas'];
+                const tabsList = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'Catatan', 'Kalender', 'Aktivitas'];
 
                 container.innerHTML = `
                     <div class="workspace-header">
@@ -800,7 +796,7 @@
                                 <div class="text-sm text-muted font-medium">${this.pkg.id} • ${this.pkg.metode_pemilihan || 'Metode Belum Diset'}</div>
                             </div>
                             <div class="flex gap-2">
-                                <button class="btn btn-outline" onclick="app.notify('Data sudah tersinkron via Realtime API', 'info')"><i class="ph ph-floppy-disk"></i> Force Save</button>
+                                <button class="btn btn-outline" onclick="app.notify('Data tersimpan otomatis (SSOT)', 'info')"><i class="ph ph-floppy-disk"></i> Save</button>
                                 ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
                             </div>
                         </div>
@@ -846,8 +842,8 @@
                     case 'kak': return this.renderKAK();
                     case 'rancangankontrak': return this.renderRancanganKontrak();
                     case 'dokumen': return this.renderDokumen();
-                    case 'cetak': return this.renderCetak();
-                    case 'spse': return `<div class="card p-8 text-center"><i class="ph ph-link text-4xl mb-4 text-primary"></i><h3 class="font-bold text-lg">Integrasi SPSE V4.5</h3><p class="text-muted mb-4">Akses API SPSE. Pastikan data Harga & Pejabat sudah final.</p><button class="btn btn-primary">Sync ke SPSE</button></div>`;
+                    case 'catatan': return this.renderCatatan();
+                    case 'kalender': return this.renderKalender();
                     case 'aktivitas': return this.renderAktivitas();
                     default: return `<div class="empty-state"><p>Konten tab sedang disiapkan.</p></div>`;
                 }
@@ -855,7 +851,6 @@
 
             renderRingkasan() {
                 const totals = DB.calculatePackageTotals(this.pkg);
-                // Sync display with rounded values
                 const hpsRound = this.pkg.pembulatan_hps || totals.hps;
                 const offerRound = this.pkg.pembulatan_penawaran || totals.penawaran;
                 const negoRound = this.pkg.pembulatan_negosiasi || totals.negosiasi;
@@ -963,7 +958,8 @@
                                 <legend class="font-semibold text-sm px-2 text-primary-700">Waktu Pelaksanaan (Kontrak)</legend>
                                 <div class="grid grid-cols-3 gap-4 mt-2">
                                     <div class="form-group"><label class="form-label">Durasi (Hari Kalender)</label><input type="number" name="durasi_kontrak" class="form-control" value="${this.pkg.durasi_kontrak || ''}"></div>
-                                    <div class="form-group"><label class="form-label">Tanggal Mulai (Acuan Jadwal)</label><input type="date" name="tgl_mulai" class="form-control" value="${this.pkg.tgl_mulai || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Tanggal Awal Persiapan</label><input type="date" name="tgl_awal" class="form-control" value="${this.pkg.tgl_awal || this.pkg.tgl_mulai || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Tanggal Mulai (SPK)</label><input type="date" name="tgl_mulai" class="form-control" value="${this.pkg.tgl_mulai || ''}"></div>
                                     <div class="form-group"><label class="form-label">Tanggal Selesai</label><input type="date" name="tgl_selesai" class="form-control" value="${this.pkg.tgl_selesai || ''}" readonly></div>
                                 </div>
                             </fieldset>
@@ -1090,6 +1086,7 @@
                         
                         <td class="border-l border-gray-300"><input type="number" class="cell-input hrg-input text-center" data-field="pajak" value="${i.pajak}"></td>
                         <td class="cell-readonly text-right font-bold bg-gray-50">${Utils.formatCurrency(hpsT)}</td>
+                        <td><button class="btn btn-ghost btn-sm text-danger" onclick="app.removeHargaRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
                     </tr>
                     `;
                 }).join('');
@@ -1133,6 +1130,7 @@
                                     <th colspan="2" class="text-center bg-success-100 text-success-700">Tahap Negosiasi</th>
                                     <th rowspan="2" style="width:70px">Pajak (%)</th>
                                     <th rowspan="2" style="min-width:140px; text-align:right;">Total HPS</th>
+                                    <th rowspan="2" style="width:50px"></th>
                                 </tr>
                                 <tr>
                                     <th class="bg-primary-50 text-xs">Vol</th><th class="bg-primary-50 text-xs">Harga Sat.</th>
@@ -1147,21 +1145,21 @@
                                     <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50">${Utils.formatCurrency(hpsSub)}</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold bg-warning-50">${Utils.formatCurrency(penSub)}</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold bg-success-50">${Utils.formatCurrency(negSub)}</td>
-                                    <td colspan="2" class="cell-readonly bg-gray-50"></td>
+                                    <td colspan="3" class="cell-readonly bg-gray-50"></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">Total Pajak (PPN/PPh)</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-primary-50">+ ${Utils.formatCurrency(hpsPPN)}</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-warning-50">+ ${Utils.formatCurrency(penPPN)}</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-success-50">+ ${Utils.formatCurrency(negPPN)}</td>
-                                    <td colspan="2" class="cell-readonly bg-gray-50"></td>
+                                    <td colspan="3" class="cell-readonly bg-gray-50"></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="cell-readonly text-right font-bold text-sm">TOTAL KESELURUHAN</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold text-primary-700 bg-primary-100 text-sm">${Utils.formatCurrency(hpsSub+hpsPPN)}</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold text-warning-700 bg-warning-100 text-sm">${Utils.formatCurrency(penSub+penPPN)}</td>
                                     <td colspan="2" class="cell-readonly text-right font-bold text-success-700 bg-success-100 text-sm">${Utils.formatCurrency(negSub+negPPN)}</td>
-                                    <td colspan="2" class="cell-readonly bg-gray-100"></td>
+                                    <td colspan="3" class="cell-readonly bg-gray-100"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1186,7 +1184,6 @@
                         
                         let items = this.pkg.items || [];
                         items[idx][field] = val;
-                        // Autosave without resetting active tab
                         DB.update('paket', this.packageId, { items });
                         app.notify('Autosave: Harga diperbarui ke API', 'info');
                         this.render(document.getElementById('router-view')); 
@@ -1210,15 +1207,16 @@
                 const rules = DB.get('waktu'); 
                 let dates = {};
                 
+                // Menghitung jadwal dari tanggal_awal
                 rules.forEach(r => { 
-                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? this.pkg.tgl_mulai : dates[r.previous] || this.pkg.tgl_mulai); 
+                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
                     dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
                 });
                 
                 return `
                     <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Otomatis (Dokumen)</h2><p class="text-sm text-muted">Dihitung dari Master Waktu dalam hari kerja, melompati hari libur nasional (Supabase).</p></div>
+                            <div><h2 class="font-bold text-lg">Jadwal Otomatis (Dokumen)</h2><p class="text-sm text-muted">Dihitung dari Master Waktu dalam hari kerja mulai dari Tanggal Awal Persiapan.</p></div>
                             <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
                         </div>
                         <table class="data-table">
@@ -1234,7 +1232,7 @@
             renderJadwalProses() {
                 const rules = DB.get('jadwal_proses'); 
                 const holidays = DB.get('libur').map(x=>x.date); 
-                let base = this.pkg.tgl_mulai; // Selalu start awal dari tgl_mulai paket
+                let base = this.pkg.tgl_awal || this.pkg.tgl_mulai; 
                 
                 let rows = rules.map((r,i) => {
                     const start = Utils.addWorkingDays(base, r.start_after, holidays);
@@ -1246,13 +1244,70 @@
                 return `
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Perhitungan dinamis berantai dari Tanggal Mulai paket.</p></div>
+                            <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Perhitungan dinamis berantai dimulai dari Tanggal Awal Persiapan.</p></div>
                             <button class="btn btn-outline" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal Proses</button>
                         </div>
                         <table class="data-table">
                             <thead><tr><th>No</th><th>Proses</th><th>Tanggal Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
                             <tbody>${rows}</tbody>
                         </table>
+                    </div>
+                `;
+            }
+
+            renderKalender() {
+                const rules = DB.get('waktu');
+                const procRules = DB.get('jadwal_proses');
+                const holidays = DB.get('libur').map(l => l.date);
+                let docDates = {};
+                let procDates = [];
+                let eventsList = [];
+
+                // Kalkulasi Dokumen
+                rules.forEach(r => { 
+                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : docDates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
+                    docDates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                    eventsList.push({ name: r.name, date: docDates[r.name], type: 'doc' });
+                });
+
+                // Kalkulasi Proses
+                let baseProc = this.pkg.tgl_awal || this.pkg.tgl_mulai;
+                procRules.forEach(r => {
+                    const start = Utils.addWorkingDays(baseProc, r.start_after, holidays);
+                    const end = Utils.addWorkingDays(start, r.duration, holidays);
+                    baseProc = end;
+                    procDates.push({ name: `Proses ${r.name}`, start: start, end: end });
+                    eventsList.push({ name: `Mulai ${r.name}`, date: start, type: 'proc-start' });
+                    eventsList.push({ name: `Batas ${r.name}`, date: end, type: 'proc-end' });
+                });
+
+                // Sortir Berdasarkan Tanggal
+                eventsList.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                const timelineHtml = eventsList.map((e, i) => {
+                    const isPassed = new Date(e.date) < new Date();
+                    let colorClass = e.type === 'doc' ? 'primary' : (e.type === 'proc-start' ? 'info' : 'warning');
+                    if(isPassed) colorClass = 'success';
+
+                    return `
+                        <div class="timeline-node">
+                            <div class="timeline-indicator mt-0"><div class="timeline-dot ${isPassed ? 'completed' : `border-${colorClass}-500 bg-white`}"></div></div>
+                            <div class="timeline-content ${isPassed ? '' : `border-${colorClass}-200 bg-${colorClass}-50`}">
+                                <p class="font-bold text-sm">${e.name}</p>
+                                <p class="text-xs text-muted"><i class="ph ph-calendar-blank"></i> ${Utils.formatDate(e.date)}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="card p-6 max-w-4xl mx-auto">
+                        <div class="flex justify-between items-center mb-6 border-b pb-2">
+                            <div><h2 class="font-bold text-lg">Kalender / Timeline Pengadaan</h2><p class="text-sm text-muted">Visualisasi gabungan antara jadwal proses dan dokumen (Gantt/Timeline View).</p></div>
+                        </div>
+                        <div class="timeline-container pl-4">
+                            ${timelineHtml}
+                        </div>
                     </div>
                 `;
             }
@@ -1314,17 +1369,34 @@
                     </div>`; 
             }
 
+            renderCatatan() {
+                const defaultNotes = `Catatan Fisik:\n- Jenis izin:\n- SBU Konstruksi:\n\nKAK/Spesifikasi Teknis\n1) KAK\n2) Gambar Rencana\n3) RKS dan Spektek\n\nRancangan Kontrak\nInformasi Lainnya\n- BOQ\n\nUraian Singkat\nHPS\nSDP`;
+                const notes = this.pkg.notes !== undefined ? this.pkg.notes : defaultNotes;
+
+                return `
+                    <div class="card p-6 max-w-4xl mx-auto border-t-4 border-warning-500">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4">
+                            <div><h2 class="font-bold text-lg">Catatan Pengadaan (Notes)</h2><p class="text-sm text-muted">Gunakan untuk menyimpan keterangan tambahan, syarat kualifikasi, atau catatan fisik.</p></div>
+                            <button class="btn btn-primary" onclick="
+                                DB.update('paket', '${this.packageId}', { notes: document.getElementById('pkg-notes').value });
+                                app.notify('Catatan disimpan', 'success');
+                            ">Simpan Catatan</button>
+                        </div>
+                        <textarea id="pkg-notes" class="form-control" rows="15" style="font-family: monospace; white-space: pre-wrap;">${notes}</textarea>
+                    </div>
+                `;
+            }
+
             renderRancanganKontrak() {
                 const t = DB.calculatePackageTotals(this.pkg);
-                // Gunakan pembulatan negosiasi jika ada, jika tidak pakai subtotal negosiasi + pajak
                 const n = this.pkg.pembulatan_negosiasi || t.negosiasi; 
-                
                 const percentJaminan = Number(this.pkg.jaminan_pemeliharaan) || 0;
                 const guarantee = n * (percentJaminan / 100);
                 
                 const saveFunc = `
                     const fd = DOM.getFormData('form-kontrak');
                     fd.jaminan_pemeliharaan = Number(fd.jaminan_pemeliharaan) || 0;
+                    fd.pembulatan_negosiasi = Number(String(fd.pembulatan_negosiasi).replace(/\\D/g, '')) || 0;
                     DB.update('paket', '${this.packageId}', fd);
                     app.notify('Rancangan kontrak disimpan', 'success');
                     app.reRenderCurrentView();
@@ -1342,26 +1414,32 @@
                             </div>
                         </div>
                         <form id="form-kontrak" class="grid grid-cols-2 gap-4">
-                            <div class="form-group"><label class="form-label">Nilai Negosiasi Final / Kontrak</label><input class="form-control" value="${Utils.formatCurrency(n)}" readonly></div>
-                            <div class="form-group"><label class="form-label">Masa Berlaku Kontrak (Hari)</label><input class="form-control" value="${this.pkg.durasi_kontrak||0}" readonly></div>
+                            <div class="form-group"><label class="form-label">Nilai Negosiasi Hitungan Asli</label><input class="form-control" value="${Utils.formatCurrency(t.negosiasi)}" readonly disabled></div>
+                            <div class="form-group"><label class="form-label">Masa Berlaku Kontrak (Hari)</label><input class="form-control" value="${this.pkg.durasi_kontrak||0}" readonly disabled></div>
+                            <div class="form-group"><label class="form-label font-bold text-primary-700">Pembulatan Negosiasi / Nilai Kontrak (Rp)</label><input name="pembulatan_negosiasi" inputmode="numeric" class="form-control money-input border-primary-500 bg-primary-50" value="${Utils.formatNumber(n)}"></div>
                             <div class="form-group"><label class="form-label">Jaminan Pemeliharaan (%)</label><input name="jaminan_pemeliharaan" type="number" step="0.1" class="form-control" value="${percentJaminan}"></div>
-                            <div class="form-group"><label class="form-label">Nilai Jaminan Pemeliharaan</label><input class="form-control" value="${Utils.formatCurrency(guarantee)}" readonly></div>
-                            <div class="form-group"><label class="form-label">Lokasi</label><input class="form-control" value="${this.pkg.lokasi||''}" readonly></div>
-                            <div class="col-span-2 text-right"><button type="button" class="btn btn-primary" onclick="${saveFunc}">Simpan Rancangan Kontrak</button></div>
+                            <div class="form-group"><label class="form-label">Nilai Jaminan Pemeliharaan</label><input class="form-control guarantee-input font-bold" value="${Utils.formatCurrency(guarantee)}" readonly disabled></div>
+                            <div class="form-group"><label class="form-label">Lokasi</label><input class="form-control" value="${this.pkg.lokasi||''}" readonly disabled></div>
+                            <div class="col-span-2 text-right border-t pt-4"><button type="button" class="btn btn-primary" onclick="${saveFunc}">Simpan Perubahan</button></div>
                         </form>
                     </div>`;
             }
 
             attachKontrakEvents() {
-                // Auto calculate guarantee when percentage changes without full refresh
                 const percentInput = document.querySelector('input[name="jaminan_pemeliharaan"]');
-                const guaranteeInput = percentInput.parentElement.nextElementSibling.querySelector('input');
+                const negoInput = document.querySelector('input[name="pembulatan_negosiasi"]');
+                const guaranteeInput = document.querySelector('.guarantee-input');
                 
-                percentInput.addEventListener('input', (e) => {
-                    const t = DB.calculatePackageTotals(this.pkg);
-                    const n = this.pkg.pembulatan_negosiasi || t.negosiasi; 
-                    const p = Number(e.target.value) || 0;
+                const updateGuarantee = () => {
+                    const n = Number(String(negoInput.value).replace(/\D/g, '')) || 0; 
+                    const p = Number(percentInput.value) || 0;
                     guaranteeInput.value = Utils.formatCurrency(n * (p / 100));
+                };
+
+                percentInput.addEventListener('input', updateGuarantee);
+                negoInput.addEventListener('input', (e) => {
+                    e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
+                    updateGuarantee();
                 });
             }
 
@@ -1503,6 +1581,25 @@
                 } 
             }
 
+            togglePinPackage(pkgId) {
+                let pinned = DB.cache['pinned_packages'] || [];
+                if(pinned.includes(pkgId)) pinned = pinned.filter(id => id !== pkgId);
+                else pinned.push(pkgId);
+                
+                DB.cache['pinned_packages'] = pinned;
+                // Save to localstorage for persistence since it's UI state
+                localStorage.setItem('pf_pinned', JSON.stringify(pinned)); 
+                this.reRenderCurrentView();
+            }
+
+            removeHargaRow(pkgId, index) {
+                const pkg = DB.getById('paket', pkgId);
+                let items = pkg.items || []; 
+                items.splice(index, 1);
+                DB.update('paket', pkgId, { items: items });
+                this.reRenderCurrentView();
+            }
+
             toggleChecklist(pkgId, doc, status) {
                 const pkg = DB.getById('paket', pkgId);
                 let chk = pkg.checklists || [];
@@ -1536,12 +1633,12 @@
                 const holidays = DB.get('libur').map(x => x.date);
                 let dates = {};
                 DB.get('waktu').forEach(r => { 
-                    const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Mulai' ? pkg.tgl_mulai : dates[r.previous] || pkg.tgl_mulai); 
+                    const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (pkg.tgl_awal || pkg.tgl_mulai) : dates[r.previous] || (pkg.tgl_awal || pkg.tgl_mulai)); 
                     dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
                 });
                 
                 // Try finding matching date key
-                let date = pkg.tgl_mulai;
+                let date = pkg.tgl_awal || pkg.tgl_mulai;
                 for (const [k, v] of Object.entries(dates)) {
                     if (doc.includes(k) || k.includes(doc)) { date = v; break; }
                 }
@@ -1637,7 +1734,11 @@
         }
         
         // Inisialisasi
-        document.addEventListener('DOMContentLoaded', () => { window.app = new App(); });
+        document.addEventListener('DOMContentLoaded', () => { 
+            // Load pinned packages state from localstorage 
+            try { DB.cache['pinned_packages'] = JSON.parse(localStorage.getItem('pf_pinned')) || []; } catch(e) {}
+            window.app = new App(); 
+        });
     </script>
 </body>
 </html>
