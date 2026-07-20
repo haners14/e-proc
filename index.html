@@ -1549,7 +1549,14 @@
                     }
                 });
             }
-
+            // TAMBAHKAN FUNGSI INI DI DALAM KELAS APP
+                addHargaRow(pkgId) { 
+                    const pkg = DB.getById('paket', pkgId); 
+                    const items = pkg.items || []; 
+                    items.push({ id: Date.now(), uraian: 'Item Baru', sat: 'Ls', vol_hps: 1, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }); 
+                    DB.update('paket', pkgId, { items }); 
+                    this.reRenderCurrentView(); 
+                }
             reRenderCurrentView() { 
                 // Only re-render the workspace, keep current active tab
                 if (this.currentRoute === 'workspace' && this.currentViewInstance) {
