@@ -160,7 +160,6 @@
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .page-btn.active { background: var(--primary-600); color: white; border-color: var(--primary-600); }
         
-        /* Chat UI Specifics */
         .chat-container { display: flex; flex-direction: column; height: calc(100vh - 64px); background: var(--bg-body); }
         .chat-messages { flex: 1; overflow-y: auto; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
         .chat-msg { display: flex; gap: var(--space-3); max-width: 80%; }
@@ -570,8 +569,6 @@
                 let btns = ''; for(let i=1; i<=totalPages; i++) btns += `<button class="page-btn ${this.currentPage === i ? 'active' : ''}" onclick="app.crudEngine.changePage(${i})">${i}</button>`;
                 return `<div class="pagination"><div class="page-info">Menampilkan ${this.filteredData.length} data</div><div class="page-controls"><button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage-1})"><i class="ph ph-caret-left"></i></button>${btns}<button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage+1})"><i class="ph ph-caret-right"></i></button></div></div>`;
             }
-
-            changePage(page) { this.currentPage = page; app.reRenderCurrentView(); }
 
             showForm(id = null) {
                 if(this.schemaKey === 'paket' && !id) {
@@ -1142,6 +1139,7 @@
                         <div class="flex gap-2">
                             <button class="btn btn-outline text-warning-600 border-warning-200 hover:bg-warning-50" onclick="app.simulateDependencyEngine('BA Negosiasi', '${this.packageId}'); app.printHPS('${this.packageId}');"><i class="ph ph-file-pdf"></i> Cetak BA Negosiasi PDF</button>
                             <button class="btn btn-primary" onclick="app.printHPS('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak PDF HPS</button>
+                            <!-- Panggilan fungsi app.addHargaRow yang memicu baris baru -->
                             <button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button>
                         </div>
                     </div>
@@ -1549,14 +1547,36 @@
                     }
                 });
             }
-            // TAMBAHKAN FUNGSI INI DI DALAM KELAS APP
-                addHargaRow(pkgId) { 
-                    const pkg = DB.getById('paket', pkgId); 
-                    const items = pkg.items || []; 
-                    items.push({ id: Date.now(), uraian: 'Item Baru', sat: 'Ls', vol_hps: 1, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }); 
-                    DB.update('paket', pkgId, { items }); 
-                    this.reRenderCurrentView(); 
-                }
+
+            /* 
+               Fungsi addHargaRow dan removeHargaRow telah ditempatkan dengan benar 
+               di dalam kelas App sehingga dapat diakses oleh window.app 
+            */
+            addHargaRow(pkgId) { 
+                const pkg = DB.getById('paket', pkgId); 
+                // Gunakan spread operator untuk menghindari mutasi referensi secara langsung
+                const items = Array.isArray(pkg.items) ? [...pkg.items] : []; 
+                items.push({ 
+                    id: Date.now().toString(), 
+                    uraian: '', 
+                    sat: 'Ls', 
+                    vol_hps: 1, harga_hps: 0, 
+                    vol_pen: 0, harga_pen: 0, 
+                    vol_neg: 0, harga_neg: 0, 
+                    pajak: 11 
+                }); 
+                DB.update('paket', pkgId, { items }); 
+                this.reRenderCurrentView(); 
+            }
+
+            removeHargaRow(pkgId, index) {
+                const pkg = DB.getById('paket', pkgId);
+                let items = Array.isArray(pkg.items) ? [...pkg.items] : []; 
+                items.splice(index, 1);
+                DB.update('paket', pkgId, { items: items });
+                this.reRenderCurrentView();
+            }
+
             reRenderCurrentView() { 
                 // Only re-render the workspace, keep current active tab
                 if (this.currentRoute === 'workspace' && this.currentViewInstance) {
@@ -1630,14 +1650,6 @@
                 DB.cache['pinned_packages'] = pinned;
                 // Save to localstorage for persistence since it's UI state
                 localStorage.setItem('pf_pinned', JSON.stringify(pinned)); 
-                this.reRenderCurrentView();
-            }
-
-            removeHargaRow(pkgId, index) {
-                const pkg = DB.getById('paket', pkgId);
-                let items = pkg.items || []; 
-                items.splice(index, 1);
-                DB.update('paket', pkgId, { items: items });
                 this.reRenderCurrentView();
             }
 
