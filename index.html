@@ -328,6 +328,9 @@
             },
             addWorkingDays: (startDate, days, holidays = []) => {
                 let date = new Date(startDate); let added = 0;
+                // Jika selisih hari adalah 0, langsung return tanggal awal
+                if (days === 0) return date.toISOString().split('T')[0];
+
                 while (added < days) { 
                     date.setDate(date.getDate() + 1); 
                     const isWeekend = date.getDay() === 0 || date.getDay() === 6; 
@@ -487,7 +490,6 @@
                 return this.get("template").find(t => t.code === code);
             },
         }
-             
 
         // -----------------------------------------------------
         // 3. SCHEMAS
@@ -533,7 +535,21 @@
                 if(this.searchQuery) {
                     const lq = this.searchQuery.toLowerCase();
                     this.filteredData = data.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(lq)));
-                } else { this.filteredData = data; }
+                } else { 
+                    this.filteredData = data; 
+                }
+
+                // REVISI 5: Urutkan Paket yang di-pin ke paling atas
+                if (this.schemaKey === 'paket') {
+                    const pinnedIds = DB.cache['pinned_packages'] || [];
+                    this.filteredData.sort((a, b) => {
+                        const aPinned = pinnedIds.includes(a.id);
+                        const bPinned = pinnedIds.includes(b.id);
+                        if (aPinned && !bPinned) return -1;
+                        if (!aPinned && bPinned) return 1;
+                        return 0; 
+                    });
+                }
             }
 
             render(container) {
@@ -574,8 +590,8 @@
                     let act = '';
                     if (this.schemaKey === 'paket') {
                         const isPinned = DB.cache['pinned_packages']?.includes(item.id);
-                        const pinIcon = isPinned ? 'ph-fill ph-push-pin' : 'ph ph-push-pin';
-                        act = `<button class="btn btn-ghost btn-sm text-warning" title="${isPinned ? 'Lepas Sematan' : 'Sematkan Paket'}" onclick="app.togglePinPackage('${item.id}')"><i class="${pinIcon}"></i></button>
+                        const pinIcon = isPinned ? 'ph-fill ph-push-pin text-warning-500' : 'ph ph-push-pin text-muted';
+                        act = `<button class="btn btn-ghost btn-sm" title="${isPinned ? 'Lepas Sematan' : 'Sematkan Paket'}" onclick="app.togglePinPackage('${item.id}')"><i class="${pinIcon}"></i></button>
                                <button class="btn btn-ghost btn-sm text-primary" title="Buka Workspace" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button>
                                <button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
                                <button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
@@ -608,7 +624,7 @@
                     const today = new Date().toISOString().split('T')[0];
                     const pjb = DB.get('pejabat'); 
                     const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[], notes: '' });
+                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[], notes: '', jadwal_override: {}, jadwal_proses_override: {} });
                     app.navigate('workspace', newPkg.id); return;
                 }
                 const item = id ? DB.getById(this.schema.table, id) : {};
@@ -660,7 +676,7 @@
                         </div>
                         <div>
                             <h2 class="font-semibold text-lg mb-4 text-gray-800 flex justify-between items-center">
-                                <span><i class="${pinnedPackages.length > 0 ? 'ph-fill ph-push-pin text-warning' : 'ph ph-clock'}"></i> ${displayTitle}</span> 
+                                <span><i class="${pinnedPackages.length > 0 ? 'ph-fill ph-push-pin text-warning-500' : 'ph ph-clock'}"></i> ${displayTitle}</span> 
                                 <button class="btn btn-ghost btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button>
                             </h2>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
@@ -874,11 +890,12 @@
                     });
                 });
 
-                // Attach Events (Termasuk Form Auto-Save via Blur/Change agar tdk ter-reset saat klik tab lain)
+                // Attach Events
                 this.attachAutoSaveEvents();
 
                 if(this.activeTab === 'harga') this.attachHargaEvents();
                 if(this.activeTab === 'rancangankontrak') this.attachKontrakEvents();
+                if(this.activeTab === 'checklist') this.attachChecklistEvents();
                 if(this.activeTab === 'datapaket'){ 
                     const f=document.getElementById('form-datapaket'), start=f?.querySelector('[name=tgl_mulai]'), dur=f?.querySelector('[name=durasi_kontrak]'), finish=f?.querySelector('[name=tgl_selesai]'); 
                     const refresh=()=>{if(start?.value&&finish){const d=new Date(`${start.value}T00:00:00`);d.setDate(d.getDate()+(Number(dur?.value)||0));finish.value=d.toISOString().split('T')[0];}}; 
@@ -886,7 +903,7 @@
                 }
             }
 
-            // MENGGUNAKAN EVENT CHANGE (Bukan Input Debounce) AGAR STABIL & TIDAK MERESET SAAT KLIK KELUAR
+            // AUTO SAVE EVENTS
             attachAutoSaveEvents() {
                 const bindAutoSave = (id, formatter = null) => {
                     const el = document.getElementById(id);
@@ -1395,26 +1412,40 @@
             renderJadwal() {
                 const holidays = DB.get('libur').map(l => l.date); 
                 const rules = DB.get('waktu'); 
+                const overrides = this.pkg.jadwal_override || {};
+                
+                let calculated = [];
                 let dates = {};
                 
                 rules.forEach(r => { 
-                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
-                    dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                    let finalDate;
+                    if (overrides[`doc_${r.id}`]) {
+                        finalDate = overrides[`doc_${r.id}`];
+                    } else {
+                        // REVISI 4: Acuan default adalah tgl_awal (Tanggal Awal Persiapan)
+                        const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
+                        finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays);
+                    }
+                    dates[r.name] = finalDate;
+                    calculated.push({ ...r, calculatedDate: finalDate, isManual: !!overrides[`doc_${r.id}`] });
                 });
+
+                // REVISI 7: Mengurutkan Jadwal berdasarkan tanggal dari awal hingga akhir
+                calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
                 
                 return `
                     <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Otomatis (Dokumen)</h2><p class="text-sm text-muted">Dihitung dari Master Waktu dalam hari kerja mulai dari Tanggal Awal Persiapan.</p></div>
+                            <div><h2 class="font-bold text-lg">Jadwal Dokumen</h2><p class="text-sm text-muted">Dihitung otomatis atau di-override secara manual.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'doc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
                                 <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
                             </div>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Selisih Hari Kerja</th><th>Tanggal Selesai</th></tr></thead>
+                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Status</th><th>Tanggal Disimpan</th></tr></thead>
                             <tbody>
-                                ${rules.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous}</td><td>+${r.days} hari kerja</td><td>${Utils.formatDate(dates[r.name])}</td></tr>`).join('')}
+                                ${calculated.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous || 'Tanggal Awal'}</td><td>${r.isManual ? '<span class="badge badge-warning">Manual Override</span>' : '<span class="badge badge-info">Otomatis</span>'}</td><td class="font-bold">${Utils.formatDate(r.calculatedDate)}</td></tr>`).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -1424,26 +1455,52 @@
             renderJadwalProses() {
                 const rules = DB.get('jadwal_proses'); 
                 const holidays = DB.get('libur').map(x=>x.date); 
+                const overrides = this.pkg.jadwal_proses_override || {};
+
+                // REVISI 4: Acuan proses selalu dari Tanggal Awal Persiapan
                 let base = this.pkg.tgl_awal || this.pkg.tgl_mulai; 
+                let calculated = [];
                 
-                let rows = rules.map((r,i) => {
-                    const start = Utils.addWorkingDays(base, r.start_after, holidays);
-                    const end = Utils.addWorkingDays(start, r.duration, holidays);
-                    base = end; 
-                    return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${Utils.formatDateShort(start)}</td><td>${Utils.formatDateShort(end)}</td><td>${r.duration} hari kerja</td></tr>`
+                rules.forEach((r,i) => {
+                    let start, end, isManual = false;
+                    
+                    if (overrides[`proc_${r.id}`]) {
+                        end = overrides[`proc_${r.id}`];
+                        // Estimasi start dari manual end (kurangi durasi)
+                        let tempDate = new Date(end);
+                        let sub = 0;
+                        while(sub < r.duration) {
+                            tempDate.setDate(tempDate.getDate() - 1);
+                            const isWeekend = tempDate.getDay() === 0 || tempDate.getDay() === 6;
+                            if(!isWeekend && !holidays.includes(tempDate.toISOString().split('T')[0])) sub++;
+                        }
+                        start = tempDate.toISOString().split('T')[0];
+                        isManual = true;
+                        base = end; 
+                    } else {
+                        start = Utils.addWorkingDays(base, r.start_after, holidays);
+                        end = Utils.addWorkingDays(start, r.duration, holidays);
+                        base = end; 
+                    }
+                    
+                    calculated.push({ ...r, start, end, isManual });
+                });
+                
+                let rows = calculated.map((r,i) => {
+                    return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : ''}</td><td>${Utils.formatDateShort(r.start)}</td><td class="font-bold">${Utils.formatDateShort(r.end)}</td><td>${r.duration} hari kerja</td></tr>`
                 }).join('');
                 
                 return `
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Perhitungan dinamis berantai dimulai dari Tanggal Awal Persiapan.</p></div>
+                            <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Berdasarkan Tanggal Awal Persiapan. Bisa dioverride secara manual.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
                                 <button class="btn btn-outline btn-sm" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal</button>
                             </div>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>No</th><th>Proses</th><th>Tanggal Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
+                            <thead><tr><th>No</th><th>Proses</th><th>Status</th><th>Mulai</th><th>Tanggal Akhir (Disimpan)</th><th>Durasi</th></tr></thead>
                             <tbody>${rows}</tbody>
                         </table>
                     </div>
@@ -1454,23 +1511,38 @@
                 const rules = DB.get('waktu');
                 const procRules = DB.get('jadwal_proses');
                 const holidays = DB.get('libur').map(l => l.date);
+                const docOverrides = this.pkg.jadwal_override || {};
+                const procOverrides = this.pkg.jadwal_proses_override || {};
+                
                 let docDates = {};
                 let procDates = [];
                 let eventsList = [];
 
                 rules.forEach(r => { 
-                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : docDates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
-                    docDates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
-                    eventsList.push({ name: r.name, date: docDates[r.name], type: 'doc' });
+                    let finalDate;
+                    if(docOverrides[`doc_${r.id}`]) {
+                        finalDate = docOverrides[`doc_${r.id}`];
+                    } else {
+                        const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : docDates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
+                        finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                    }
+                    docDates[r.name] = finalDate; 
+                    eventsList.push({ name: r.name, date: finalDate, type: 'doc' });
                 });
 
                 let baseProc = this.pkg.tgl_awal || this.pkg.tgl_mulai;
                 procRules.forEach(r => {
-                    const start = Utils.addWorkingDays(baseProc, r.start_after, holidays);
-                    const end = Utils.addWorkingDays(start, r.duration, holidays);
-                    baseProc = end;
+                    let start, end;
+                    if(procOverrides[`proc_${r.id}`]) {
+                        end = procOverrides[`proc_${r.id}`];
+                        start = end; // Simplifikasi display kalender untuk yg manual
+                        baseProc = end;
+                    } else {
+                        start = Utils.addWorkingDays(baseProc, r.start_after, holidays);
+                        end = Utils.addWorkingDays(start, r.duration, holidays);
+                        baseProc = end;
+                    }
                     procDates.push({ name: `Proses ${r.name}`, start: start, end: end });
-                    eventsList.push({ name: `Mulai ${r.name}`, date: start, type: 'proc-start' });
                     eventsList.push({ name: `Batas ${r.name}`, date: end, type: 'proc-end' });
                 });
 
@@ -1513,31 +1585,68 @@
                 const row = doc => { 
                     const c = (this.pkg.checklists || []).find(x => x.doc === doc);
                     const ok = c && c.status;
+                    
+                    // REVISI 2 & 3: Get values from DB (c) if present, else get defaults (m)
                     const m = app.getDocumentMeta(this.pkg, doc);
-                    const short = m.date ? Utils.formatDateShort(m.date) : '-'; 
+                    const numVal = c && c.number !== undefined ? c.number : m.number;
+                    const dateVal = c && c.date !== undefined ? c.date : (m.date || '');
+                    
                     return `
                     <tr>
-                        <td><input type="checkbox" ${ok?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${doc}',this.checked)"></td>
+                        <td style="width: 40px; text-align: center;"><input type="checkbox" class="w-4 h-4 accent-primary" ${ok?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${doc}',this.checked)"></td>
                         <td class="font-medium">${doc}</td>
-                        <td><input class="form-control" style="min-width:250px" readonly value="${m.number}" onclick="this.select()"></td>
-                        <td>${m.date ? Utils.formatDate(m.date) : '-'}</td>
-                        <td><input class="form-control" style="min-width:115px" readonly value="${short}" onclick="this.select()"></td>
-                        <td>${ok ? '<span class="badge badge-success">Ada</span>' : '<span class="badge badge-warning">Kosong</span>'}</td>
-                        <td><button class="btn btn-ghost btn-sm text-primary" onclick="app.runDocumentEngine('${doc}','${this.packageId}')">Generate</button></td>
+                        <!-- Input yang bisa di-edit (menyimpan ke db checklists otomatis saat blur/change) -->
+                        <td><input type="text" class="form-control chk-input" data-doc="${doc}" data-field="number" value="${numVal}" placeholder="No Dokumen"></td>
+                        <td><input type="date" class="form-control chk-input" data-doc="${doc}" data-field="date" value="${dateVal}"></td>
+                        
+                        <td style="width: 100px;">${ok ? '<span class="badge badge-success">Ada</span>' : '<span class="badge badge-warning">Kosong</span>'}</td>
+                        <td style="width: 120px;"><button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${doc}','${this.packageId}')"><i class="ph ph-magic-wand"></i> Buat</button></td>
                     </tr>`; 
                 };
                 
-                return groups.map(g => `
+                return `
+                    <div class="mb-4">
+                        <p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700">
+                            <b>Catatan:</b> Nomor Dokumen dan Tanggal akan diisi default dari pengaturan Master Penomoran dan Kalkulasi Jadwal. <b>Anda dapat mengeditnya secara manual</b> di kolom yang tersedia dan akan langsung tersimpan.
+                        </p>
+                    </div>
+                    ${groups.map(g => `
                     <div class="card p-0 mb-6" style="overflow:visible">
                         <div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">${g.title}</h3></div>
                         <div class="table-container" style="border:0;border-radius:0;overflow-x:auto">
                             <table class="data-table">
-                                <thead><tr><th></th><th>Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Tanggal DD-MM-YYYY</th><th>Status</th><th>Aksi</th></tr></thead>
+                                <thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen (Tersimpan)</th><th>Tanggal (Tersimpan)</th><th>Status</th><th>Generate</th></tr></thead>
                                 <tbody>${g.docs.map(row).join('')}</tbody>
                             </table>
                         </div>
                     </div>
-                `).join('');
+                `).join('')}`;
+            }
+
+            attachChecklistEvents() {
+                // Event listener untuk menyimpan perubahan manual pada Checklist (Nomor & Tanggal)
+                document.querySelectorAll('.chk-input').forEach(el => {
+                    el.addEventListener('change', (e) => {
+                        const docName = e.target.dataset.doc;
+                        const field = e.target.dataset.field;
+                        const val = e.target.value;
+                        
+                        // Gunakan object fresh dari DB untuk menghindari stale data
+                        const pkg = DB.getById('paket', this.packageId);
+                        let chk = pkg.checklists || [];
+                        let item = chk.find(x => x.doc === docName);
+                        
+                        if (!item) {
+                            item = { doc: docName, status: false };
+                            chk.push(item);
+                        }
+                        item[field] = val;
+                        
+                        DB.update('paket', this.packageId, { checklists: chk });
+                        // Jangan di-reRender agar focus tidak hilang. Cukup show toast.
+                        app.notify('Data checklist disimpan otomatis', 'success');
+                    });
+                });
             }
 
             renderKAK() {
@@ -1624,31 +1733,32 @@
                 let list = docs.map(d => `
                     <div class="flex justify-between items-center p-3 border border-gray-200 rounded mb-2 bg-white shadow-sm">
                         <div class="flex items-center gap-3">
-                            <i class="ph-fill ph-file-doc text-primary-600 text-2xl"></i>
-                            <div><div class="font-bold text-sm">${d.name}</div><div class="text-xs text-muted">Engine Sync • ${d.date}</div></div>
+                            <i class="${d.doc_type === 'Manual' ? 'ph-fill ph-file-arrow-up text-warning-500' : 'ph-fill ph-file-doc text-primary-600'} text-2xl"></i>
+                            <div><div class="font-bold text-sm">${d.name}</div><div class="text-xs text-muted">${d.doc_type === 'Manual' ? 'Diunggah Manual' : 'Engine Sync'} • ${d.date}</div></div>
                         </div>
                         <div class="flex gap-1">
                             <button class="btn btn-ghost btn-sm text-primary" title="Preview"><i class="ph ph-eye"></i></button>
-                            <button class="btn btn-ghost btn-sm text-primary" title="Download Word"><i class="ph ph-download"></i></button>
+                            <button class="btn btn-ghost btn-sm text-primary" title="Download"><i class="ph ph-download"></i></button>
                         </div>
                     </div>
                 `).join('');
-                if(!list) list = '<div class="text-center text-sm text-muted p-12 bg-gray-50 rounded border border-dashed border-gray-300">Belum ada dokumen yang dihasilkan sistem. Gunakan tab Checklist atau Rancangan Kontrak.</div>';
+                if(!list) list = '<div class="text-center text-sm text-muted p-12 bg-gray-50 rounded border border-dashed border-gray-300">Belum ada dokumen. Gunakan tab Checklist/Generate atau upload dokumen manual.</div>';
 
+                // REVISI 6: Fitur Upload Manual
                 return `
                     <div class="max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-4">
-                            <div><h2 class="font-bold text-lg text-main">Arsip Dokumen Otomatis (Supabase Storage)</h2></div>
+                            <div><h2 class="font-bold text-lg text-main">Arsip Dokumen Paket</h2><p class="text-sm text-muted">Berisi dokumen otomatis dari sistem atau unggahan manual.</p></div>
+                            <div class="flex gap-2">
+                                <input type="file" id="upload-doc-input" style="display:none;" onchange="app.uploadDokumenManual(event, '${this.packageId}')">
+                                <button class="btn btn-primary" onclick="document.getElementById('upload-doc-input').click()"><i class="ph ph-upload-simple"></i> Upload Dokumen</button>
+                            </div>
                         </div>
                         <div class="flex flex-col gap-2 bg-gray-50 p-4 rounded-md border border-gray-200">${list}</div>
                     </div>
                 `;
             }
             
-            renderCetak() { 
-                return `<div class="card p-6 max-w-3xl mx-auto"><h2 class="font-bold text-lg mb-2">Cetak Pengajuan Pencairan</h2><p class="text-sm text-muted mb-6">Area disiapkan untuk template pengajuan pencairan dan tanda tangan terima.</p><div class="grid grid-cols-2 gap-4"><button class="btn btn-outline" onclick="app.notify('Template pengajuan pencairan belum diisi.', 'info')"><i class="ph ph-printer"></i> Cetak Pengajuan Pencairan</button><button class="btn btn-outline" onclick="app.notify('Template tanda tangan terima belum diisi.', 'info')"><i class="ph ph-signature"></i> Tanda Tangan Terima</button></div></div>`; 
-            }
-
             renderAktivitas() {
                 const pkgIdStr = this.pkg.supplier_id ? `ID Penyedia: ${this.pkg.supplier_id}` : '';
                 return `
@@ -1743,6 +1853,25 @@
                 reader.readAsArrayBuffer(file);
             }
 
+            // REVISI 6: Handler untuk Upload Dokumen Manual
+            uploadDokumenManual(event, pkgId) {
+                const file = event.target.files[0];
+                if(!file) return;
+                
+                // Simulasi proses upload dan insert ke db local
+                DB.insert('documents', { 
+                    package_id: pkgId, 
+                    doc_type: 'Manual', 
+                    name: file.name, 
+                    status: 'UPLOADED', 
+                    date: new Date().toISOString().split('T')[0] 
+                });
+                
+                this.notify('Dokumen berhasil diunggah', 'success');
+                this.reRenderCurrentView();
+                event.target.value = '';
+            }
+
             addTimTeknis(pkgId) {
                 const pkg = DB.getById('paket', pkgId);
                 const formData = DOM.getFormData('form-tt');
@@ -1821,6 +1950,8 @@
                     addLog(`Merapikan file final...`);
 
                     const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                    
+                    // REVISI 2: Gunakan nomor dokumen dari payload (yg mana sudah membaca override dari DB)
                     const fileName = `${docName.replace(/ /g, '_')}_${pkg.keyword_penomoran || pkg.id}.docx`;
                     saveAs(out, fileName);
 
@@ -1858,14 +1989,16 @@
                 const penRound = pkg.pembulatan_penawaran || totals.penawaran;
                 const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
 
-                // Jangan includekan header di cetak lampiran
                 const itemsPayload = (pkg.items || []).filter(i=>!i.is_header).map((item, index) => ({
                     no: index + 1, uraian: item.uraian, sat: item.sat, vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg)
                 }));
 
+                // Gunakan Helper Meta untuk mengambil nilai nomor dan tanggal final (mendukung manual edit checklist/jadwal)
+                const meta = this.getDocumentMeta(pkg, docName);
+
                 return {
-                    nomor_ba: `027/04/${pkg.keyword_penomoran || 'PKT'}/BKAD/V/2026`,
-                    hari_tanggal: "Rabu, 06 Mei 2026",
+                    nomor_ba: meta.number,
+                    hari_tanggal: Utils.formatDate(meta.date), // Bisa diformat Hari, Tanggal secara spesifik jika butuh dlm word
                     nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
                     nama_penyedia: supplier.name, nama_direktur: supplier.direktur || "Direktur",
@@ -1880,7 +2013,6 @@
                 };
             }
 
-            // MODIFIKASI FUNGSI INI UNTUK MENAHAN POSISI SCROLL AGAR TIDAK KEMBALI KE ATAS
             reRenderCurrentView() { 
                 const wsBody = document.getElementById('ws-body');
                 const scrollPos = wsBody ? wsBody.scrollTop : 0;
@@ -1895,7 +2027,7 @@
                     this.navigate(this.currentRoute);
                 }
 
-                // Setelah di-render ulang, kembalikan posisi scroll
+                // Restore Scroll
                 setTimeout(() => {
                     const newWsBody = document.getElementById('ws-body');
                     if (newWsBody) newWsBody.scrollTop = scrollPos;
@@ -1938,8 +2070,31 @@
                             this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Cetak Pengajuan Pencairan</h1><p class="text-muted mb-6">Pilih paket terlebih dahulu, kemudian gunakan checklist pencairan untuk melengkapi data.</p><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar')">Pilih Paket</button></div></div>`; 
                             break;
                         case 'pengaturan': CustomViews.renderSettings(this.routerView); break;
+                        
+                        // REVISI 6: Daftar Dokumen Global
                         case 'dokumen-sistem': case 'dokumen-pendukung': case 'dokumen-spse': case 'dokumen-arsip':
-                            this.routerView.innerHTML = `<div class="p-6 h-full flex flex-col"><h1 class="text-2xl font-bold mb-4">Manajemen Dokumen (Global)</h1><div class="card p-8 flex-1 flex flex-col items-center justify-center text-muted"><i class="ph ph-files text-5xl mb-4"></i><p>Pilih paket pengadaan di "Daftar Paket" dan buka Workspace tab "Dokumen" untuk Document Dependency Engine.</p><button class="btn btn-primary mt-4" onclick="app.navigate('pengadaan-daftar')">Ke Daftar Paket</button></div></div>`; 
+                            const allDocs = DB.get('documents');
+                            let rows = allDocs.map((d, i) => {
+                                const p = DB.getById('paket', d.package_id) || {};
+                                return `<tr><td>${i+1}</td><td>${d.name}</td><td>${p.name || '-'}</td><td>${d.doc_type}</td><td>${Utils.formatDate(d.date)}</td><td><span class="badge badge-success">Tersimpan</span></td></tr>`;
+                            }).join('');
+                            if(!rows) rows = '<tr><td colspan="6" class="text-center py-4 text-muted">Belum ada dokumen yang dibuat atau diunggah.</td></tr>';
+
+                            this.routerView.innerHTML = `
+                                <div class="p-6 h-full flex flex-col">
+                                    <div class="flex justify-between items-center mb-6">
+                                        <h1 class="text-2xl font-bold">Manajemen Dokumen Global</h1>
+                                    </div>
+                                    <div class="card flex-1 p-0 overflow-hidden flex flex-col">
+                                        <div class="table-container flex-1 overflow-auto border-0 rounded-none">
+                                            <table class="data-table">
+                                                <thead style="position: sticky; top:0; z-index:10;"><tr><th>No</th><th>Nama Dokumen</th><th>Paket Terkait</th><th>Jenis</th><th>Tanggal</th><th>Status</th></tr></thead>
+                                                <tbody>${rows}</tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            `; 
                             break;
                         default: 
                             this.routerView.innerHTML = `<div class="empty-state"><i class="ph ph-hammer text-4xl mb-4"></i><h2 class="text-lg font-bold text-main">Halaman Belum Tersedia</h2></div>`;
@@ -1965,19 +2120,24 @@
                 
                 DB.cache['pinned_packages'] = pinned;
                 localStorage.setItem('pf_pinned', JSON.stringify(pinned)); 
-                this.reRenderCurrentView();
+                
+                // Jika sedang di halaman daftar paket, reload
+                if (this.currentRoute === 'pengadaan-daftar') {
+                    this.reRenderCurrentView();
+                }
             }
 
             toggleChecklist(pkgId, doc, status) {
                 const pkg = DB.getById('paket', pkgId);
                 let chk = pkg.checklists || [];
                 const exist = chk.find(x => x.doc === doc);
-                if(exist) { exist.status = status; exist.date = new Date().toISOString().split('T')[0]; }
+                if(exist) { exist.status = status; }
                 else { chk.push({ doc, status, date: new Date().toISOString().split('T')[0], pic: 'Sistem' }); }
                 DB.update('paket', pkgId, { checklists: chk });
                 this.reRenderCurrentView();
             }
 
+            // REVISI 1: Mengaktifkan fungsi simpan jadwal dan proses
             editManualJadwal(pkgId, type) {
                 const pkg = DB.getById('paket', pkgId);
                 const holidays = DB.get('libur').map(l => l.date); 
@@ -1986,30 +2146,67 @@
                 if (type === 'doc') {
                     const rules = DB.get('waktu');
                     let dates = {};
+                    const overrides = pkg.jadwal_override || {};
+
                     listHtml = rules.map((r, i) => {
-                        const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (pkg.tgl_awal || pkg.tgl_mulai) : dates[r.previous] || (pkg.tgl_awal || pkg.tgl_mulai)); 
-                        dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
-                        return `<div class="form-group"><label class="form-label">${r.name}</label><input type="date" class="form-control" name="doc_${r.id}" value="${dates[r.name]}"></div>`;
+                        let finalDate;
+                        if(overrides[`doc_${r.id}`]){
+                            finalDate = overrides[`doc_${r.id}`];
+                        } else {
+                            const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (pkg.tgl_awal || pkg.tgl_mulai) : dates[r.previous] || (pkg.tgl_awal || pkg.tgl_mulai)); 
+                            finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                        }
+                        dates[r.name] = finalDate; 
+                        return `<div class="form-group"><label class="form-label">${r.name}</label><input type="date" class="form-control" name="doc_${r.id}" value="${finalDate}"></div>`;
                     }).join('');
                 } else {
                     const rules = DB.get('jadwal_proses');
                     let base = pkg.tgl_awal || pkg.tgl_mulai; 
+                    const overrides = pkg.jadwal_proses_override || {};
+
                     listHtml = rules.map((r, i) => {
-                        const start = Utils.addWorkingDays(base, r.start_after, holidays);
-                        const end = Utils.addWorkingDays(start, r.duration, holidays);
-                        base = end; 
-                        return `<div class="form-group"><label class="form-label">${r.name} (Selesai)</label><input type="date" class="form-control" name="proc_${r.id}" value="${end}"></div>`;
+                        let end;
+                        if (overrides[`proc_${r.id}`]) {
+                            end = overrides[`proc_${r.id}`];
+                            base = end;
+                        } else {
+                            const start = Utils.addWorkingDays(base, r.start_after, holidays);
+                            end = Utils.addWorkingDays(start, r.duration, holidays);
+                            base = end; 
+                        }
+                        return `<div class="form-group"><label class="form-label">${r.name} (Batas Selesai)</label><input type="date" class="form-control" name="proc_${r.id}" value="${end}"></div>`;
                     }).join('');
                 }
 
                 const body = `
                     <div class="bg-warning-50 text-warning-700 p-3 text-sm rounded mb-4">
-                        <b>Perhatian:</b> Fitur ini disiapkan untuk *override* data hasil kalkulasi Master Engine Supabase di masa mendatang.
+                        <b>Informasi:</b> Tanggal yang Anda ubah di sini akan langsung disimpan di database dan diprioritaskan melebihi kalkulasi otomatis.
                     </div>
                     <form id="form-manual-jadwal" style="max-height: 50vh; overflow-y:auto; padding-right:8px;">${listHtml}</form>
                 `;
                 
-                DOM.openModal('Edit Manual Jadwal', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.notify('Fitur simpan override tanggal belum diaktifkan', 'info'); DOM.closeModal();">Simpan Overrides</button>`);
+                DOM.openModal('Edit Manual Jadwal', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveManualJadwal('${pkgId}', '${type}')">Simpan Overrides</button>`);
+            }
+
+            // Fungsi baru untuk memproses form override
+            saveManualJadwal(pkgId, type) {
+                const formData = DOM.getFormData('form-manual-jadwal');
+                const pkg = DB.getById('paket', pkgId);
+                
+                if (type === 'doc') {
+                    let overrides = pkg.jadwal_override || {};
+                    // Merge form data ke override yang sudah ada
+                    for(let key in formData) { overrides[key] = formData[key]; }
+                    DB.update('paket', pkgId, { jadwal_override: overrides });
+                } else {
+                    let overrides = pkg.jadwal_proses_override || {};
+                    for(let key in formData) { overrides[key] = formData[key]; }
+                    DB.update('paket', pkgId, { jadwal_proses_override: overrides });
+                }
+
+                DOM.closeModal();
+                this.notify('Penyesuaian manual jadwal berhasil disimpan', 'success');
+                this.reRenderCurrentView();
             }
 
             getDocumentMeta(pkg, doc) {
@@ -2028,16 +2225,22 @@
                 }
 
                 const holidays = DB.get('libur').map(x => x.date);
+                const docOverrides = pkg.jadwal_override || {};
                 let dates = {};
+
                 DB.get('waktu').forEach(r => { 
-                    const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (pkg.tgl_awal || pkg.tgl_mulai) : dates[r.previous] || (pkg.tgl_awal || pkg.tgl_mulai)); 
-                    dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                    if (docOverrides[`doc_${r.id}`]) {
+                        dates[r.name] = docOverrides[`doc_${r.id}`];
+                    } else {
+                        const base = r.anchor === 'selesai' ? pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (pkg.tgl_awal || pkg.tgl_mulai) : dates[r.previous] || (pkg.tgl_awal || pkg.tgl_mulai)); 
+                        dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
+                    }
                 });
                 
                 let date = pkg.tgl_awal || pkg.tgl_mulai;
                 for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { date = v; break; } }
                 
-                if (!rule) return { number:'-', date };
+                if (!rule) return { number:'', date };
                 
                 const d = new Date(`${date}T00:00:00`);
                 const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
