@@ -12,6 +12,11 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.5/pizzip.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.43.0/docxtemplater.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <style>
         :root {
@@ -493,7 +498,60 @@
         const Schemas = {
             pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
             penyedia: { title: 'Data Penyedia', table: 'penyedia', fields: [{ key: 'name', label: 'Nama Perusahaan', type: 'text', required: true }, { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, { key: 'type', label: 'Bentuk Usaha', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, { key: 'no_izin', label: 'Nomor Izin (IUJK/dll)', type: 'text', hideInTable: true }, { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, { key: 'bank', label: 'Bank', type: 'text', hideInTable: true }, { key: 'no_rekening', label: 'Nomor Rekening', type: 'text', hideInTable: true }, { key: 'an_rekening', label: 'Atas Nama Rekening', type: 'text', hideInTable: true }, { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }] },
-            template: { title: 'Template Dokumen', table: 'template', fields: [{ key: 'code', label: 'Kode', type: 'text', required: true, width: '100px' }, { key: 'name', label: 'Nama Template', type: 'text', required: true }, { key: 'type', label: 'Jenis', type: 'select', options: ['Barang', 'Konstruksi', 'Konsultansi', 'Jasa Lainnya', 'Umum'], required: true }, { key: 'last_updated', label: 'Tgl Update', type: 'date', formatter: Utils.formatDate }] },
+            template: {
+    title: 'Template Dokumen',
+    table: 'template',
+    fields: [
+
+        {
+            key:'code',
+            label:'Kode',
+            type:'text',
+            required:true
+        },
+
+        {
+            key:'name',
+            label:'Nama Template',
+            type:'text',
+            required:true
+        },
+
+        {
+            key:'type',
+            label:'Jenis',
+            type:'select',
+            options:[
+                'Barang',
+                'Konstruksi',
+                'Konsultansi',
+                'Jasa Lainnya',
+                'Umum'
+            ],
+            required:true
+        },
+
+        {
+            key:'file_url',
+            label:'URL Template DOCX',
+            type:'textarea'
+        },
+
+        {
+            key:'filename',
+            label:'Nama File',
+            type:'text'
+        },
+
+        {
+            key:'last_updated',
+            label:'Tanggal Update',
+            type:'date',
+            formatter:Utils.formatDate
+        }
+
+    ]
+},
             penomoran: { title: 'Format Penomoran', table: 'penomoran', fields: [{ key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' }, { key: 'format', label: 'Format Penomoran', type: 'text', required: true }, { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }] },
             jenis: { title: 'Jenis Pengadaan', table: 'jenis', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
             kontrak: { title: 'Jenis Kontrak', table: 'kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
