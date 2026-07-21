@@ -1618,6 +1618,54 @@
                Fungsi addHargaRow dan removeHargaRow telah ditempatkan dengan benar 
                di dalam kelas App sehingga dapat diakses oleh window.app 
             */
+            // --- FUNGSI UNTUK TAB PEJABAT ---
+    savePejabat(pkgId) {
+        // Ambil data dropdown (PPK, PP, PPTK, Bendahara) dari form
+        const formData = DOM.getFormData('form-pejabat');
+        
+        // Simpan ke Supabase API
+        DB.update('paket', pkgId, formData);
+        
+        this.notify('Struktur Pejabat berhasil disimpan', 'success');
+        this.reRenderCurrentView();
+    }
+
+    addTimTeknis(pkgId) {
+        const pkg = DB.getById('paket', pkgId);
+        const formData = DOM.getFormData('form-tt');
+        
+        // Validasi isian kosong
+        if (!formData.nama || !formData.nip || !formData.jabatan) {
+            this.notify('Harap isi nama, NIP, dan jabatan anggota tim!', 'error');
+            return;
+        }
+
+        // Ambil list yang ada, lalu tambahkan anggota baru
+        const timTeknis = pkg.tim_teknis || [];
+        timTeknis.push(formData);
+        
+        // Simpan ke API
+        DB.update('paket', pkgId, { tim_teknis: timTeknis });
+        
+        this.notify('Anggota Tim Teknis berhasil ditambahkan', 'success');
+        this.reRenderCurrentView();
+    }
+
+    removeTimTeknis(pkgId, index) {
+        if (!confirm('Hapus anggota tim teknis ini?')) return;
+        
+        const pkg = DB.getById('paket', pkgId);
+        let timTeknis = pkg.tim_teknis || [];
+        
+        // Hapus array berdasarkan index baris
+        timTeknis.splice(index, 1);
+        
+        // Update ke API
+        DB.update('paket', pkgId, { tim_teknis: timTeknis });
+        
+        this.notify('Anggota dihapus dari tim', 'success');
+        this.reRenderCurrentView();
+    }
             addHargaRow(pkgId) { 
                 const pkg = DB.getById('paket', pkgId); 
                 // Gunakan spread operator untuk menghindari mutasi referensi secara langsung
