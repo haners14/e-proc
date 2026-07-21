@@ -474,29 +474,7 @@
             
             },
         }
-             async function generateBANegosiasi(packageId) {
-
-                const paket = await DB.getPackage(packageId);
-            
-                const template = await DB.getTemplate("BA_NEGOSIASI");
-            
-                const output = await generateWord(
-                    template.file_url,
-                    paket
-                );
-            
-                await DB.insert("generated_documents", {
-            
-                    package_id: packageId,
-            
-                    document_type: "BA_NEGOSIASI",
-            
-                    file_url: output.url
-            
-                });
-            
-            };
-        
+             
 
         // -----------------------------------------------------
         // 3. SCHEMAS
@@ -1451,7 +1429,7 @@
                         <td>${m.date ? Utils.formatDate(m.date) : '-'}</td>
                         <td><input class="form-control" style="min-width:115px" readonly value="${short}" onclick="this.select()"></td>
                         <td>${ok ? '<span class="badge badge-success">Ada</span>' : '<span class="badge badge-warning">Kosong</span>'}</td>
-                        <td><button class="btn btn-ghost btn-sm text-primary" onclick="app.simulateDependencyEngine('${doc}','${this.packageId}')">Generate</button></td>
+                        <td><button class="btn btn-ghost btn-sm text-primary" onclick="app.runDocumentEngine('${doc}','${this.packageId}')">Generate</button></td>
                     </tr>`; 
                 };
                 
@@ -1664,7 +1642,89 @@
                 DB.update('paket', pkgId, { items: items });
                 this.reRenderCurrentView();
             }
-// Tambahkan fungsi ini di dalam class App (atau sebagai helper method)
+async runDocumentEngine(docName, pkgId) {
+    const pkg = DB.getById('paket', pkgId);
+    
+    // 1. Mapping nama dokumen ke kode template (Contoh: 'BA Negosiasi' -> 'BA_NEGOSIASI')
+    let templateCode = docName.replace(/ /g, '_').toUpperCase();
+    if (docName === 'BA Negosiasi') templateCode = 'BA_NEGOSIASI';
+
+    // 2. Validasi ketersediaan template di Database Master
+    const template = DB.get('template').find(t => t.code === templateCode);
+    if (!template || !template.file_url) {
+        this.notify(`Template untuk ${docName} belum diset di Master Template.`, 'error');
+        return;
+    }
+
+    // 3. Tampilkan Modal Proses
+    const modalHTML = `<div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>`;
+    DOM.openModal(`Generating ${docName}...`, modalHTML, '');
+    const logEl = document.getElementById('engine-log');
+    const addLog = (msg) => { logEl.innerHTML += `<div>> ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; };
+
+    try {
+        addLog(`Memulai Document Dependency Engine...`);
+        addLog(`Menyiapkan data payload untuk ${docName}...`);
+        
+        // Ambil data JSON dari fungsi prepareDocumentPayload
+        const payload = this.prepareDocumentPayload(pkgId, docName);
+
+        addLog(`Mengunduh file template dari server...`);
+        
+        // 4. Fetch file DOCX sebagai Array Buffer
+        const response = await fetch(template.file_url);
+        if (!response.ok) throw new Error("Gagal mengunduh template dari URL");
+        const arrayBuffer = await response.arrayBuffer();
+
+        addLog(`Menyusun dokumen dengan Docxtemplater...`);
+        
+        // 5. Inisialisasi proses render dokumen (.docx)
+        const zip = new PizZip(arrayBuffer);
+        const doc = new window.docxtemplater(zip, {
+            paragraphLoop: true,
+            linebreaks: true,
+        });
+
+        // Render payload ke dalam variabel template
+        doc.render(payload);
+
+        addLog(`Merapikan file final...`);
+
+        // 6. Generate file hasil (Blob) dan trigger download (FileSaver.js)
+        const out = doc.getZip().generate({
+            type: "blob",
+            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        });
+        const fileName = `${docName.replace(/ /g, '_')}_${pkg.keyword_penomoran || pkg.id}.docx`;
+        saveAs(out, fileName);
+
+        // 7. Simpan arsip ke state 'documents' agar muncul di Tab Dokumen (Arsip)
+        DB.insert('documents', { 
+            package_id: pkgId, 
+            doc_type: docName, 
+            name: fileName, 
+            status: 'FINAL', 
+            date: new Date().toISOString().split('T')[0] 
+        });
+        
+        // 8. Update Checklist secara otomatis
+        this.toggleChecklist(pkgId, docName, true); 
+
+        addLog(`<span class="text-success font-bold">SELESAI! Dokumen berhasil dibuat dan diunduh.</span>`);
+        
+        setTimeout(() => {
+            DOM.closeModal();
+            this.notify(`${docName} berhasil di-generate dan diunduh`, 'success');
+            this.reRenderCurrentView();
+        }, 2000);
+
+    } catch (error) {
+        console.error(error);
+        addLog(`<span class="text-danger font-bold">ERROR: ${error.message}</span>`);
+        setTimeout(() => DOM.closeModal(), 3500);
+    }
+}
+            // Tambahkan fungsi ini di dalam class App (atau sebagai helper method)
 prepareDocumentPayload(pkgId, docName) {
     const pkg = DB.getById('paket', pkgId);
     const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
