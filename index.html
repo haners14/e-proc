@@ -466,7 +466,13 @@
                     });
                 }
                 return { hps, penawaran, negosiasi };
-            }
+            },
+                        getTemplate(code){
+            
+                return this.get("template")
+                    .find(t => t.code === code);
+            
+            },
         }
              async function generateBANegosiasi(packageId) {
 
