@@ -12,7 +12,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.5/pizzip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.43.0/docxtemplater.js"></script>
     
@@ -1679,7 +1679,7 @@ async runDocumentEngine(docName, pkgId) {
         addLog(`Menyusun dokumen dengan Docxtemplater...`);
         
         // 5. Inisialisasi proses render dokumen (.docx)
-        const zip = new PizZip(arrayBuffer);
+        const zip = new window.PizZip(arrayBuffer);
         const doc = new window.docxtemplater(zip, {
             paragraphLoop: true,
             linebreaks: true,
