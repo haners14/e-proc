@@ -1720,8 +1720,19 @@ async runDocumentEngine(docName, pkgId) {
 
     } catch (error) {
         console.error(error);
-        addLog(`<span class="text-danger font-bold">ERROR: ${error.message}</span>`);
-        setTimeout(() => DOM.closeModal(), 3500);
+        
+        // Tangkap detail spesifik dari docxtemplater jika ada
+        if (error.properties && error.properties.errors instanceof Array) {
+            const errorMessages = error.properties.errors.map(function (e) {
+                return e.properties.explanation || e.message;
+            }).join("<br> - ");
+            addLog(`<span class="text-danger font-bold" style="white-space: normal;">Kesalahan Template Word:<br> - ${errorMessages}</span>`);
+        } else {
+            addLog(`<span class="text-danger font-bold">ERROR: ${error.message}</span>`);
+        }
+        
+        // Hapus setTimeout penutup modal agar Anda punya waktu membaca pesan error-nya
+        addLog(`<button class="btn btn-outline btn-sm mt-4" onclick="DOM.closeModal()">Tutup</button>`);
     }
 }
             // Tambahkan fungsi ini di dalam class App (atau sebagai helper method)
