@@ -12,11 +12,14 @@
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.43.0/docxtemplater.js"></script>
     
+    <!-- Dependencies for Word, Excel, and Searchable Select -->
+    <script src="https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.43.0/docxtemplater.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
     <style>
         :root {
@@ -140,7 +143,7 @@
         .spreadsheet { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
         .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; color: var(--gray-700); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
         .spreadsheet td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 0; position: relative; }
-        .cell-input { width: 100%; height: 100%; border: none; padding: var(--space-3); background: transparent; color: var(--text-main); font-size: inherit; outline: none; transition: background 0.2s; }
+        .cell-input { width: 100%; height: 100%; border: none; padding: var(--space-3); background: transparent; color: var(--text-main); font-size: inherit; outline: none; transition: background 0.2s; user-select: auto;}
         .cell-input:focus { box-shadow: inset 0 0 0 2px var(--primary-600); background: var(--primary-50); }
         .cell-readonly { padding: var(--space-3); background: var(--gray-50); color: var(--gray-700); font-weight: 500; }
 
@@ -184,6 +187,10 @@
         .chat-suggestion-chip:hover { border-color: var(--primary-500); color: var(--primary-600); background: var(--primary-50); }
         
         #global-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+        
+        /* CSS Tambahan TomSelect Overrides */
+        .ts-control { border-radius: var(--radius-sm); padding: 8px 12px; border-color: var(--border-color); box-shadow: none; }
+        .ts-control.focus { border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
     </style>
 </head>
 <body>
@@ -341,6 +348,14 @@
                 if(n<1000000) return this.toWords(Math.floor(n/1000))+' ribu '+this.toWords(n%1000);
                 if(n<1000000000) return this.toWords(Math.floor(n/1000000))+' juta '+this.toWords(n%1000000); 
                 return String(n);
+            },
+            debounce: (func, wait) => {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => { clearTimeout(timeout); func(...args); };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
             }
         };
 
@@ -378,7 +393,6 @@
                     } catch(e) { this.cache[table] = []; }
                 }));
 
-                // Relational logic: attach items to packages
                 if (this.cache['packages'] && this.cache['package_items']) {
                     this.cache['packages'].forEach(pkg => pkg.items = this.cache['package_items'].filter(i => i.package_id === pkg.id) || []);
                 }
@@ -459,19 +473,19 @@
                 let pagu = Number(pkg.pagu) || 0, hps = 0, penawaran = 0, negosiasi = 0;
                 if(pkg.items && pkg.items.length > 0) {
                     pkg.items.forEach(i => {
-                        const tax = 1 + (Number(i.pajak) || 0) / 100;
-                        hps += (Number(i.vol_hps) * Number(i.harga_hps)) * tax;
-                        penawaran += (Number(i.vol_pen) * Number(i.harga_pen)) * tax;
-                        negosiasi += (Number(i.vol_neg) * Number(i.harga_neg)) * tax;
+                        // Skip perhitungan jika ini adalah row header pembatas
+                        if(!i.is_header) {
+                            const tax = 1 + (Number(i.pajak) || 0) / 100;
+                            hps += (Number(i.vol_hps) * Number(i.harga_hps)) * tax;
+                            penawaran += (Number(i.vol_pen) * Number(i.harga_pen)) * tax;
+                            negosiasi += (Number(i.vol_neg) * Number(i.harga_neg)) * tax;
+                        }
                     });
                 }
                 return { hps, penawaran, negosiasi };
             },
-                        getTemplate(code){
-            
-                return this.get("template")
-                    .find(t => t.code === code);
-            
+            getTemplate(code){
+                return this.get("template").find(t => t.code === code);
             },
         }
              
@@ -482,60 +496,7 @@
         const Schemas = {
             pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
             penyedia: { title: 'Data Penyedia', table: 'penyedia', fields: [{ key: 'name', label: 'Nama Perusahaan', type: 'text', required: true }, { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, { key: 'type', label: 'Bentuk Usaha', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, { key: 'no_izin', label: 'Nomor Izin (IUJK/dll)', type: 'text', hideInTable: true }, { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, { key: 'bank', label: 'Bank', type: 'text', hideInTable: true }, { key: 'no_rekening', label: 'Nomor Rekening', type: 'text', hideInTable: true }, { key: 'an_rekening', label: 'Atas Nama Rekening', type: 'text', hideInTable: true }, { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }] },
-            template: {
-    title: 'Template Dokumen',
-    table: 'template',
-    fields: [
-
-        {
-            key:'code',
-            label:'Kode',
-            type:'text',
-            required:true
-        },
-
-        {
-            key:'name',
-            label:'Nama Template',
-            type:'text',
-            required:true
-        },
-
-        {
-            key:'type',
-            label:'Jenis',
-            type:'select',
-            options:[
-                'Barang',
-                'Konstruksi',
-                'Konsultansi',
-                'Jasa Lainnya',
-                'Umum'
-            ],
-            required:true
-        },
-
-        {
-            key:'file_url',
-            label:'URL Template DOCX',
-            type:'textarea'
-        },
-
-        {
-            key:'filename',
-            label:'Nama File',
-            type:'text'
-        },
-
-        {
-            key:'last_updated',
-            label:'Tanggal Update',
-            type:'date',
-            formatter:Utils.formatDate
-        }
-
-    ]
-},
+            template: { title: 'Template Dokumen', table: 'template', fields: [ { key:'code', label:'Kode', type:'text', required:true }, { key:'name', label:'Nama Template', type:'text', required:true }, { key:'type', label:'Jenis', type:'select', options:['Barang','Konstruksi','Konsultansi','Jasa Lainnya','Umum'], required:true }, { key:'file_url', label:'URL Template DOCX', type:'textarea' }, { key:'filename', label:'Nama File', type:'text' }, { key:'last_updated', label:'Tanggal Update', type:'date', formatter:Utils.formatDate } ] },
             penomoran: { title: 'Format Penomoran', table: 'penomoran', fields: [{ key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' }, { key: 'format', label: 'Format Penomoran', type: 'text', required: true }, { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }] },
             jenis: { title: 'Jenis Pengadaan', table: 'jenis', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
             kontrak: { title: 'Jenis Kontrak', table: 'kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
@@ -797,7 +758,6 @@
                     input.value = '';
                     chatArea.scrollTop = chatArea.scrollHeight;
 
-                    // Menggunakan UUID generator agar ID chat unik dan tidak bentrok
                     const id = 'bot-' + Utils.generateId() + Date.now();
                     chatArea.innerHTML += `<div class="chat-msg bot" id="${id}"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble flex gap-1"><span class="animate-pulse">.</span><span class="animate-pulse" style="animation-delay: 0.2s">.</span><span class="animate-pulse" style="animation-delay: 0.4s">.</span></div></div>`;
                     chatArea.scrollTop = chatArea.scrollHeight;
@@ -885,7 +845,7 @@
                                 <div class="text-sm text-muted font-medium">${this.pkg.id} • ${this.pkg.metode_pemilihan || 'Metode Belum Diset'}</div>
                             </div>
                             <div class="flex gap-2">
-                                <button class="btn btn-outline" onclick="app.notify('Data tersimpan otomatis (SSOT)', 'info')"><i class="ph ph-floppy-disk"></i> Save</button>
+                                <button class="btn btn-outline" onclick="app.notify('Data Anda otomatis tersimpan saat mengetik!', 'info')"><i class="ph ph-floppy-disk"></i> Auto-Save Aktif</button>
                                 ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
                             </div>
                         </div>
@@ -908,13 +868,60 @@
                     });
                 });
 
-                // Attach dynamic events based on active tab
+                // Attach Events (Including Auto-Save)
+                this.attachAutoSaveEvents();
+
                 if(this.activeTab === 'harga') this.attachHargaEvents();
                 if(this.activeTab === 'rancangankontrak') this.attachKontrakEvents();
                 if(this.activeTab === 'datapaket'){ 
                     const f=document.getElementById('form-datapaket'), start=f?.querySelector('[name=tgl_mulai]'), dur=f?.querySelector('[name=durasi_kontrak]'), finish=f?.querySelector('[name=tgl_selesai]'); 
                     const refresh=()=>{if(start?.value&&finish){const d=new Date(`${start.value}T00:00:00`);d.setDate(d.getDate()+(Number(dur?.value)||0));finish.value=d.toISOString().split('T')[0];}}; 
                     start?.addEventListener('change',refresh); dur?.addEventListener('input',refresh); refresh(); 
+                }
+            }
+
+            // AUTO-SAVE HANDLER UNTUK SEMUA FORM TAB
+            attachAutoSaveEvents() {
+                const bindAutoSave = (id, formatter = null) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.addEventListener('input', Utils.debounce((e) => {
+                            let data = {};
+                            if (el.tagName === 'FORM') data = DOM.getFormData(id);
+                            else data = { [el.name || el.id]: el.value };
+
+                            if (formatter) data = formatter(data);
+                            DB.update('paket', this.packageId, data);
+                            app.notify('Perubahan tersimpan otomatis', 'info');
+                        }, 800)); // Simpan setelah jeda 800ms
+                    }
+                };
+
+                if(this.activeTab === 'datapaket') bindAutoSave('form-datapaket', d => { if(d.pagu) d.pagu = Number(String(d.pagu).replace(/\D/g, '')) || 0; return d; });
+                if(this.activeTab === 'pejabat') bindAutoSave('form-pejabat');
+                if(this.activeTab === 'kak') bindAutoSave('form-kak');
+                if(this.activeTab === 'catatan') bindAutoSave('pkg-notes', () => ({ notes: document.getElementById('pkg-notes').value }));
+                if(this.activeTab === 'rancangankontrak') bindAutoSave('form-kontrak', d => {
+                    d.jaminan_pemeliharaan = Number(d.jaminan_pemeliharaan) || 0;
+                    d.pembulatan_negosiasi = Number(String(d.pembulatan_negosiasi).replace(/\D/g, '')) || 0;
+                    return d;
+                });
+                
+                // Init TomSelect for Penyedia
+                if(this.activeTab === 'penyedia') {
+                    setTimeout(() => {
+                        if(document.getElementById('select-penyedia')) {
+                            new TomSelect("#select-penyedia",{
+                                create: false,
+                                sortField: { field: "text", direction: "asc" },
+                                onChange: (value) => {
+                                    DB.update('paket', this.packageId, {supplier_id: value});
+                                    app.notify('Penyedia tersimpan otomatis', 'success');
+                                    this.render(document.getElementById('router-view'));
+                                }
+                            });
+                        }
+                    }, 50);
                 }
             }
 
@@ -993,16 +1000,10 @@
             }
 
             renderDataPaket() {
-                const saveFunc = `
-                    const fd = DOM.getFormData('form-datapaket');
-                    DB.update('paket', '${this.packageId}', fd);
-                    app.notify('Data Paket berhasil disimpan ke API', 'success');
-                `;
                 return `
                     <div class="card p-6">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg text-main">Data Paket</h2><p class="text-sm text-muted">Informasi dasar paket untuk kebutuhan dokumen dan laporan.</p></div>
-                            <button class="btn btn-primary" onclick="${saveFunc}"><i class="ph ph-floppy-disk"></i> Simpan Data Paket</button>
+                            <div><h2 class="font-bold text-lg text-main">Data Paket</h2><p class="text-sm text-muted">Informasi otomatis tersimpan ke server saat Anda mengetik.</p></div>
                         </div>
                         <form id="form-datapaket" class="flex flex-col gap-6">
                             
@@ -1073,7 +1074,9 @@
                 return `
                     <div class="grid grid-cols-2 gap-6">
                         <div class="card p-6">
-                            <div class="flex justify-between items-center mb-4 border-b pb-2"><h2 class="font-bold text-lg">Struktur Organisasi Paket</h2><button class="btn btn-sm btn-primary" onclick="app.savePejabat('${this.packageId}')">Simpan Struktur</button></div>
+                            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                                <h2 class="font-bold text-lg">Struktur Organisasi Paket</h2>
+                            </div>
                             <form id="form-pejabat">
                                 <div class="form-group"><label class="form-label text-primary-700 font-bold">Pejabat Pembuat Komitmen (PPK)</label><select name="ppk_id" class="form-control">${getOpts(ppkList, this.pkg.ppk_id)}</select></div>
                                 <div class="form-group"><label class="form-label">Pejabat Pengadaan (PP) / Pokja</label><select name="pp_id" class="form-control">${getOpts(ppList, this.pkg.pp_id)}</select></div>
@@ -1105,19 +1108,15 @@
             renderPenyedia() {
                 const pList = DB.get('penyedia');
                 const sup = this.pkg.supplier_id ? DB.getById('penyedia', this.pkg.supplier_id) : null;
-                const getOptions = () => `<option value="">-- Pilih Dari Database Master --</option>` + pList.map(p => `<option value="${p.id}" ${p.id === this.pkg.supplier_id ? 'selected' : ''}>${p.name} (NPWP: ${p.npwp})</option>`).join('');
+                const getOptions = () => `<option value="">Ketik untuk mencari penyedia...</option>` + pList.map(p => `<option value="${p.id}" ${p.id === this.pkg.supplier_id ? 'selected' : ''}>${p.name} (NPWP: ${p.npwp})</option>`).join('');
 
                 return `
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
                             <h2 class="font-bold text-lg">Penetapan Penyedia / Pelaksana</h2>
-                            <div class="flex gap-2 items-center">
-                                <select id="select-penyedia" class="form-control" style="width:300px">${getOptions()}</select>
-                                <button class="btn btn-primary" onclick="
-                                    DB.update('paket', '${this.packageId}', {supplier_id: document.getElementById('select-penyedia').value});
-                                    app.notify('Penyedia di-set', 'success');
-                                    app.reRenderCurrentView();
-                                ">Tetapkan</button>
+                            <div class="flex gap-2 items-center" style="min-width: 400px;">
+                                <!-- Menggunakan TomSelect dari JS -->
+                                <select id="select-penyedia" style="width: 100%;">${getOptions()}</select>
                             </div>
                         </div>
 
@@ -1143,7 +1142,7 @@
                                     <div class="mb-2"><span class="text-xs text-muted block">Nomor Rekening</span><span class="font-semibold">${sup.no_rekening}</span></div>
                                 </div>
                             </div>
-                        ` : `<div class="text-center p-12 text-muted bg-gray-50 rounded-md border border-dashed border-gray-300">Belum ada penyedia yang ditetapkan. Silahkan pilih dari dropdown di atas.</div>`}
+                        ` : `<div class="text-center p-12 text-muted bg-gray-50 rounded-md border border-dashed border-gray-300">Silakan ketik dan cari penyedia pada kotak di atas.</div>`}
                     </div>
                 `;
             }
@@ -1153,6 +1152,16 @@
                 let hpsSub = 0, hpsPPN = 0, penSub = 0, penPPN = 0, negSub = 0, negPPN = 0;
 
                 const trs = items.map((i, index) => {
+                    if (i.is_header) {
+                        return `
+                        <tr data-index="${index}" class="bg-gray-100">
+                            <td class="cell-readonly text-center font-bold">${index + 1}</td>
+                            <td colspan="10"><input type="text" class="cell-input hrg-input" style="font-weight:bold" data-field="uraian" value="${i.uraian}" placeholder="Contoh: Pekerjaan Non Personil"></td>
+                            <td><button class="btn btn-ghost btn-sm text-danger" onclick="app.removeHargaRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
+                        </tr>
+                        `;
+                    }
+
                     const tax = 1 + (Number(i.pajak) || 0) / 100;
                     const hpsT = (Number(i.vol_hps) * Number(i.harga_hps)) * tax; hpsSub += (Number(i.vol_hps) * Number(i.harga_hps)); hpsPPN += hpsT - (Number(i.vol_hps) * Number(i.harga_hps));
                     const penT = (Number(i.vol_pen) * Number(i.harga_pen)) * tax; penSub += (Number(i.vol_pen) * Number(i.harga_pen)); penPPN += penT - (Number(i.vol_pen) * Number(i.harga_pen));
@@ -1201,11 +1210,18 @@
 
                 return note + `
                     <div class="flex justify-between items-center mb-4">
-                        <div><h2 class="font-bold text-lg text-main">Rincian Harga (HPS, Penawaran, Negosiasi)</h2><p class="text-sm text-muted">Perubahan otomatis disimpan ke Supabase.</p></div>
+                        <div>
+                            <h2 class="font-bold text-lg text-main">Rincian Harga</h2>
+                            <p class="text-sm text-muted">Ketik untuk simpan otomatis. Mendukung Copy-Paste (Ctrl+V) langsung dari Excel.</p>
+                        </div>
                         <div class="flex gap-2">
-                            <button class="btn btn-outline text-warning-600 border-warning-200 hover:bg-warning-50" onclick="app.simulateDependencyEngine('BA Negosiasi', '${this.packageId}'); app.printHPS('${this.packageId}');"><i class="ph ph-file-pdf"></i> Cetak BA Negosiasi PDF</button>
+                            <!-- Import/Export Menu -->
+                            <input type="file" id="import-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importHPS(event, '${this.packageId}')">
+                            <button class="btn btn-outline" onclick="app.downloadTemplateHPS()"><i class="ph ph-download"></i> Template Excel</button>
+                            <button class="btn btn-outline" onclick="document.getElementById('import-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
+                            
                             <button class="btn btn-primary" onclick="app.printHPS('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak PDF HPS</button>
-                            <!-- Panggilan fungsi app.addHargaRow yang memicu baris baru -->
+                            <button class="btn btn-outline" onclick="app.addHargaHeader('${this.packageId}')"><i class="ph ph-list"></i> Tambah Header</button>
                             <button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button>
                         </div>
                     </div>
@@ -1264,6 +1280,38 @@
             }
 
             attachHargaEvents() {
+                const table = document.getElementById('table-harga');
+
+                // Excel Like Copy-Paste Handling
+                table.addEventListener('paste', (e) => {
+                    if (!e.target.classList.contains('cell-input')) return;
+                    const clip = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    if (!clip.includes('\t') && !clip.includes('\n')) return; // Allow normal text paste if single cell
+                    
+                    e.preventDefault();
+                    // Parse Excel TSV format
+                    const rows = clip.split('\n').map(r => r.split('\t'));
+                    const targetTr = e.target.closest('tr');
+                    const tbody = targetTr.parentElement;
+                    const allTrs = Array.from(tbody.querySelectorAll('tr[data-index]'));
+                    const startRow = allTrs.indexOf(targetTr);
+                    const startInput = Array.from(targetTr.querySelectorAll('input.cell-input')).indexOf(e.target);
+
+                    rows.forEach((rowData, i) => {
+                        const rowTr = allTrs[startRow + i];
+                        if (!rowTr) return; // Ignore if exceeds table rows
+                        const inputs = Array.from(rowTr.querySelectorAll('input.cell-input'));
+                        rowData.forEach((cellData, j) => {
+                            const input = inputs[startInput + j];
+                            if (input && !input.disabled && !input.readOnly) {
+                                input.value = cellData.trim();
+                                // Trigger change event automatically for auto-save
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        });
+                    });
+                });
+
                 document.querySelectorAll('.hrg-input').forEach(inp => {
                     inp.addEventListener('change', (e) => {
                         const tr = e.target.closest('tr');
@@ -1275,7 +1323,6 @@
                         
                         let items = this.pkg.items || [];
                         items[idx][field] = val;
-                        // Autosave without resetting active tab
                         DB.update('paket', this.packageId, { items });
                         app.notify('Autosave: Harga diperbarui ke API', 'info');
                         this.render(document.getElementById('router-view')); 
@@ -1299,7 +1346,6 @@
                 const rules = DB.get('waktu'); 
                 let dates = {};
                 
-                // Menghitung jadwal dari tanggal_awal
                 rules.forEach(r => { 
                     const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
                     dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
@@ -1361,14 +1407,12 @@
                 let procDates = [];
                 let eventsList = [];
 
-                // Kalkulasi Dokumen
                 rules.forEach(r => { 
                     const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : docDates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
                     docDates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
                     eventsList.push({ name: r.name, date: docDates[r.name], type: 'doc' });
                 });
 
-                // Kalkulasi Proses
                 let baseProc = this.pkg.tgl_awal || this.pkg.tgl_mulai;
                 procRules.forEach(r => {
                     const start = Utils.addWorkingDays(baseProc, r.start_after, holidays);
@@ -1379,7 +1423,6 @@
                     eventsList.push({ name: `Batas ${r.name}`, date: end, type: 'proc-end' });
                 });
 
-                // Sortir Berdasarkan Tanggal
                 eventsList.sort((a, b) => new Date(a.date) - new Date(b.date));
 
                 const timelineHtml = eventsList.map((e, i) => {
@@ -1451,14 +1494,10 @@
                 return `
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Data siap dicetak sebagai KAK atau uraian singkat pekerjaan.</p></div>
+                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Ketik otomatis tersimpan. Data siap dicetak sebagai KAK.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}',true)"><i class="ph ph-printer"></i> Cetak Uraian Singkat</button>
-                                <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak KAK</button>
-                                <button class="btn btn-primary" onclick="
-                                    DB.update('paket', '${this.packageId}', DOM.getFormData('form-kak'));
-                                    app.notify('Data KAK disimpan', 'success');
-                                ">Simpan API</button>
+                                <button class="btn btn-primary" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak KAK</button>
                             </div>
                         </div>
                         <form id="form-kak">
@@ -1474,11 +1513,7 @@
                 return `
                     <div class="card p-6 max-w-4xl mx-auto border-t-4 border-warning-500">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg">Catatan Pengadaan (Notes)</h2><p class="text-sm text-muted">Gunakan untuk menyimpan keterangan tambahan, syarat kualifikasi, atau catatan fisik.</p></div>
-                            <button class="btn btn-primary" onclick="
-                                DB.update('paket', '${this.packageId}', { notes: document.getElementById('pkg-notes').value });
-                                app.notify('Catatan disimpan', 'success');
-                            ">Simpan Catatan</button>
+                            <div><h2 class="font-bold text-lg">Catatan Pengadaan (Notes)</h2><p class="text-sm text-muted">Ketik untuk menyimpan keterangan tambahan, syarat kualifikasi, atau catatan fisik secara otomatis.</p></div>
                         </div>
                         <textarea id="pkg-notes" class="form-control" rows="15" style="font-family: monospace; white-space: pre-wrap;">${notes}</textarea>
                     </div>
@@ -1491,19 +1526,10 @@
                 const percentJaminan = Number(this.pkg.jaminan_pemeliharaan) || 0;
                 const guarantee = n * (percentJaminan / 100);
                 
-                const saveFunc = `
-                    const fd = DOM.getFormData('form-kontrak');
-                    fd.jaminan_pemeliharaan = Number(fd.jaminan_pemeliharaan) || 0;
-                    fd.pembulatan_negosiasi = Number(String(fd.pembulatan_negosiasi).replace(/\\D/g, '')) || 0;
-                    DB.update('paket', '${this.packageId}', fd);
-                    app.notify('Rancangan kontrak disimpan', 'success');
-                    app.reRenderCurrentView();
-                `;
-
                 return `
                     <div class="card p-6 max-w-4xl mx-auto border-t-4 border-t-primary-600">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg">Rancangan Kontrak</h2><p class="text-sm text-muted">Nilai kontrak mengikuti pembulatan tahap negosiasi.</p></div>
+                            <div><h2 class="font-bold text-lg">Rancangan Kontrak</h2><p class="text-sm text-muted">Nilai kontrak mengikuti pembulatan negosiasi. Disimpan otomatis.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline" onclick="app.simulateDependencyEngine('SSUK','${this.packageId}')">Generate SSUK</button>
                                 <button class="btn btn-outline" onclick="app.simulateDependencyEngine('SSKK','${this.packageId}')">Generate SSKK</button>
@@ -1518,7 +1544,6 @@
                             <div class="form-group"><label class="form-label">Jaminan Pemeliharaan (%)</label><input name="jaminan_pemeliharaan" type="number" step="0.1" class="form-control" value="${percentJaminan}"></div>
                             <div class="form-group"><label class="form-label">Nilai Jaminan Pemeliharaan</label><input class="form-control guarantee-input font-bold" value="${Utils.formatCurrency(guarantee)}" readonly disabled></div>
                             <div class="form-group"><label class="form-label">Lokasi</label><input class="form-control" value="${this.pkg.lokasi||''}" readonly disabled></div>
-                            <div class="col-span-2 text-right border-t pt-4"><button type="button" class="btn btn-primary" onclick="${saveFunc}">Simpan Perubahan</button></div>
                         </form>
                     </div>`;
             }
@@ -1534,11 +1559,13 @@
                     guaranteeInput.value = Utils.formatCurrency(n * (p / 100));
                 };
 
-                percentInput.addEventListener('input', updateGuarantee);
-                negoInput.addEventListener('input', (e) => {
-                    e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
-                    updateGuarantee();
-                });
+                if(percentInput) percentInput.addEventListener('input', updateGuarantee);
+                if(negoInput) {
+                    negoInput.addEventListener('input', (e) => {
+                        e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
+                        updateGuarantee();
+                    });
+                }
             }
 
             renderDokumen() {
@@ -1588,7 +1615,7 @@
         }
 
         // -----------------------------------------------------
-        // 7. APP CONTROLLER (Includes Printer Extensions)
+        // 7. APP CONTROLLER
         // -----------------------------------------------------
         class App {
             constructor() { 
@@ -1614,73 +1641,92 @@
                 });
             }
 
-            /* 
-               Fungsi addHargaRow dan removeHargaRow telah ditempatkan dengan benar 
-               di dalam kelas App sehingga dapat diakses oleh window.app 
-            */
-            // --- FUNGSI UNTUK TAB PEJABAT ---
-    savePejabat(pkgId) {
-        // Ambil data dropdown (PPK, PP, PPTK, Bendahara) dari form
-        const formData = DOM.getFormData('form-pejabat');
-        
-        // Simpan ke Supabase API
-        DB.update('paket', pkgId, formData);
-        
-        this.notify('Struktur Pejabat berhasil disimpan', 'success');
-        this.reRenderCurrentView();
-    }
+            // Fungsi Excel Export / Import HPS
+            downloadTemplateHPS() {
+                const ws = XLSX.utils.aoa_to_sheet([
+                    ["Tipe (ITEM/HEADER)", "Uraian Pekerjaan", "Satuan", "Vol HPS", "Harga HPS", "Vol Pen", "Harga Pen", "Vol Neg", "Harga Neg", "Pajak (%)"],
+                    ["HEADER", "I. Pekerjaan Persiapan (Contoh Kunci Baris)", "", "", "", "", "", "", "", ""],
+                    ["ITEM", "Pembersihan Lahan", "m2", 100, 15000, 100, 14000, 100, 14000, 11]
+                ]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template HPS");
+                XLSX.writeFile(wb, "Template_Import_HPS.xlsx");
+            }
 
-    addTimTeknis(pkgId) {
-        const pkg = DB.getById('paket', pkgId);
-        const formData = DOM.getFormData('form-tt');
-        
-        // Validasi isian kosong
-        if (!formData.nama || !formData.nip || !formData.jabatan) {
-            this.notify('Harap isi nama, NIP, dan jabatan anggota tim!', 'error');
-            return;
-        }
+            importHPS(event, pkgId) {
+                const file = event.target.files[0];
+                if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+                    
+                    const pkg = DB.getById('paket', pkgId);
+                    let items = Array.isArray(pkg.items) ? [...pkg.items] : [];
 
-        // Ambil list yang ada, lalu tambahkan anggota baru
-        const timTeknis = pkg.tim_teknis || [];
-        timTeknis.push(formData);
-        
-        // Simpan ke API
-        DB.update('paket', pkgId, { tim_teknis: timTeknis });
-        
-        this.notify('Anggota Tim Teknis berhasil ditambahkan', 'success');
-        this.reRenderCurrentView();
-    }
+                    rows.slice(1).forEach(r => {
+                        if(!r[0] && !r[1]) return; // Skip if empty row
+                        const isHeader = String(r[0]).toUpperCase() === 'HEADER';
+                        items.push({
+                            id: Date.now().toString() + Math.random(),
+                            is_header: isHeader,
+                            uraian: r[1] || '',
+                            sat: r[2] || 'Ls',
+                            vol_hps: Number(r[3]) || 0,
+                            harga_hps: Number(r[4]) || 0,
+                            vol_pen: Number(r[5]) || 0,
+                            harga_pen: Number(r[6]) || 0,
+                            vol_neg: Number(r[7]) || 0,
+                            harga_neg: Number(r[8]) || 0,
+                            pajak: Number(r[9]) || 0
+                        });
+                    });
 
-    removeTimTeknis(pkgId, index) {
-        if (!confirm('Hapus anggota tim teknis ini?')) return;
-        
-        const pkg = DB.getById('paket', pkgId);
-        let timTeknis = pkg.tim_teknis || [];
-        
-        // Hapus array berdasarkan index baris
-        timTeknis.splice(index, 1);
-        
-        // Update ke API
-        DB.update('paket', pkgId, { tim_teknis: timTeknis });
-        
-        this.notify('Anggota dihapus dari tim', 'success');
-        this.reRenderCurrentView();
-    }
+                    DB.update('paket', pkgId, { items });
+                    this.notify('Data HPS berhasil diimpor dari Excel', 'success');
+                    this.reRenderCurrentView();
+                    event.target.value = ''; // reset input
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            addTimTeknis(pkgId) {
+                const pkg = DB.getById('paket', pkgId);
+                const formData = DOM.getFormData('form-tt');
+                if (!formData.nama || !formData.nip || !formData.jabatan) { this.notify('Harap isi nama, NIP, dan jabatan!', 'error'); return; }
+                const timTeknis = pkg.tim_teknis || [];
+                timTeknis.push(formData);
+                DB.update('paket', pkgId, { tim_teknis: timTeknis });
+                this.notify('Anggota Tim Teknis berhasil ditambahkan', 'success');
+                this.reRenderCurrentView();
+            }
+
+            removeTimTeknis(pkgId, index) {
+                if (!confirm('Hapus anggota tim teknis ini?')) return;
+                const pkg = DB.getById('paket', pkgId);
+                let timTeknis = pkg.tim_teknis || [];
+                timTeknis.splice(index, 1);
+                DB.update('paket', pkgId, { tim_teknis: timTeknis });
+                this.notify('Anggota dihapus dari tim', 'success');
+                this.reRenderCurrentView();
+            }
+
             addHargaRow(pkgId) { 
                 const pkg = DB.getById('paket', pkgId); 
-                // Gunakan spread operator untuk menghindari mutasi referensi secara langsung
                 const items = Array.isArray(pkg.items) ? [...pkg.items] : []; 
-                items.push({ 
-                    id: Date.now().toString(), 
-                    uraian: '', 
-                    sat: 'Ls', 
-                    vol_hps: 1, harga_hps: 0, 
-                    vol_pen: 0, harga_pen: 0, 
-                    vol_neg: 0, harga_neg: 0, 
-                    pajak: 11 
-                }); 
+                items.push({ id: Date.now().toString(), is_header: false, uraian: '', sat: 'Ls', vol_hps: 1, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }); 
                 DB.update('paket', pkgId, { items }); 
                 this.reRenderCurrentView(); 
+            }
+
+            addHargaHeader(pkgId) {
+                const pkg = DB.getById('paket', pkgId);
+                const items = Array.isArray(pkg.items) ? [...pkg.items] : [];
+                items.push({ id: Date.now().toString(), uraian: '', is_header: true });
+                DB.update('paket', pkgId, { items });
+                this.reRenderCurrentView();
             }
 
             removeHargaRow(pkgId, index) {
@@ -1690,169 +1736,100 @@
                 DB.update('paket', pkgId, { items: items });
                 this.reRenderCurrentView();
             }
-async runDocumentEngine(docName, pkgId) {
-    const pkg = DB.getById('paket', pkgId);
-    
-    // 1. Mapping nama dokumen ke kode template (Contoh: 'BA Negosiasi' -> 'BA_NEGOSIASI')
-    let templateCode = docName.replace(/ /g, '_').toUpperCase();
-    if (docName === 'BA Negosiasi') templateCode = 'BA_NEGOSIASI';
 
-    // 2. Validasi ketersediaan template di Database Master
-    const template = DB.get('template').find(t => t.code === templateCode);
-    if (!template || !template.file_url) {
-        this.notify(`Template untuk ${docName} belum diset di Master Template.`, 'error');
-        return;
-    }
+            async runDocumentEngine(docName, pkgId) {
+                const pkg = DB.getById('paket', pkgId);
+                let templateCode = docName.replace(/ /g, '_').toUpperCase();
+                if (docName === 'BA Negosiasi') templateCode = 'BA_NEGOSIASI';
 
-    // 3. Tampilkan Modal Proses
-    const modalHTML = `<div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>`;
-    DOM.openModal(`Generating ${docName}...`, modalHTML, '');
-    const logEl = document.getElementById('engine-log');
-    const addLog = (msg) => { logEl.innerHTML += `<div>> ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; };
+                const template = DB.get('template').find(t => t.code === templateCode);
+                if (!template || !template.file_url) {
+                    this.notify(`Template untuk ${docName} belum diset di Master Template.`, 'error');
+                    return;
+                }
 
-    try {
-        addLog(`Memulai Document Dependency Engine...`);
-        addLog(`Menyiapkan data payload untuk ${docName}...`);
-        
-        // Ambil data JSON dari fungsi prepareDocumentPayload
-        const payload = this.prepareDocumentPayload(pkgId, docName);
+                const modalHTML = `<div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>`;
+                DOM.openModal(`Generating ${docName}...`, modalHTML, '');
+                const logEl = document.getElementById('engine-log');
+                const addLog = (msg) => { logEl.innerHTML += `<div>> ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; };
 
-        addLog(`Mengunduh file template dari server...`);
-        
-        // 4. Fetch file DOCX sebagai Array Buffer
-        const response = await fetch(template.file_url);
-        if (!response.ok) throw new Error("Gagal mengunduh template dari URL");
-        const arrayBuffer = await response.arrayBuffer();
+                try {
+                    addLog(`Memulai Document Dependency Engine...`);
+                    addLog(`Menyiapkan data payload untuk ${docName}...`);
+                    const payload = this.prepareDocumentPayload(pkgId, docName);
+                    addLog(`Mengunduh file template dari server...`);
+                    
+                    const response = await fetch(template.file_url);
+                    if (!response.ok) throw new Error("Gagal mengunduh template dari URL");
+                    const arrayBuffer = await response.arrayBuffer();
 
-        addLog(`Menyusun dokumen dengan Docxtemplater...`);
-        
-        // 5. Inisialisasi proses render dokumen (.docx)
-        const zip = new window.PizZip(arrayBuffer);
-        const doc = new window.docxtemplater(zip, {
-            paragraphLoop: true,
-            linebreaks: true,
-        });
+                    addLog(`Menyusun dokumen dengan Docxtemplater...`);
+                    const zip = new window.PizZip(arrayBuffer);
+                    const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+                    doc.render(payload);
+                    addLog(`Merapikan file final...`);
 
-        // Render payload ke dalam variabel template
-        doc.render(payload);
+                    const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                    const fileName = `${docName.replace(/ /g, '_')}_${pkg.keyword_penomoran || pkg.id}.docx`;
+                    saveAs(out, fileName);
 
-        addLog(`Merapikan file final...`);
+                    DB.insert('documents', { package_id: pkgId, doc_type: docName, name: fileName, status: 'FINAL', date: new Date().toISOString().split('T')[0] });
+                    this.toggleChecklist(pkgId, docName, true); 
 
-        // 6. Generate file hasil (Blob) dan trigger download (FileSaver.js)
-        const out = doc.getZip().generate({
-            type: "blob",
-            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        });
-        const fileName = `${docName.replace(/ /g, '_')}_${pkg.keyword_penomoran || pkg.id}.docx`;
-        saveAs(out, fileName);
+                    addLog(`<span class="text-success font-bold">SELESAI! Dokumen berhasil dibuat dan diunduh.</span>`);
+                    
+                    setTimeout(() => {
+                        DOM.closeModal();
+                        this.notify(`${docName} berhasil di-generate dan diunduh`, 'success');
+                        this.reRenderCurrentView();
+                    }, 2000);
 
-        // 7. Simpan arsip ke state 'documents' agar muncul di Tab Dokumen (Arsip)
-        DB.insert('documents', { 
-            package_id: pkgId, 
-            doc_type: docName, 
-            name: fileName, 
-            status: 'FINAL', 
-            date: new Date().toISOString().split('T')[0] 
-        });
-        
-        // 8. Update Checklist secara otomatis
-        this.toggleChecklist(pkgId, docName, true); 
+                } catch (error) {
+                    console.error(error);
+                    if (error.properties && error.properties.errors instanceof Array) {
+                        const errorMessages = error.properties.errors.map(function (e) { return e.properties.explanation || e.message; }).join("<br> - ");
+                        addLog(`<span class="text-danger font-bold" style="white-space: normal;">Kesalahan Template Word:<br> - ${errorMessages}</span>`);
+                    } else { addLog(`<span class="text-danger font-bold">ERROR: ${error.message}</span>`); }
+                    addLog(`<button class="btn btn-outline btn-sm mt-4" onclick="DOM.closeModal()">Tutup</button>`);
+                }
+            }
 
-        addLog(`<span class="text-success font-bold">SELESAI! Dokumen berhasil dibuat dan diunduh.</span>`);
-        
-        setTimeout(() => {
-            DOM.closeModal();
-            this.notify(`${docName} berhasil di-generate dan diunduh`, 'success');
-            this.reRenderCurrentView();
-        }, 2000);
+            prepareDocumentPayload(pkgId, docName) {
+                const pkg = DB.getById('paket', pkgId);
+                const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
+                const pjb = DB.get('pejabat');
+                
+                const ppk = pjb.find(p => p.id === pkg.ppk_id) || { name: '...', nip: '...' };
+                const pp = pjb.find(p => p.id === pkg.pp_id) || { name: 'Detty Hegartika, S.E, MM.Si.', nip: '-' };
 
-    } catch (error) {
-        console.error(error);
-        
-        // Tangkap detail spesifik dari docxtemplater jika ada
-        if (error.properties && error.properties.errors instanceof Array) {
-            const errorMessages = error.properties.errors.map(function (e) {
-                return e.properties.explanation || e.message;
-            }).join("<br> - ");
-            addLog(`<span class="text-danger font-bold" style="white-space: normal;">Kesalahan Template Word:<br> - ${errorMessages}</span>`);
-        } else {
-            addLog(`<span class="text-danger font-bold">ERROR: ${error.message}</span>`);
-        }
-        
-        // Hapus setTimeout penutup modal agar Anda punya waktu membaca pesan error-nya
-        addLog(`<button class="btn btn-outline btn-sm mt-4" onclick="DOM.closeModal()">Tutup</button>`);
-    }
-}
-            // Tambahkan fungsi ini di dalam class App (atau sebagai helper method)
-prepareDocumentPayload(pkgId, docName) {
-    const pkg = DB.getById('paket', pkgId);
-    const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
-    const pjb = DB.get('pejabat');
-    
-    // Cari data pejabat terkait dari database
-    const ppk = pjb.find(p => p.id === pkg.ppk_id) || { name: '...', nip: '...' };
-    const pp = pjb.find(p => p.id === pkg.pp_id) || { name: 'Detty Hegartika, S.E, MM.Si.', nip: '-' };
+                const totals = DB.calculatePackageTotals(pkg);
+                const hpsRound = pkg.pembulatan_hps || totals.hps;
+                const penRound = pkg.pembulatan_penawaran || totals.penawaran;
+                const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
 
-    // Kalkulasi nilai total dari item paket
-    const totals = DB.calculatePackageTotals(pkg);
-    const hpsRound = pkg.pembulatan_hps || totals.hps;
-    const penRound = pkg.pembulatan_penawaran || totals.penawaran;
-    const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
+                // Jangan includekan header di cetak lampiran, atau atur formatnya. Di sini kita mem-filter yang bukan header.
+                const itemsPayload = (pkg.items || []).filter(i=>!i.is_header).map((item, index) => ({
+                    no: index + 1, uraian: item.uraian, sat: item.sat, vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg)
+                }));
 
-    // Mapping item untuk tabel lampiran
-    const itemsPayload = (pkg.items || []).map((item, index) => ({
-        no: index + 1,
-        uraian: item.uraian,
-        sat: item.sat,
-        vol_hps: item.vol_hps,
-        harga_hps: Utils.formatNumber(item.harga_hps),
-        vol_pen: item.vol_pen,
-        harga_pen: Utils.formatNumber(item.harga_pen),
-        vol_neg: item.vol_neg,
-        harga_neg: Utils.formatNumber(item.harga_neg)
-    }));
+                return {
+                    nomor_ba: `027/04/${pkg.keyword_penomoran || 'PKT'}/BKAD/V/2026`,
+                    hari_tanggal: "Rabu, 06 Mei 2026",
+                    nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
+                    waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
+                    nama_penyedia: supplier.name, nama_direktur: supplier.direktur || "Direktur",
+                    nilai_hps_formatted: Utils.formatNumber(hpsRound), terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
+                    nilai_penawaran_formatted: Utils.formatNumber(penRound), terbilang_penawaran: Utils.toWords(penRound) + " rupiah",
+                    nilai_negosiasi_formatted: Utils.formatNumber(negoRound), terbilang_negosiasi: Utils.toWords(negoRound) + " rupiah",
+                    nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
+                    lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
+                    items: itemsPayload,
+                    total_hps_formatted: Utils.formatNumber(hpsRound), total_penawaran_formatted: Utils.formatNumber(penRound), total_negosiasi_formatted: Utils.formatNumber(negoRound),
+                    nama_pejabat_pengadaan: pp.name, nip_pejabat_pengadaan: pp.nip || "-"
+                };
+            }
 
-    // Payload lengkap yang siap dikirim ke Supabase Edge Function / docxtemplater
-    return {
-        nomor_ba: `027/04/${pkg.keyword_penomoran || 'PKT'}/BKAD/V/2026`,
-        hari_tanggal: "Rabu, 06 Mei 2026",
-        nama_paket: pkg.name,
-        kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019",
-        nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan",
-        sumber_dana: "APBD Kota Bogor",
-        tahun_anggaran: pkg.tahun_anggaran || "2026",
-        waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
-        nama_penyedia: supplier.name,
-        nama_direktur: supplier.direktur || "Direktur",
-        
-        // Terbilang & Format Angka
-        nilai_hps_formatted: Utils.formatNumber(hpsRound),
-        terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
-        nilai_penawaran_formatted: Utils.formatNumber(penRound),
-        terbilang_penawaran: Utils.toWords(penRound) + " rupiah",
-        nilai_negosiasi_formatted: Utils.formatNumber(negoRound),
-        terbilang_negosiasi: Utils.toWords(negoRound) + " rupiah",
-        
-        // Informasi Lampiran
-        nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah",
-        nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
-        lokasi: pkg.lokasi || "Kota Bogor",
-        jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
-        
-        // Looping Items untuk Tabel Lampiran
-        items: itemsPayload,
-        
-        total_hps_formatted: Utils.formatNumber(hpsRound),
-        total_penawaran_formatted: Utils.formatNumber(penRound),
-        total_negosiasi_formatted: Utils.formatNumber(negoRound),
-        
-        // Pejabat
-        nama_pejabat_pengadaan: pp.name,
-        nip_pejabat_pengadaan: pp.nip || "-"
-    };
-}
             reRenderCurrentView() { 
-                // Only re-render the workspace, keep current active tab
                 if (this.currentRoute === 'workspace' && this.currentViewInstance) {
                     this.currentViewInstance.render(this.routerView);
                 } else if (this.currentRoute.startsWith('master-') || this.currentRoute === 'pengadaan-daftar') {
@@ -1922,7 +1899,6 @@ prepareDocumentPayload(pkgId, docName) {
                 else pinned.push(pkgId);
                 
                 DB.cache['pinned_packages'] = pinned;
-                // Save to localstorage for persistence since it's UI state
                 localStorage.setItem('pf_pinned', JSON.stringify(pinned)); 
                 this.reRenderCurrentView();
             }
@@ -1971,16 +1947,12 @@ prepareDocumentPayload(pkgId, docName) {
                 DOM.openModal('Edit Manual Jadwal', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.notify('Fitur simpan override tanggal belum diaktifkan', 'info'); DOM.closeModal();">Simpan Overrides</button>`);
             }
 
-            // --- Document Dependency Engine ---
             getDocumentMeta(pkg, doc) {
                 const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU'};
-                const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase(); // basic fallback matching
-                
-                // Find rule by code mapped in db
+                const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
                 const ruleList = DB.get('penomoran');
                 let rule = ruleList.find(r => r.code === code || r.code === doc);
                 
-                // Fallback for demo checklist string matching
                 if (!rule) {
                     if (doc.includes('Reviu')) rule = ruleList.find(r => r.code === 'BA_REVIU');
                     else if (doc.includes('Evaluasi')) rule = ruleList.find(r => r.code === 'BA_EVALUASI');
@@ -1990,7 +1962,6 @@ prepareDocumentPayload(pkgId, docName) {
                     else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
                 }
 
-                // Get scheduled date
                 const holidays = DB.get('libur').map(x => x.date);
                 let dates = {};
                 DB.get('waktu').forEach(r => { 
@@ -1998,25 +1969,18 @@ prepareDocumentPayload(pkgId, docName) {
                     dates[r.name] = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays); 
                 });
                 
-                // Try finding matching date key
                 let date = pkg.tgl_awal || pkg.tgl_mulai;
-                for (const [k, v] of Object.entries(dates)) {
-                    if (doc.includes(k) || k.includes(doc)) { date = v; break; }
-                }
+                for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { date = v; break; } }
                 
                 if (!rule) return { number:'-', date };
                 
                 const d = new Date(`${date}T00:00:00`);
                 const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
-                
                 const mm = toRoman(d.getMonth() + 1);
                 const yyyy = d.getFullYear();
                 const uraian = pkg.keyword_penomoran || pkg.uraian || 'PKT';
                 
-                return { 
-                    number: rule.format.replace('[uraian]', uraian).replace('[bulan]', mm).replace('[tahun]', yyyy), 
-                    date 
-                };
+                return { number: rule.format.replace('[uraian]', uraian).replace('[bulan]', mm).replace('[tahun]', yyyy), date };
             }
 
             simulateDependencyEngine(docName, pkgId) {
@@ -2050,7 +2014,6 @@ prepareDocumentPayload(pkgId, docName) {
                 }, 4800);
             }
 
-            // --- Printing Functionalities ---
             printDocument(title, content) {
                 const win = window.open('', '_blank'); 
                 if(!win) { this.notify('Izinkan pop-up untuk mencetak dokumen.', 'error'); return; }
@@ -2068,7 +2031,10 @@ prepareDocumentPayload(pkgId, docName) {
             
             printHPS(pkgId) { 
                 const p = DB.getById('paket',pkgId);
-                const rows = (p.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.uraian}</td><td>${x.sat}</td><td>${x.vol_hps}</td><td>Rp ${Utils.formatNumber(x.harga_hps)}</td><td>Rp ${Utils.formatNumber(Number(x.vol_hps)*Number(x.harga_hps))}</td></tr>`).join(''); 
+                const rows = (p.items||[]).map((x,i)=> {
+                    if (x.is_header) return `<tr><td colspan="6" style="background:#f3f4f6;font-weight:bold;">${x.uraian}</td></tr>`;
+                    return `<tr><td>${i+1}</td><td>${x.uraian}</td><td>${x.sat}</td><td>${x.vol_hps}</td><td>Rp ${Utils.formatNumber(x.harga_hps)}</td><td>Rp ${Utils.formatNumber(Number(x.vol_hps)*Number(x.harga_hps))}</td></tr>`;
+                }).join(''); 
                 this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class="meta">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
             }
             
@@ -2094,9 +2060,7 @@ prepareDocumentPayload(pkgId, docName) {
             }
         }
         
-        // Inisialisasi
         document.addEventListener('DOMContentLoaded', () => { 
-            // Load pinned packages state from localstorage 
             try { DB.cache['pinned_packages'] = JSON.parse(localStorage.getItem('pf_pinned')) || []; } catch(e) {}
             window.app = new App(); 
         });
