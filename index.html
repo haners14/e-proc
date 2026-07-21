@@ -596,7 +596,15 @@
                 let btns = ''; for(let i=1; i<=totalPages; i++) btns += `<button class="page-btn ${this.currentPage === i ? 'active' : ''}" onclick="app.crudEngine.changePage(${i})">${i}</button>`;
                 return `<div class="pagination"><div class="page-info">Menampilkan ${this.filteredData.length} data</div><div class="page-controls"><button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage-1})"><i class="ph ph-caret-left"></i></button>${btns}<button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage+1})"><i class="ph ph-caret-right"></i></button></div></div>`;
             }
-
+            changePage(page) {
+                const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
+            
+                if (page < 1 || page > totalPages) return;
+            
+                this.currentPage = page;
+            
+                app.reRenderCurrentView();
+            }
             showForm(id = null) {
                 if(this.schemaKey === 'paket' && !id) {
                     const today = new Date().toISOString().split('T')[0];
