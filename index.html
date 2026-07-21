@@ -473,7 +473,6 @@
                 let pagu = Number(pkg.pagu) || 0, hps = 0, penawaran = 0, negosiasi = 0;
                 if(pkg.items && pkg.items.length > 0) {
                     pkg.items.forEach(i => {
-                        // Skip perhitungan jika ini adalah row header pembatas
                         if(!i.is_header) {
                             const tax = 1 + (Number(i.pajak) || 0) / 100;
                             hps += (Number(i.vol_hps) * Number(i.harga_hps)) * tax;
@@ -596,15 +595,14 @@
                 let btns = ''; for(let i=1; i<=totalPages; i++) btns += `<button class="page-btn ${this.currentPage === i ? 'active' : ''}" onclick="app.crudEngine.changePage(${i})">${i}</button>`;
                 return `<div class="pagination"><div class="page-info">Menampilkan ${this.filteredData.length} data</div><div class="page-controls"><button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage-1})"><i class="ph ph-caret-left"></i></button>${btns}<button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} onclick="app.crudEngine.changePage(${this.currentPage+1})"><i class="ph ph-caret-right"></i></button></div></div>`;
             }
+            
             changePage(page) {
                 const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
-            
                 if (page < 1 || page > totalPages) return;
-            
                 this.currentPage = page;
-            
                 app.reRenderCurrentView();
             }
+
             showForm(id = null) {
                 if(this.schemaKey === 'paket' && !id) {
                     const today = new Date().toISOString().split('T')[0];
@@ -852,9 +850,9 @@
                                 <h1 class="font-bold text-gray-900 text-2xl flex items-center gap-3 mb-1">${this.pkg.name} ${Utils.getBadge(this.pkg.stage)}</h1>
                                 <div class="text-sm text-muted font-medium">${this.pkg.id} • ${this.pkg.metode_pemilihan || 'Metode Belum Diset'}</div>
                             </div>
-                            <div class="flex gap-2">
-                                <button class="btn btn-outline" onclick="app.notify('Data Anda otomatis tersimpan saat mengetik!', 'info')"><i class="ph ph-floppy-disk"></i> Auto-Save Aktif</button>
-                                ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
+                            <div class="flex gap-2 items-center">
+                                <span class="text-xs text-success-600 font-medium flex items-center gap-1 bg-success-50 px-2 py-1 rounded border border-success-200"><i class="ph-fill ph-check-circle"></i> Tersimpan Otomatis</span>
+                                ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary ml-2" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
                             </div>
                         </div>
                         <div class="workspace-tabs">
@@ -876,7 +874,7 @@
                     });
                 });
 
-                // Attach Events (Including Auto-Save)
+                // Attach Events (Termasuk Form Auto-Save via Blur/Change agar tdk ter-reset saat klik tab lain)
                 this.attachAutoSaveEvents();
 
                 if(this.activeTab === 'harga') this.attachHargaEvents();
@@ -888,20 +886,19 @@
                 }
             }
 
-            // AUTO-SAVE HANDLER UNTUK SEMUA FORM TAB
+            // MENGGUNAKAN EVENT CHANGE (Bukan Input Debounce) AGAR STABIL & TIDAK MERESET SAAT KLIK KELUAR
             attachAutoSaveEvents() {
                 const bindAutoSave = (id, formatter = null) => {
                     const el = document.getElementById(id);
                     if (el) {
-                        el.addEventListener('input', Utils.debounce((e) => {
+                        el.addEventListener('change', (e) => {
                             let data = {};
                             if (el.tagName === 'FORM') data = DOM.getFormData(id);
                             else data = { [el.name || el.id]: el.value };
 
                             if (formatter) data = formatter(data);
                             DB.update('paket', this.packageId, data);
-                            app.notify('Perubahan tersimpan otomatis', 'info');
-                        }, 800)); // Simpan setelah jeda 800ms
+                        });
                     }
                 };
 
@@ -924,8 +921,7 @@
                                 sortField: { field: "text", direction: "asc" },
                                 onChange: (value) => {
                                     DB.update('paket', this.packageId, {supplier_id: value});
-                                    app.notify('Penyedia tersimpan otomatis', 'success');
-                                    this.render(document.getElementById('router-view'));
+                                    app.reRenderCurrentView();
                                 }
                             });
                         }
@@ -1011,7 +1007,7 @@
                 return `
                     <div class="card p-6">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg text-main">Data Paket</h2><p class="text-sm text-muted">Informasi otomatis tersimpan ke server saat Anda mengetik.</p></div>
+                            <div><h2 class="font-bold text-lg text-main">Data Paket</h2><p class="text-sm text-muted">Informasi otomatis tersimpan ke server sesaat setelah Anda memindahkan kursor (Klik di luar kolom).</p></div>
                         </div>
                         <form id="form-datapaket" class="flex flex-col gap-6">
                             
@@ -1191,7 +1187,7 @@
                         <td class="bg-success-50"><input type="text" inputmode="numeric" class="cell-input hrg-input money-input text-right" data-field="harga_neg" value="${Utils.formatNumber(i.harga_neg)}"></td>
                         
                         <td class="border-l border-gray-300"><input type="number" class="cell-input hrg-input text-center" data-field="pajak" value="${i.pajak}"></td>
-                        <td class="cell-readonly text-right font-bold bg-gray-50">${Utils.formatCurrency(hpsT)}</td>
+                        <td class="cell-readonly text-right font-bold bg-gray-50" id="row-total-${index}">${Utils.formatCurrency(hpsT)}</td>
                         <td><button class="btn btn-ghost btn-sm text-danger" onclick="app.removeHargaRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
                     </tr>
                     `;
@@ -1207,13 +1203,15 @@
                 if(t.negosiasi>0 && t.penawaran>0 && t.negosiasi>t.penawaran) alerts.push('Total negosiasi melebihi penawaran.');
                 
                 const note = alerts.length ? `<div class="card p-4 mb-4" style="border-color:#dc2626;color:#b91c1c"><b>Perhatian nilai:</b><br>${alerts.join('<br>')}</div>` : '';
+                
+                // Block pembulatan dengan ID referensi untuk manipulasi DOM instan
                 const block = (label, key, value) => `
                     <div class="card p-4">
                         <label class="form-label">Pembulatan ${label}</label>
-                        <input data-round="${key}" class="form-control money-input" inputmode="numeric" value="${Utils.formatNumber(value)}">
-                        <p class="text-sm font-semibold mt-2">${Utils.formatCurrency(value)}</p>
+                        <input data-round="pembulatan_${key}" class="form-control money-input" inputmode="numeric" value="${Utils.formatNumber(value)}">
+                        <p class="text-sm font-semibold mt-2" id="lbl-round-${key}">${Utils.formatCurrency(value)}</p>
                         <label class="form-label mt-3">Terbilang</label>
-                        <textarea class="form-control text-xs" rows="3" readonly>${Utils.toWords(value).trim()} rupiah</textarea>
+                        <textarea class="form-control text-xs" rows="3" readonly id="txt-round-${key}">${Utils.toWords(value).trim()} rupiah</textarea>
                     </div>`;
 
                 return note + `
@@ -1223,7 +1221,6 @@
                             <p class="text-sm text-muted">Ketik untuk simpan otomatis. Mendukung Copy-Paste (Ctrl+V) langsung dari Excel.</p>
                         </div>
                         <div class="flex gap-2">
-                            <!-- Import/Export Menu -->
                             <input type="file" id="import-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importHPS(event, '${this.packageId}')">
                             <button class="btn btn-outline" onclick="app.downloadTemplateHPS()"><i class="ph ph-download"></i> Template Excel</button>
                             <button class="btn btn-outline" onclick="document.getElementById('import-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
@@ -1257,47 +1254,94 @@
                                 ${trs}
                                 <tr>
                                     <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">Subtotal (Sebelum Pajak)</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50">${Utils.formatCurrency(hpsSub)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold bg-warning-50">${Utils.formatCurrency(penSub)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold bg-success-50">${Utils.formatCurrency(negSub)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50" id="sub-hps">${Utils.formatCurrency(hpsSub)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold bg-warning-50" id="sub-pen">${Utils.formatCurrency(penSub)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold bg-success-50" id="sub-neg">${Utils.formatCurrency(negSub)}</td>
                                     <td colspan="3" class="cell-readonly bg-gray-50"></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">Total Pajak (PPN/PPh)</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-primary-50">+ ${Utils.formatCurrency(hpsPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-warning-50">+ ${Utils.formatCurrency(penPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-success-50">+ ${Utils.formatCurrency(negPPN)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-primary-50" id="tax-hps">+ ${Utils.formatCurrency(hpsPPN)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-warning-50" id="tax-pen">+ ${Utils.formatCurrency(penPPN)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-success-50" id="tax-neg">+ ${Utils.formatCurrency(negPPN)}</td>
                                     <td colspan="3" class="cell-readonly bg-gray-50"></td>
                                 </tr>
                                 <tr>
                                     <td colspan="3" class="cell-readonly text-right font-bold text-sm">TOTAL KESELURUHAN</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-primary-700 bg-primary-100 text-sm">${Utils.formatCurrency(hpsSub+hpsPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-warning-700 bg-warning-100 text-sm">${Utils.formatCurrency(penSub+penPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-success-700 bg-success-100 text-sm">${Utils.formatCurrency(negSub+negPPN)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold text-primary-700 bg-primary-100 text-sm" id="grand-hps">${Utils.formatCurrency(hpsSub+hpsPPN)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold text-warning-700 bg-warning-100 text-sm" id="grand-pen">${Utils.formatCurrency(penSub+penPPN)}</td>
+                                    <td colspan="2" class="cell-readonly text-right font-bold text-success-700 bg-success-100 text-sm" id="grand-neg">${Utils.formatCurrency(negSub+negPPN)}</td>
                                     <td colspan="3" class="cell-readonly bg-gray-100"></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <div class="grid grid-cols-3 gap-4">
-                        ${block('HPS', 'pembulatan_hps', hpsRound)}
-                        ${block('Penawaran', 'pembulatan_penawaran', offerRound)}
-                        ${block('Negosiasi', 'pembulatan_negosiasi', negoRound)}
+                        ${block('HPS', 'hps', hpsRound)}
+                        ${block('Penawaran', 'penawaran', offerRound)}
+                        ${block('Negosiasi', 'negosiasi', negoRound)}
                     </div>
                 `;
+            }
+
+            // FUNGSI KHUSUS UNTUK UPDATE DOM TOTAL HPS TANPA HARUS RENDER ULANG (FIX SCROLL & FOCUS ISSUE)
+            refreshHargaUI() {
+                if (this.activeTab !== 'harga') return;
+                const items = this.pkg.items || [];
+                let hpsSub = 0, hpsPPN = 0, penSub = 0, penPPN = 0, negSub = 0, negPPN = 0;
+
+                items.forEach((i, index) => {
+                    if(i.is_header) return;
+                    const tax = 1 + (Number(i.pajak) || 0) / 100;
+                    const hpsT = (Number(i.vol_hps) * Number(i.harga_hps)) * tax; hpsSub += (Number(i.vol_hps) * Number(i.harga_hps)); hpsPPN += hpsT - (Number(i.vol_hps) * Number(i.harga_hps));
+                    const penT = (Number(i.vol_pen) * Number(i.harga_pen)) * tax; penSub += (Number(i.vol_pen) * Number(i.harga_pen)); penPPN += penT - (Number(i.vol_pen) * Number(i.harga_pen));
+                    const negT = (Number(i.vol_neg) * Number(i.harga_neg)) * tax; negSub += (Number(i.vol_neg) * Number(i.harga_neg)); negPPN += negT - (Number(i.vol_neg) * Number(i.harga_neg));
+                    
+                    const rowEl = document.getElementById(`row-total-${index}`);
+                    if (rowEl) rowEl.innerText = Utils.formatCurrency(hpsT);
+                });
+
+                const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+                setEl('sub-hps', Utils.formatCurrency(hpsSub));
+                setEl('sub-pen', Utils.formatCurrency(penSub));
+                setEl('sub-neg', Utils.formatCurrency(negSub));
+                setEl('tax-hps', '+ ' + Utils.formatCurrency(hpsPPN));
+                setEl('tax-pen', '+ ' + Utils.formatCurrency(penPPN));
+                setEl('tax-neg', '+ ' + Utils.formatCurrency(negPPN));
+                setEl('grand-hps', Utils.formatCurrency(hpsSub+hpsPPN));
+                setEl('grand-pen', Utils.formatCurrency(penSub+penPPN));
+                setEl('grand-neg', Utils.formatCurrency(negSub+negPPN));
+
+                const t = DB.calculatePackageTotals(this.pkg);
+
+                // Update text pembulatan (terbilang & nilai) jika input tidak di-override manual
+                const setRoundEl = (key, val) => {
+                    const displayVal = this.pkg[`pembulatan_${key}`] || val;
+                    if(!this.pkg[`pembulatan_${key}`]) {
+                        const inp = document.querySelector(`input[data-round="pembulatan_${key}"]`);
+                        if(inp) inp.value = Utils.formatNumber(displayVal);
+                    }
+                    const p = document.getElementById(`lbl-round-${key}`);
+                    if(p) p.innerText = Utils.formatCurrency(displayVal);
+                    const txt = document.getElementById(`txt-round-${key}`);
+                    if(txt) txt.value = Utils.toWords(displayVal).trim() + ' rupiah';
+                };
+                
+                setRoundEl('hps', t.hps);
+                setRoundEl('penawaran', t.penawaran);
+                setRoundEl('negosiasi', t.negosiasi);
             }
 
             attachHargaEvents() {
                 const table = document.getElementById('table-harga');
 
-                // Excel Like Copy-Paste Handling
+                // Excel Like Copy-Paste Handling (Paste Listener)
                 table.addEventListener('paste', (e) => {
                     if (!e.target.classList.contains('cell-input')) return;
                     const clip = (e.clipboardData || window.clipboardData).getData('text/plain');
-                    if (!clip.includes('\t') && !clip.includes('\n')) return; // Allow normal text paste if single cell
+                    if (!clip.includes('\t') && !clip.includes('\n')) return; 
                     
                     e.preventDefault();
-                    // Parse Excel TSV format
                     const rows = clip.split('\n').map(r => r.split('\t'));
                     const targetTr = e.target.closest('tr');
                     const tbody = targetTr.parentElement;
@@ -1307,19 +1351,19 @@
 
                     rows.forEach((rowData, i) => {
                         const rowTr = allTrs[startRow + i];
-                        if (!rowTr) return; // Ignore if exceeds table rows
+                        if (!rowTr) return; 
                         const inputs = Array.from(rowTr.querySelectorAll('input.cell-input'));
                         rowData.forEach((cellData, j) => {
                             const input = inputs[startInput + j];
                             if (input && !input.disabled && !input.readOnly) {
                                 input.value = cellData.trim();
-                                // Trigger change event automatically for auto-save
                                 input.dispatchEvent(new Event('change', { bubbles: true }));
                             }
                         });
                     });
                 });
 
+                // Perubahan pada cell memicu DB.Update dan update UI instan (tanpa reRender)
                 document.querySelectorAll('.hrg-input').forEach(inp => {
                     inp.addEventListener('change', (e) => {
                         const tr = e.target.closest('tr');
@@ -1332,8 +1376,7 @@
                         let items = this.pkg.items || [];
                         items[idx][field] = val;
                         DB.update('paket', this.packageId, { items });
-                        app.notify('Autosave: Harga diperbarui ke API', 'info');
-                        this.render(document.getElementById('router-view')); 
+                        this.refreshHargaUI(); 
                     });
                 });
                 
@@ -1344,7 +1387,7 @@
                 document.querySelectorAll('[data-round]').forEach(el => {
                     el.addEventListener('change', e => {
                         DB.update('paket', this.packageId, { [e.target.dataset.round]: Number(String(e.target.value).replace(/\D/g, '')) || 0 });
-                        this.render(document.getElementById('router-view'));
+                        this.refreshHargaUI(); 
                     });
                 });
             }
@@ -1815,7 +1858,7 @@
                 const penRound = pkg.pembulatan_penawaran || totals.penawaran;
                 const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
 
-                // Jangan includekan header di cetak lampiran, atau atur formatnya. Di sini kita mem-filter yang bukan header.
+                // Jangan includekan header di cetak lampiran
                 const itemsPayload = (pkg.items || []).filter(i=>!i.is_header).map((item, index) => ({
                     no: index + 1, uraian: item.uraian, sat: item.sat, vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg)
                 }));
@@ -1837,7 +1880,13 @@
                 };
             }
 
+            // MODIFIKASI FUNGSI INI UNTUK MENAHAN POSISI SCROLL AGAR TIDAK KEMBALI KE ATAS
             reRenderCurrentView() { 
+                const wsBody = document.getElementById('ws-body');
+                const scrollPos = wsBody ? wsBody.scrollTop : 0;
+                const mainScroll = document.querySelector('.content-scroll-area');
+                const mainScrollPos = mainScroll ? mainScroll.scrollTop : 0;
+
                 if (this.currentRoute === 'workspace' && this.currentViewInstance) {
                     this.currentViewInstance.render(this.routerView);
                 } else if (this.currentRoute.startsWith('master-') || this.currentRoute === 'pengadaan-daftar') {
@@ -1845,6 +1894,14 @@
                 } else {
                     this.navigate(this.currentRoute);
                 }
+
+                // Setelah di-render ulang, kembalikan posisi scroll
+                setTimeout(() => {
+                    const newWsBody = document.getElementById('ws-body');
+                    if (newWsBody) newWsBody.scrollTop = scrollPos;
+                    const newMainScroll = document.querySelector('.content-scroll-area');
+                    if (newMainScroll) newMainScroll.scrollTop = mainScrollPos;
+                }, 0);
             }
 
             navigate(route, param = null) {
