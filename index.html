@@ -383,28 +383,7 @@
                 const appRoot = document.getElementById('app-root'); if(appRoot) appRoot.style.display = 'flex';
             },
 
-            async function generateBANegosiasi(packageId) {
-
-                const paket = await DB.getPackage(packageId);
-            
-                const template = await DB.getTemplate("BA_NEGOSIASI");
-            
-                const output = await generateWord(
-                    template.file_url,
-                    paket
-                );
-            
-                await DB.insert("generated_documents", {
-            
-                    package_id: packageId,
-            
-                    document_type: "BA_NEGOSIASI",
-            
-                    file_url: output.url
-            
-                });
-            
-            }
+           
             async _sync(method, localTable, payload = null, id = null) {
                 const sbTable = TABLE_MAP[localTable] || localTable;
                 let url = `${SUPABASE_URL}${sbTable}`;
@@ -483,7 +462,30 @@
                 }
                 return { hps, penawaran, negosiasi };
             }
-        };
+        }
+             async function generateBANegosiasi(packageId) {
+
+                const paket = await DB.getPackage(packageId);
+            
+                const template = await DB.getTemplate("BA_NEGOSIASI");
+            
+                const output = await generateWord(
+                    template.file_url,
+                    paket
+                );
+            
+                await DB.insert("generated_documents", {
+            
+                    package_id: packageId,
+            
+                    document_type: "BA_NEGOSIASI",
+            
+                    file_url: output.url
+            
+                });
+            
+            };
+        
 
         // -----------------------------------------------------
         // 3. SCHEMAS
