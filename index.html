@@ -1613,7 +1613,6 @@
                     const c = (this.pkg.checklists || []).find(x => x.doc === doc);
                     const ok = c && c.status;
                     
-                    // REVISI (Penyimpanan Manual): Get nilai dari Meta yang sudah memprioritaskan override user
                     const m = app.getDocumentMeta(this.pkg, doc);
                     const numVal = m.number || '';
                     const dateVal = m.date || '';
@@ -1634,7 +1633,7 @@
                 return `
                     <div class="mb-4">
                         <p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700">
-                            <b>Catatan:</b> Nomor Dokumen dan Tanggal akan diisi default dari pengaturan Master Penomoran dan Kalkulasi Jadwal. <b>Anda dapat mengeditnya secara manual</b> di kolom yang tersedia dan akan langsung tersimpan.
+                            <b>Catatan:</b> Nomor Dokumen dan Tanggal akan diisi default dari pengaturan Master Penomoran dan Kalkulasi Jadwal. Bulan pada nomor akan otomatis menyesuaikan tanggal masing-masing dokumen. <b>Anda dapat mengeditnya secara manual</b>, atau <b>kosongkan kolom</b> untuk mengembalikannya ke kalkulasi otomatis sistem.
                         </p>
                     </div>
                     ${groups.map(g => `
@@ -1664,18 +1663,32 @@
                         let item = chk.find(x => x.doc === docName);
                         
                         if (!item) {
-                            // Jika belum ada di checklist, isi dengan data default agar field pasangannya tidak hilang
-                            const meta = app.getDocumentMeta(pkg, docName);
-                            item = { doc: docName, status: false, number: meta.number, date: meta.date };
+                            item = { doc: docName, status: false };
                             chk.push(item);
                         }
                         
-                        // Update field (number/date) yang diedit
-                        item[field] = val;
+                        // Simpan nilai manual ke property terpisah agar tidak mengganggu kalkulasi default
+                        if (field === 'number') {
+                            item.manual_number = val;
+                            if (!val) delete item.manual_number; // Hapus jika dikosongkan agar kembali ke default
+                        } else if (field === 'date') {
+                            item.manual_date = val;
+                            if (!val) delete item.manual_date;
+                        }
+
+                        // Bersihkan cache statik dari versi sebelumnya jika ada (Backward Compatibility)
+                        delete item.number;
+                        delete item.date;
                         
                         DB.update('paket', this.packageId, { checklists: chk });
-                        // Jangan di-reRender agar focus cursor pada input tidak hilang. Cukup munculkan notifikasi.
-                        app.notify(`Data ${field === 'number' ? 'Nomor' : 'Tanggal'} dokumen berhasil disimpan`, 'success');
+                        
+                        if (field === 'date') {
+                            // Jika tanggal berubah, re-render agar bulan pada nomor otomatis ikut berubah di UI
+                            this.reRenderCurrentView();
+                            app.notify('Tanggal disimpan. Penomoran disesuaikan.', 'success');
+                        } else {
+                            app.notify('Nomor dokumen manual disimpan', 'success');
+                        }
                     });
                 });
             }
@@ -2506,8 +2519,7 @@
                 if(exist) { 
                     exist.status = status; 
                 } else { 
-                    const meta = this.getDocumentMeta(pkg, doc);
-                    chk.push({ doc, status, number: meta.number, date: meta.date, pic: 'Sistem' }); 
+                    chk.push({ doc, status, pic: 'Sistem' }); // Tidak lagi me-lock nomor dan tanggal ke nilai default secara permanen
                 }
                 DB.update('paket', pkgId, { checklists: chk });
                 this.reRenderCurrentView();
@@ -2586,24 +2598,9 @@
             }
 
             getDocumentMeta(pkg, doc) {
-                // Ambil data yang tersimpan secara manual oleh user dari checklist
-                const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc);
+                const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
 
-                // --- 1. Kalkulasi Default ---
-                const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU'};
-                const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
-                const ruleList = DB.get('penomoran') || [];
-                let rule = ruleList.find(r => r.code === code || r.code === doc);
-                
-                if (!rule) {
-                    if (doc.includes('Reviu')) rule = ruleList.find(r => r.code === 'BA_REVIU');
-                    else if (doc.includes('Evaluasi')) rule = ruleList.find(r => r.code === 'BA_EVALUASI');
-                    else if (doc.includes('Pembuktian')) rule = ruleList.find(r => r.code === 'BA_PEMBUKTIAN');
-                    else if (doc.includes('Negosiasi')) rule = ruleList.find(r => r.code === 'BA_NEGOSIASI');
-                    else if (doc.includes('Undangan')) rule = ruleList.find(r => r.code === 'UNDANGAN');
-                    else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
-                }
-
+                // --- 1. Kalkulasi Tanggal Default ---
                 const holidays = (DB.get('libur') || []).map(x => x.date);
                 const docOverrides = pkg.jadwal_override || {};
                 let dates = {};
@@ -2617,35 +2614,47 @@
                     }
                 });
                 
-                let date = pkg.tgl_awal || pkg.tgl_mulai;
-                for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { date = v; break; } }
+                let calcDate = pkg.tgl_awal || pkg.tgl_mulai;
+                for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { calcDate = v; break; } }
                 
-                let number = '';
+                // Final Date (Nilai manual yang diketik user diprioritaskan)
+                const finalDate = savedChecklist.manual_date || calcDate;
+
+                // --- 2. Kalkulasi Penomoran Default menggunakan Final Date ---
+                const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU'};
+                const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
+                const ruleList = DB.get('penomoran') || [];
+                let rule = ruleList.find(r => r.code === code || r.code === doc);
+                
+                if (!rule) {
+                    if (doc.includes('Reviu')) rule = ruleList.find(r => r.code === 'BA_REVIU');
+                    else if (doc.includes('Evaluasi')) rule = ruleList.find(r => r.code === 'BA_EVALUASI');
+                    else if (doc.includes('Pembuktian')) rule = ruleList.find(r => r.code === 'BA_PEMBUKTIAN');
+                    else if (doc.includes('Negosiasi')) rule = ruleList.find(r => r.code === 'BA_NEGOSIASI');
+                    else if (doc.includes('Undangan')) rule = ruleList.find(r => r.code === 'UNDANGAN');
+                    else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
+                }
+                
+                let calcNumber = '';
                 if (rule) {
-                    const d = new Date(`${date}T00:00:00`);
+                    // Extract romawi dan tahun secara dinamis dari finalDate 
+                    const d = new Date(`${finalDate}T00:00:00`);
                     const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
                     const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
                     
-                    number = rule.format
+                    calcNumber = rule.format
                                  .replace(/\[keyword_penomoran\]/g, keyword)
-                                 .replace(/\[uraian\]/g, keyword) // Tetap simpan fallback untuk format lama jika ada
+                                 .replace(/\[uraian\]/g, keyword) // Tetap simpan fallback
                                  .replace(/\[bulan\]/g, mm)
                                  .replace(/\[tahun\]/g, yyyy);
                 }
 
-                // --- 2. Terapkan Override (Prioritaskan nilai manual dari input form Checklist) ---
-                if (savedChecklist) {
-                    if (savedChecklist.number !== undefined && savedChecklist.number !== null) {
-                        number = savedChecklist.number;
-                    }
-                    if (savedChecklist.date !== undefined && savedChecklist.date !== null) {
-                        date = savedChecklist.date;
-                    }
-                }
+                // Final Number (Nilai manual yang diketik user diprioritaskan)
+                const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
                 
-                return { number, date };
+                return { number: finalNumber, date: finalDate };
             }
 
             simulateDependencyEngine(docName, pkgId) {
