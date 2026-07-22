@@ -2608,7 +2608,7 @@
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
                     const uraian = pkg.keyword_penomoran || pkg.uraian || 'PKT';
-                    number = rule.format.replace('[uraian]', uraian).replace('[bulan]', mm).replace('[tahun]', yyyy);
+                    number = rule.format.replace('[keyword_penomoran]', nilaiKeyword).replace('[bulan]', mm).replace('[tahun]', yyyy);
                 }
 
                 // --- 2. Terapkan Override (Prioritaskan nilai manual dari input form Checklist) ---
