@@ -2728,7 +2728,7 @@
                     }
                 });
                 
-                let calcDate = pkg.tgl_awal || pkg.tgl_mulai;
+                let calcDate = ''; // REVISI: Kosongkan jika dokumen tidak ada di Master Waktu
                 
                 // --- PENYESUAIAN KHUSUS UNTUK SPK DAN BAST ---
                 if (doc === 'SPK' && pkg.tgl_mulai) {
@@ -2737,11 +2737,17 @@
                     calcDate = pkg.tgl_selesai;
                 } else {
                     // Logika default master waktu untuk dokumen lainnya
-                    for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { calcDate = v; break; } }
+                    for (const [k, v] of Object.entries(dates)) { 
+                        // Pengecekan disempurnakan (ignore case)
+                        if (doc.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(doc.toLowerCase())) { 
+                            calcDate = v; 
+                            break; 
+                        } 
+                    }
                 }
                 
                 // Final Date (Nilai manual yang diketik user diprioritaskan)
-                const finalDate = savedChecklist.manual_date || calcDate;
+                const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
 
                 // --- 2. Kalkulasi Penomoran Default menggunakan Final Date ---
                 const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU'};
@@ -2760,8 +2766,9 @@
                 
                 let calcNumber = '';
                 if (rule) {
-                    // Extract romawi dan tahun secara dinamis dari finalDate 
-                    const d = new Date(`${finalDate}T00:00:00`);
+                    // Extract romawi dan tahun secara dinamis (Gunakan fallback ke tgl_awal jika finalDate kosong)
+                    const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+                    const d = new Date(`${dateForNumber}T00:00:00`);
                     const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
