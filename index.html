@@ -2607,8 +2607,13 @@
                     const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
-                    const uraian = pkg.keyword_penomoran || pkg.uraian || 'PKT';
-                    number = rule.format.replace('[keyword_penomoran]', nilaiKeyword).replace('[bulan]', mm).replace('[tahun]', yyyy);
+                    const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
+                    
+                    number = rule.format
+                                 .replace(/\[keyword_penomoran\]/g, keyword)
+                                 .replace(/\[uraian\]/g, keyword) // Tetap simpan fallback untuk format lama jika ada
+                                 .replace(/\[bulan\]/g, mm)
+                                 .replace(/\[tahun\]/g, yyyy);
                 }
 
                 // --- 2. Terapkan Override (Prioritaskan nilai manual dari input form Checklist) ---
