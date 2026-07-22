@@ -2142,12 +2142,44 @@
                 const penRound = pkg.pembulatan_penawaran || totals.penawaran;
                 const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
 
-                const itemsPayload = (pkg.items || []).filter(i=>!i.is_header).map((item, index) => ({
-                    no: index + 1, uraian: item.uraian, sat: item.sat, vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg)
-                }));
+                // Hitung Rincian Tabel dan Subtotal (Diperluas untuk Template Baru)
+                let noCounter = 1;
+                let sub_hps = 0, sub_pen = 0, sub_neg = 0;
+                let ppn_hps = 0, ppn_pen = 0, ppn_neg = 0;
+                let ppn_persen = 11; // Default PPN
 
-                // Gunakan Helper Meta untuk mengambil nilai nomor dan tanggal final (mendukung manual edit checklist/jadwal)
+                const itemsPayload = (pkg.items || []).map((item) => {
+                    if (item.is_header) {
+                        return {
+                            no: '', is_header: true, uraian: item.uraian, sat: '',
+                            vol_hps: '', harga_hps: '', total_hps: '',
+                            vol_pen: '', harga_pen: '', total_pen: '',
+                            vol_neg: '', harga_neg: '', total_neg: ''
+                        };
+                    } else {
+                        const taxRate = (Number(item.pajak) || 0) / 100;
+                        if (taxRate > 0) ppn_persen = Number(item.pajak);
+
+                        const t_hps = (item.vol_hps * item.harga_hps); sub_hps += t_hps; ppn_hps += t_hps * taxRate;
+                        const t_pen = (item.vol_pen * item.harga_pen); sub_pen += t_pen; ppn_pen += t_pen * taxRate;
+                        const t_neg = (item.vol_neg * item.harga_neg); sub_neg += t_neg; ppn_neg += t_neg * taxRate;
+
+                        return {
+                            no: noCounter++, is_header: false, uraian: item.uraian, sat: item.sat,
+                            vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), total_hps: Utils.formatNumber(t_hps),
+                            vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), total_pen: Utils.formatNumber(t_pen),
+                            vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg), total_neg: Utils.formatNumber(t_neg)
+                        };
+                    }
+                });
+
+                // Gunakan Helper Meta untuk mengambil nilai nomor dan tanggal final
                 const meta = this.getDocumentMeta(pkg, docName);
+                
+                // Variabel Tanggal Terperinci
+                const dateObj = new Date(meta.date || pkg.tgl_mulai || new Date().toISOString().split('T')[0]);
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
                 return {
                     nomor_ba: meta.number,
@@ -2162,7 +2194,38 @@
                     lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
                     items: itemsPayload,
                     total_hps_formatted: Utils.formatNumber(hpsRound), total_penawaran_formatted: Utils.formatNumber(penRound), total_negosiasi_formatted: Utils.formatNumber(negoRound),
-                    nama_pejabat_pengadaan: pp.name, nip_pejabat_pengadaan: pp.nip || "-"
+                    nama_pejabat_pengadaan: pp.name, nip_pejabat_pengadaan: pp.nip || "-",
+                    
+                    // --- Ekstra Variabel Lanjutan (Kebutuhan Template Baru BA Negosiasi) ---
+                    nomor_dokumen: meta.number,
+                    hari: days[dateObj.getDay()],
+                    tanggal_terbilang: Utils.toWords(dateObj.getDate()),
+                    bulan: months[dateObj.getMonth()],
+                    tahun_terbilang: Utils.toWords(dateObj.getFullYear()),
+                    tanggal_negosiasi: Utils.formatDate(meta.date),
+                    nama_pp: pp.name,
+                    hps_nominal: Utils.formatNumber(hpsRound),
+                    penawaran_nominal: Utils.formatNumber(penRound),
+                    penawaran_koreksi_nominal: Utils.formatNumber(penRound),
+                    penawaran_koreksi_terbilang: Utils.toWords(penRound) + " rupiah",
+                    negosiasi_nominal: Utils.formatNumber(negoRound),
+                    durasi_kontrak: pkg.durasi_kontrak || 60,
+                    durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 60),
+                    
+                    // Rincian Kalkulasi Tabel
+                    jumlah_hps: Utils.formatNumber(sub_hps),
+                    jumlah_pen: Utils.formatNumber(sub_pen),
+                    jumlah_neg: Utils.formatNumber(sub_neg),
+                    ppn_persen: ppn_persen,
+                    ppn_hps: Utils.formatNumber(ppn_hps),
+                    ppn_pen: Utils.formatNumber(ppn_pen),
+                    ppn_neg: Utils.formatNumber(ppn_neg),
+                    jumlah_total_hps: Utils.formatNumber(sub_hps + ppn_hps),
+                    jumlah_total_pen: Utils.formatNumber(sub_pen + ppn_pen),
+                    jumlah_total_neg: Utils.formatNumber(sub_neg + ppn_neg),
+                    pembulatan_hps: Utils.formatNumber(hpsRound),
+                    pembulatan_pen: Utils.formatNumber(penRound),
+                    pembulatan_neg: Utils.formatNumber(negoRound)
                 };
             }
 
