@@ -398,7 +398,7 @@
             
             async init() {
                 if (this.isReady) return;
-                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'generated_documents', 'package_items', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items'];
+                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items'];
                 
                 await Promise.all(coreTables.map(async (table) => {
                     try {
@@ -422,9 +422,13 @@
                 }
                 if(!this.cache['pencairan']) this.cache['pencairan'] = [];
                 if(!this.cache['pencairan_items']) this.cache['pencairan_items'] = [];
+                if(!this.cache['package_personnel']) this.cache['package_personnel'] = [];
 
-                if (this.cache['packages'] && this.cache['package_items']) {
-                    this.cache['packages'].forEach(pkg => pkg.items = this.cache['package_items'].filter(i => i.package_id === pkg.id) || []);
+                if (this.cache['packages']) {
+                    this.cache['packages'].forEach(pkg => {
+                        pkg.items = this.cache['package_items']?.filter(i => i.package_id === pkg.id) || [];
+                        pkg.personnel = this.cache['package_personnel']?.filter(i => i.package_id === pkg.id) || [];
+                    });
                 }
 
                 this.isReady = true;
@@ -475,7 +479,9 @@
                     const updated = { ...data[index], ...payload };
                     data[index] = updated;
 
-                    if (sbTable === 'packages' && payload.items !== undefined) {
+                    let cpy = { ...payload };
+
+                    if (payload.items !== undefined) {
                         const items = payload.items.map(item => ({ ...item, package_id: id }));
                         (async () => {
                             try {
@@ -483,11 +489,21 @@
                                 if(items.length > 0) await fetch(`${SUPABASE_URL}package_items`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(items) });
                             } catch (e) { console.error(e); }
                         })();
-                        const cpy = { ...payload }; delete cpy.items;
-                        this._sync('PATCH', table, cpy, id);
-                    } else {
-                        this._sync('PATCH', table, payload, id);
+                        delete cpy.items;
                     }
+
+                    if (payload.personnel !== undefined) {
+                        const personnel = payload.personnel.map(item => ({ ...item, package_id: id }));
+                        (async () => {
+                            try {
+                                await fetch(`${SUPABASE_URL}package_personnel?package_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
+                                if(personnel.length > 0) await fetch(`${SUPABASE_URL}package_personnel`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(personnel) });
+                            } catch (e) { console.error(e); }
+                        })();
+                        delete cpy.personnel;
+                    }
+                    
+                    this._sync('PATCH', table, cpy, id);
                     return updated;
                 }
                 return null;
@@ -923,6 +939,7 @@
                 if(this.activeTab === 'harga') this.attachHargaEvents();
                 if(this.activeTab === 'rancangankontrak') this.attachKontrakEvents();
                 if(this.activeTab === 'checklist') this.attachChecklistEvents();
+                if(this.activeTab === 'kak') this.attachKAKEvents();
                 if(this.activeTab === 'datapaket'){ 
                     const f=document.getElementById('form-datapaket'), start=f?.querySelector('[name=tgl_mulai]'), dur=f?.querySelector('[name=durasi_kontrak]'), finish=f?.querySelector('[name=tgl_selesai]'); 
                     const refresh=()=>{if(start?.value&&finish){const d=new Date(`${start.value}T00:00:00`);d.setDate(d.getDate()+(Number(dur?.value)||0));finish.value=d.toISOString().split('T')[0];}}; 
@@ -1694,20 +1711,111 @@
             }
 
             renderKAK() {
-                const fields=[['uraian_kak','Uraian KAK'],['dasar_hukum','Dasar Hukum'],['latar_belakang','Latar Belakang'],['maksud_tujuan','Maksud & Tujuan'],['sasaran','Sasaran'],['lokasi_kak','Lokasi'],['ruang_lingkup','Ruang Lingkup'],['spesifikasi_teknis','Spesifikasi Teknis'],['output_kak','Output'],['outcome','Outcome']]; 
+                const p = this.pkg;
+                const personnel = p.personnel || [];
+                
+                const trs = personnel.map((i, index) => `
+                    <tr data-index="${index}">
+                        <td class="cell-readonly text-center">${index + 1}</td>
+                        <td><input type="text" class="cell-input prs-input" data-field="jabatan" value="${i.jabatan || ''}" placeholder="Cth: Team Leader"></td>
+                        <td><input type="text" class="cell-input prs-input" data-field="pendidikan" value="${i.pendidikan || ''}" placeholder="Cth: S1 Teknik Sipil"></td>
+                        <td><input type="number" class="cell-input prs-input text-center" data-field="pengalaman" value="${i.pengalaman || ''}" placeholder="Tahun"></td>
+                        <td><input type="text" class="cell-input prs-input" data-field="sertifikat" value="${i.sertifikat || ''}" placeholder="Cth: SKA Ahli Madya"></td>
+                        <td class="text-center"><input type="number" class="cell-input prs-input text-center" data-field="jumlah" value="${i.jumlah || 1}"></td>
+                        <td class="text-center"><input type="number" class="cell-input prs-input text-center" data-field="orang_bulan" value="${i.orang_bulan || 1}"></td>
+                        <td><button type="button" class="btn btn-ghost btn-sm text-danger" onclick="app.removePersonnelRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
+                    </tr>
+                `).join('');
+
                 return `
-                    <div class="card p-6 max-w-4xl mx-auto">
+                    <div class="card p-6 max-w-5xl mx-auto border-t-4 border-t-primary-600">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Ketik otomatis tersimpan. Data siap dicetak sebagai KAK.</p></div>
+                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Format Standar Jasa Konsultansi. Ketik otomatis tersimpan.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}',true)"><i class="ph ph-printer"></i> Cetak Uraian Singkat</button>
-                                <button class="btn btn-primary" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak KAK</button>
+                                <button class="btn btn-primary" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Preview & Cetak KAK</button>
                             </div>
                         </div>
-                        <form id="form-kak">
-                            ${fields.map(([k,l])=>`<div class="form-group"><label class="form-label">${l}</label><textarea name="${k}" class="form-control" rows="3">${this.pkg[k] || (k==='lokasi_kak'?this.pkg.lokasi||'':'')}</textarea></div>`).join('')}
+                        <form id="form-kak" class="flex flex-col gap-6">
+                            
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 text-primary-700">1. Informasi Umum & Pendahuluan</legend>
+                                <div class="form-group"><label class="form-label">Latar Belakang</label><textarea name="latar_belakang" class="form-control" rows="3">${p.latar_belakang || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Maksud & Tujuan</label><textarea name="maksud_tujuan" class="form-control" rows="3">${p.maksud_tujuan || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Sasaran</label><textarea name="sasaran" class="form-control" rows="2">${p.sasaran || ''}</textarea></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><textarea name="sumber_pembiayaan" class="form-control" rows="2">${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 text-primary-700">2. Ruang Lingkup & Pelaksanaan</legend>
+                                <div class="form-group"><label class="form-label">Ruang Lingkup</label><textarea name="ruang_lingkup" class="form-control" rows="3">${p.ruang_lingkup || ''}</textarea></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="form-group"><label class="form-label">Kewenangan Penyedia</label><textarea name="kewenangan_penyedia" class="form-control" rows="3">${p.kewenangan_penyedia || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Fasilitas yang Disediakan Penyedia</label><textarea name="fasilitas_penyedia" class="form-control" rows="3">${p.fasilitas_penyedia || ''}</textarea></div>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 flex justify-between w-full pr-4 items-center">
+                                    <span class="text-primary-700">3. Tenaga Ahli Penyedia</span>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="app.addPersonnelRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Personil</button>
+                                </legend>
+                                <div class="spreadsheet-container mt-2">
+                                    <table class="spreadsheet" id="table-personnel">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:40px">No</th>
+                                                <th>Posisi / Jabatan</th>
+                                                <th>Pendidikan Minimal</th>
+                                                <th>Pengalaman (Thn)</th>
+                                                <th>Keahlian / Sertifikat</th>
+                                                <th style="width:70px">Jumlah</th>
+                                                <th style="width:70px">OB</th>
+                                                <th style="width:50px"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${trs || '<tr><td colspan="8" class="text-center text-muted py-4 border-b-0">Belum ada persyaratan tenaga ahli.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 text-primary-700">4. Pelaporan & Hasil Akhir</legend>
+                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir)</label><textarea name="pelaporan" class="form-control" rows="4">${p.pelaporan || '1. Laporan Pendahuluan\n2. Laporan Bulanan\n3. Laporan Akhir'}</textarea></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="form-group"><label class="form-label">Output</label><textarea name="output_kak" class="form-control" rows="2">${p.output_kak || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Outcome</label><textarea name="outcome" class="form-control" rows="2">${p.outcome || ''}</textarea></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="form-group"><label class="form-label">Kewajiban Penggunaan PDN</label><textarea name="produksi_dalam_negeri" class="form-control" rows="2">${p.produksi_dalam_negeri || 'Kewajiban penggunaan produk dalam negeri sesuai ketentuan peraturan perundang-undangan.'}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Alih Pengetahuan</label><textarea name="alih_pengetahuan" class="form-control" rows="2">${p.alih_pengetahuan || 'Penyedia Jasa Konsultansi berkewajiban menyelenggarakan pertemuan dan pembahasan dalam rangka alih pengetahuan.'}</textarea></div>
+                                </div>
+                            </fieldset>
                         </form>
                     </div>`; 
+            }
+
+            attachKAKEvents() {
+                document.querySelectorAll('.prs-input').forEach(inp => {
+                    inp.addEventListener('change', (e) => {
+                        const tr = e.target.closest('tr');
+                        const idx = parseInt(tr.dataset.index);
+                        const field = e.target.dataset.field;
+                        let val = e.target.value;
+                        if(e.target.type === 'number') val = Number(val) || 0;
+                        
+                        let personnel = this.pkg.personnel || [];
+                        if (personnel[idx]) {
+                            personnel[idx][field] = val;
+                            DB.update('paket', this.packageId, { personnel });
+                        }
+                    });
+                });
             }
 
             renderCatatan() {
@@ -2053,13 +2161,19 @@
                 this.reRenderCurrentView();
             }
 
-            removeTimTeknis(pkgId, index) {
-                if (!confirm('Hapus anggota tim teknis ini?')) return;
+            addPersonnelRow(pkgId) { 
+                const pkg = DB.getById('paket', pkgId); 
+                const personnel = Array.isArray(pkg.personnel) ? [...pkg.personnel] : []; 
+                personnel.push({ id: Date.now().toString(), jabatan: '', pendidikan: '', pengalaman: '', sertifikat: '', jumlah: 1, orang_bulan: 1 }); 
+                DB.update('paket', pkgId, { personnel }); 
+                this.reRenderCurrentView(); 
+            }
+
+            removePersonnelRow(pkgId, index) {
                 const pkg = DB.getById('paket', pkgId);
-                let timTeknis = pkg.tim_teknis || [];
-                timTeknis.splice(index, 1);
-                DB.update('paket', pkgId, { tim_teknis: timTeknis });
-                this.notify('Anggota dihapus dari tim', 'success');
+                let personnel = Array.isArray(pkg.personnel) ? [...pkg.personnel] : []; 
+                personnel.splice(index, 1);
+                DB.update('paket', pkgId, { personnel });
                 this.reRenderCurrentView();
             }
 
@@ -2706,10 +2820,39 @@
             
             printKAK(pkgId, short=false) { 
                 const p = DB.getById('paket',pkgId); 
-                const content = short 
-                    ? `<h1>Uraian Singkat Pekerjaan</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>` 
-                    : `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div>${[['Uraian KAK','uraian_kak'],['Dasar Hukum','dasar_hukum'],['Latar Belakang','latar_belakang'],['Maksud & Tujuan','maksud_tujuan'],['Sasaran','sasaran'],['Lokasi','lokasi_kak'],['Ruang Lingkup','ruang_lingkup'],['Spesifikasi Teknis','spesifikasi_teknis'],['Output','output_kak'],['Outcome','outcome']].map(x=>`<h2>${x[0]}</h2><p>${p[x[1]] || '-'}</p>`).join('')}`; 
-                this.printDocument(short?'Uraian Singkat Pekerjaan':'KAK', content); 
+                
+                if (short) {
+                    const content = `<h1>Uraian Singkat Pekerjaan</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>`; 
+                    this.printDocument('Uraian Singkat Pekerjaan', content); 
+                    return;
+                }
+
+                let personilRows = (p.personnel||[]).map((x,i) => `<tr><td class="c">${i+1}</td><td>${x.jabatan}</td><td>${x.pendidikan}</td><td class="c">${x.pengalaman}</td><td>${x.sertifikat}</td><td class="c">${x.jumlah}</td><td class="c">${x.orang_bulan}</td></tr>`).join('');
+                if(!personilRows) personilRows = '<tr><td colspan="7" class="c">Tidak ada Tenaga Ahli yang disyaratkan secara spesifik</td></tr>';
+                const tablePersonil = `<table><thead><tr><th style="width:40px;">No</th><th>Posisi/Jabatan</th><th>Pendidikan Minimal</th><th style="width:80px;">Pengalaman<br>(Thn)</th><th>Keahlian/Sertifikat</th><th style="width:60px;">Jumlah<br>Orang</th><th style="width:60px;">Bulan</th></tr></thead><tbody>${personilRows}</tbody></table>`;
+
+                const sections = [
+                    ['Latar Belakang', p.latar_belakang],
+                    ['Maksud & Tujuan', p.maksud_tujuan],
+                    ['Sasaran', p.sasaran],
+                    ['Lokasi Pekerjaan', p.lokasi_kak || p.lokasi],
+                    ['Sumber Pembiayaan', p.sumber_pembiayaan],
+                    ['Organisasi Pengadaan', p.organisasi_pengadaan],
+                    ['Ruang Lingkup', p.ruang_lingkup],
+                    ['Kewenangan Penyedia', p.kewenangan_penyedia],
+                    ['Fasilitas yang Disediakan Penyedia', p.fasilitas_penyedia],
+                    ['Tenaga Ahli', tablePersonil, true],
+                    ['Pelaporan', p.pelaporan],
+                    ['Output', p.output_kak],
+                    ['Outcome', p.outcome],
+                    ['Produksi Dalam Negeri', p.produksi_dalam_negeri],
+                    ['Alih Pengetahuan', p.alih_pengetahuan]
+                ];
+
+                const content = `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div>` + 
+                    sections.map(x => `<h2>${x[0]}</h2>${x[2] ? x[1] : `<p>${x[1] || '-'}</p>`}`).join('');
+
+                this.printDocument('KAK', content); 
             }
             
             printHPS(pkgId) { 
