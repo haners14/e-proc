@@ -2615,7 +2615,16 @@
                 });
                 
                 let calcDate = pkg.tgl_awal || pkg.tgl_mulai;
-                for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { calcDate = v; break; } }
+                
+                // --- PENYESUAIAN KHUSUS UNTUK SPK DAN BAST ---
+                if (doc === 'SPK' && pkg.tgl_mulai) {
+                    calcDate = pkg.tgl_mulai;
+                } else if (doc === 'BAST' && pkg.tgl_selesai) {
+                    calcDate = pkg.tgl_selesai;
+                } else {
+                    // Logika default master waktu untuk dokumen lainnya
+                    for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { calcDate = v; break; } }
+                }
                 
                 // Final Date (Nilai manual yang diketik user diprioritaskan)
                 const finalDate = savedChecklist.manual_date || calcDate;
