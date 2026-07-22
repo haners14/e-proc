@@ -378,10 +378,18 @@
         // -----------------------------------------------------
         const SUPABASE_URL = 'https://oyskjxwcfekwcckjwviv.supabase.co/rest/v1/';
         const SUPABASE_KEY = 'sb_publishable_Dl5XmeZffcv5VrcxnFzt2Q_jmtch-Vp';
+        /* Required once for the document register UI:
+           alter table package_documents add column if not exists template_id text;
+           alter table package_documents add column if not exists generated_document_id text;
+           alter table package_documents add column if not exists version integer default 1;
+           alter table package_documents add column if not exists status text default 'DRAFT';
+        */
 
         const TABLE_MAP = {
             'pejabat': 'profiles', 'penyedia': 'suppliers', 'template': 'document_templates', 'penomoran': 'document_number_rules',
-            'waktu': 'schedule_document_rules', 'jadwal_proses': 'schedule_process_rules', 'paket': 'packages', 'documents': 'generated_documents',
+            'waktu': 'schedule_document_rules', 'jadwal_proses': 'schedule_process_rules', 'paket': 'packages',
+            // package_documents = register/master state; generated_documents = immutable version history.
+            'package_documents': 'package_documents', 'documents': 'generated_documents',
             'jenis': 'jenis_pengadaan', 'kontrak': 'jenis_kontrak', 'libur': 'libur'
         };
 
@@ -393,12 +401,23 @@
             metode_pemilihan: 'Pengadaan Langsung', durasi_kontrak: 30
         };
 
+        // Usable immediately when this HTML is opened beside the templates/ folder.
+        // Supabase document_templates records take precedence when configured.
+        const BUILTIN_TEMPLATES = [
+            {id:'NOTA_DINAS', code:'NOTA_DINAS', name:'Nota Dinas', file_url:'templates/1_NOTA_DINAS_TEMPLATE_revised.docx'},
+            {id:'BA_REVIU', code:'BA_REVIU', name:'BA Reviu DPP', file_url:'templates/2_BA_Reviu_DPP_TEMPLATE_revised.docx'},
+            {id:'SDP', code:'SDP', name:'SDP Pengadaan Langsung', file_url:'templates/5_SDP_Pengadaan_Langsung_TEMPLATE_revised.docx'},
+            {id:'SSKK', code:'SSKK', name:'SSKK', file_url:'templates/3_SSKK_TEMPLATE_revised.docx'},
+            {id:'SSKK_KONSTRUKSI', code:'SSKK_KONSTRUKSI', name:'SSKK Konstruksi', file_url:'templates/3_SSKK_TEMPLATE_Konstruksi.docx'},
+            {id:'SPK', code:'SPK', name:'Rancangan SPK', file_url:'templates/4_RANCANGAN_SPK_TEMPLATE_revised.docx'}
+        ];
+
         const DB = {
             cache: {}, isReady: false,
             
             async init() {
                 if (this.isReady) return;
-                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items'];
+                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'package_documents', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items'];
                 
                 await Promise.all(coreTables.map(async (table) => {
                     try {
@@ -423,6 +442,7 @@
                 if(!this.cache['pencairan']) this.cache['pencairan'] = [];
                 if(!this.cache['pencairan_items']) this.cache['pencairan_items'] = [];
                 if(!this.cache['package_personnel']) this.cache['package_personnel'] = [];
+                if(!this.cache['package_documents']) this.cache['package_documents'] = [];
 
                 if (this.cache['packages']) {
                     this.cache['packages'].forEach(pkg => {
@@ -899,7 +919,7 @@
                     return;
                 }
                 
-                const tabsList = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'Catatan', 'Kalender', 'Aktivitas'];
+                const tabsList = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'Laporan', 'Catatan', 'Kalender', 'Aktivitas'];
 
                 container.innerHTML = `
                     <div class="workspace-header">
@@ -1003,6 +1023,7 @@
                     case 'kak': return this.renderKAK();
                     case 'rancangankontrak': return this.renderRancanganKontrak();
                     case 'dokumen': return this.renderDokumen();
+                    case 'laporan': return this.renderLaporan();
                     case 'catatan': return this.renderCatatan();
                     case 'kalender': return this.renderKalender();
                     case 'aktivitas': return this.renderAktivitas();
@@ -1882,34 +1903,28 @@
             }
 
             renderDokumen() {
-                const docs = DB.get('documents').filter(d => d.package_id === this.packageId);
-                let list = docs.map(d => `
-                    <div class="flex justify-between items-center p-3 border border-gray-200 rounded mb-2 bg-white shadow-sm">
-                        <div class="flex items-center gap-3">
-                            <i class="${d.doc_type === 'Manual' ? 'ph-fill ph-file-arrow-up text-warning-500' : 'ph-fill ph-file-doc text-primary-600'} text-2xl"></i>
-                            <div><div class="font-bold text-sm">${d.name}</div><div class="text-xs text-muted">${d.doc_type === 'Manual' ? 'Diunggah Manual' : 'Engine Sync'} • ${d.date}</div></div>
-                        </div>
-                        <div class="flex gap-1">
-                            <button class="btn btn-ghost btn-sm text-primary" title="Preview"><i class="ph ph-eye"></i></button>
-                            <button class="btn btn-ghost btn-sm text-primary" title="Download"><i class="ph ph-download"></i></button>
-                        </div>
-                    </div>
-                `).join('');
-                if(!list) list = '<div class="text-center text-sm text-muted p-12 bg-gray-50 rounded border border-dashed border-gray-300">Belum ada dokumen. Gunakan tab Checklist/Generate atau upload dokumen manual.</div>';
+                const docs = DB.get('package_documents').filter(d => d.package_id === this.packageId);
+                const rows = docs.map(d => {
+                    const versions = app.getDocumentHistory(d);
+                    const latest = versions[0];
+                    const template = app.selectTemplate(d.document_code, this.pkg, d.template_id);
+                    const number = d.document_number || latest?.document_number || '-';
+                    const date = d.document_date || latest?.document_date || latest?.date;
+                    const status = d.status || (latest ? latest.status : 'DRAFT');
+                    const file = latest?.file_url || d.file_url;
+                    return `<tr><td><div class="font-semibold">${d.document_name}</div><div class="text-xs text-muted">${d.document_code || '-'}</div></td><td>${number}</td><td>${Utils.formatDate(date)}</td><td>${template ? template.name : 'Belum dipilih'}</td><td>${Utils.getBadge(status)}</td><td>v${d.version || latest?.version || 1}</td><td><div class="flex gap-1" style="flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="app.runDocumentEngine('${d.id}','${this.packageId}')">Generate</button><button class="btn btn-outline btn-sm" onclick="app.previewDocument('${d.id}')" ${file?'':'disabled'}>Preview</button><button class="btn btn-outline btn-sm" onclick="app.downloadDocument('${d.id}')" ${file?'':'disabled'}>Unduh</button><button class="btn btn-outline btn-sm" onclick="app.openDocumentUpload('${d.id}')">Upload</button><button class="btn btn-ghost btn-sm" onclick="app.showDocumentHistory('${d.id}')">Riwayat (${versions.length})</button></div></td></tr>`;
+                }).join('');
+                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg text-main">Register Dokumen Paket</h2><p class="text-sm text-muted"><code>package_documents</code> adalah master nomor, tanggal, status, dan template. <code>generated_documents</code> menyimpan riwayat versi.</p></div><button class="btn btn-primary" onclick="app.openDocumentForm('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Dokumen</button></div><div class="card p-0 overflow-hidden"><div class="table-container"><table class="data-table"><thead><tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="text-center text-muted p-8">Belum ada dokumen master. Tambahkan dokumen atau pilih dari template yang sudah Anda unggah.</td></tr>'}</tbody></table></div></div></div>`;
+            }
 
-                // REVISI 6: Fitur Upload Manual
-                return `
-                    <div class="max-w-4xl mx-auto">
-                        <div class="flex justify-between items-center mb-4">
-                            <div><h2 class="font-bold text-lg text-main">Arsip Dokumen Paket</h2><p class="text-sm text-muted">Berisi dokumen otomatis dari sistem atau unggahan manual.</p></div>
-                            <div class="flex gap-2">
-                                <input type="file" id="upload-doc-input" style="display:none;" onchange="app.uploadDokumenManual(event, '${this.packageId}')">
-                                <button class="btn btn-primary" onclick="document.getElementById('upload-doc-input').click()"><i class="ph ph-upload-simple"></i> Upload Dokumen</button>
-                            </div>
-                        </div>
-                        <div class="flex flex-col gap-2 bg-gray-50 p-4 rounded-md border border-gray-200">${list}</div>
-                    </div>
-                `;
+            renderLaporan() {
+                const docs = DB.get('package_documents').filter(d => d.package_id === this.packageId);
+                const completed = docs.filter(d => ['GENERATED','FINAL','SIGNED'].includes(String(d.status || '').toUpperCase())).length;
+                const totals = DB.calculatePackageTotals(this.pkg);
+                const personnel = (this.pkg.personnel || []).reduce((sum,p) => sum + (Number(p.jumlah)||0), 0);
+                const progress = Number(this.pkg.progress) || (docs.length ? Math.round(completed / docs.length * 100) : 0);
+                const cards = [['Progress',`${progress}%`,`${completed}/${docs.length} dokumen selesai`],['Dokumen',`${completed}/${docs.length}`,'Register & riwayat versi'],['Nilai Negosiasi',Utils.formatCurrency(this.pkg.pembulatan_negosiasi || totals.negosiasi),`HPS ${Utils.formatCurrency(this.pkg.pembulatan_hps || totals.hps)}`],['Personel',personnel,`${(this.pkg.personnel||[]).length} persyaratan`],['Jadwal',DB.get('jadwal_proses').length,'tahap proses']];
+                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg">Dashboard Laporan Paket</h2><p class="text-sm text-muted">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak</button></div><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">${cards.map(c=>`<div class="card p-4"><div class="text-xs text-muted">${c[0]}</div><div class="font-bold text-lg mt-1">${c[1]}</div><div class="text-xs text-muted mt-1">${c[2]}</div></div>`).join('')}</div><div class="card p-5 mt-4"><div class="flex justify-between"><span class="font-semibold">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style="height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden"><div style="height:100%;width:${progress}%;background:var(--primary-600)"></div></div></div></div>`;
             }
             
             renderAktivitas() {
@@ -2202,15 +2217,101 @@
                 this.reRenderCurrentView();
             }
 
-            async runDocumentEngine(docName, pkgId) {
+            getDocumentHistory(master) {
+                return DB.get('documents').filter(d => d.package_id === master.package_id && (d.doc_type === master.document_code || d.id === master.generated_document_id)).sort((a,b) => (b.version||0) - (a.version||0) || new Date(b.created_at) - new Date(a.created_at));
+            }
+
+            documentCode(name) {
+                const aliases = {'Nota Dinas':'NOTA_DINAS','BA Reviu Dok Persiapan':'BA_REVIU','BA Reviu DPP':'BA_REVIU','SDP':'SDP','SPK':'SPK','SSKK':'SSKK'};
+                return aliases[name] || String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
+            }
+
+            normalizeProcurementType(value) {
+                const type = String(value || '').toLowerCase();
+                if (type.includes('konstruksi')) return 'Konstruksi';
+                if (type.includes('konsultansi')) return 'Konsultansi';
+                if (type.includes('barang')) return 'Barang';
+                if (type.includes('lain')) return 'Jasa Lainnya';
+                return 'Umum';
+            }
+
+            selectTemplate(code, pkg, preferredId = null) {
+                const type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
+                const remote = DB.get('template');
+                const all = [...remote, ...BUILTIN_TEMPLATES.filter(b => !remote.some(t => t.code === b.code))];
+                const byCode = all.filter(t => t.code === code);
+                // The exact document-code + procurement-type template is always preferred.
+                return byCode.find(t => this.normalizeProcurementType(t.type) === type)
+                    || byCode.find(t => t.id === preferredId && (!t.type || this.normalizeProcurementType(t.type) === type))
+                    || byCode.find(t => !t.type || this.normalizeProcurementType(t.type) === 'Umum')
+                    || byCode[0]
+                    || null;
+            }
+
+            resolveDocumentMaster(reference, pkgId) {
+                const records = DB.get('package_documents');
+                let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (d.document_name === reference || d.document_code === reference));
+                if (!master) {
+                    const code = this.documentCode(reference);
+                    const pkg = DB.getById('paket', pkgId);
+                    const template = this.selectTemplate(code, pkg);
+                    master = DB.insert('package_documents', {package_id: pkgId, document_name: reference, document_code: code, template_id: template?.id || null, status: 'DRAFT', version: 1, generated: false});
+                }
+                return master;
+            }
+
+            openDocumentForm(pkgId) {
+                const pkg = DB.getById('paket', pkgId), type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
+                const templates = [...DB.get('template'), ...BUILTIN_TEMPLATES.filter(b => !DB.get('template').some(t => t.code === b.code))].filter(t => !t.type || this.normalizeProcurementType(t.type) === type || this.normalizeProcurementType(t.type) === 'Umum');
+                const options = templates.map(t => `<option value="${t.id}" data-code="${t.code}">${t.name} (${t.code}) — ${t.type || 'Umum'}</option>`).join('');
+                const body = `<form id="document-master-form"><div class="bg-info-50 p-3 rounded text-sm mb-4">Jenis paket: <b>${type}</b>. Hanya template ${type} atau Umum yang ditampilkan; saat Generate, sistem memilih kecocokan kode + jenis dari Supabase.</div><div class="form-group"><label class="form-label">Nama Dokumen</label><input class="form-control" name="document_name" required placeholder="Contoh: Nota Dinas"></div><div class="form-group"><label class="form-label">Kode Dokumen</label><input class="form-control" name="document_code" placeholder="NOTA_DINAS"></div><div class="form-group"><label class="form-label">Template</label><select class="form-control" name="template_id"><option value="">Pilih otomatis sesuai jenis paket</option>${options}</select></div><div class="grid" style="grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Nomor Dokumen</label><input class="form-control" name="document_number"></div><div class="form-group"><label class="form-label">Tanggal Dokumen</label><input class="form-control" type="date" name="document_date"></div></div></form>`;
+                DOM.openModal('Tambah Dokumen Paket', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveDocumentMaster('${pkgId}')">Simpan</button>`);
+            }
+
+            saveDocumentMaster(pkgId) {
+                const data = DOM.getFormData('document-master-form');
+                if (!data.document_name) return this.notify('Nama dokumen wajib diisi.', 'error');
+                const template = [...DB.get('template'), ...BUILTIN_TEMPLATES].find(t => t.id === data.template_id);
+                data.document_code = data.document_code || template?.code || this.documentCode(data.document_name);
+                DB.insert('package_documents', {...data, package_id: pkgId, status: 'DRAFT', version: 1, generated: false});
+                DOM.closeModal(); this.notify('Dokumen master disimpan.', 'success'); this.reRenderCurrentView();
+            }
+
+            openDocumentUpload(docId) {
+                const input = document.createElement('input'); input.type = 'file'; input.accept = '.doc,.docx,.pdf';
+                input.onchange = e => this.uploadMasterDocument(e, docId); input.click();
+            }
+
+            uploadMasterDocument(event, docId) {
+                const file = event.target.files[0]; if (!file) return;
+                const master = DB.getById('package_documents', docId); if (!master) return;
+                const history = this.getDocumentHistory(master); const version = Math.max(master.version || 0, ...history.map(x => x.version || 0)) + 1;
+                const item = DB.insert('documents', {package_id: master.package_id, doc_type: master.document_code, name: master.document_name, status: 'UPLOADED', date: master.document_date || new Date().toISOString().slice(0,10), document_number: master.document_number, document_date: master.document_date, filename: file.name, file_size: file.size, file_url: URL.createObjectURL(file), version, generated_by: 'Manual upload'});
+                DB.update('package_documents', master.id, {generated_document_id: item.id, version, status: 'UPLOADED', generated: true, file_url: item.file_url});
+                this.notify('Versi unggahan ditambahkan ke riwayat.', 'success'); this.reRenderCurrentView();
+            }
+
+            previewDocument(docId) { const master = DB.getById('package_documents', docId), file = master && this.getDocumentHistory(master)[0]?.file_url || master?.file_url; if(file) window.open(file, '_blank'); }
+            downloadDocument(docId) { const master = DB.getById('package_documents', docId), item = master && this.getDocumentHistory(master)[0]; if(!item?.file_url) return; const a=document.createElement('a'); a.href=item.file_url; a.download=item.filename || item.name || 'dokumen'; a.click(); }
+            showDocumentHistory(docId) { const master = DB.getById('package_documents', docId); const rows = master ? this.getDocumentHistory(master).map(x=>`<tr><td>v${x.version||1}</td><td>${x.filename||x.name}</td><td>${Utils.formatDate(x.document_date||x.date)}</td><td>${Utils.getBadge(x.status)}</td></tr>`).join('') : ''; DOM.openModal('Riwayat Dokumen', `<table class="data-table"><thead><tr><th>Versi</th><th>File</th><th>Tanggal</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Belum ada riwayat.</td></tr>'}</tbody></table>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button>`); }
+
+            async runDocumentEngine(reference, pkgId) {
+                const master = this.resolveDocumentMaster(reference, pkgId);
+                const docName = master.document_name;
                 const pkg = DB.getById('paket', pkgId);
                 let templateCode = docName.replace(/ /g, '_').toUpperCase();
                 if (docName === 'BA Negosiasi') templateCode = 'BA_NEGOSIASI';
 
-                const template = DB.get('template').find(t => t.code === templateCode);
+                const template = this.selectTemplate(master.document_code || templateCode, pkg, master.template_id);
                 if (!template || !template.file_url) {
                     this.notify(`Template untuk ${docName} belum diset di Master Template.`, 'error');
                     return;
+                }
+
+                // Save the resolved type-specific template as the document's active template.
+                if (master.template_id !== template.id) {
+                    DB.update('package_documents', master.id, { template_id: template.id });
+                    master.template_id = template.id;
                 }
 
                 const modalHTML = `<div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>`;
@@ -2221,7 +2322,7 @@
                 try {
                     addLog(`Memulai Document Dependency Engine...`);
                     addLog(`Menyiapkan data payload untuk ${docName}...`);
-                    const payload = this.prepareDocumentPayload(pkgId, docName);
+                    const payload = this.prepareDocumentPayload(pkgId, docName, master);
                     addLog(`Mengunduh file template dari server...`);
                     
                     const response = await fetch(template.file_url);
@@ -2240,7 +2341,9 @@
                     const fileName = `${docName.replace(/ /g, '_')}_${pkg.keyword_penomoran || pkg.id}.docx`;
                     saveAs(out, fileName);
 
-                    DB.insert('documents', { package_id: pkgId, doc_type: docName, name: fileName, status: 'FINAL', date: new Date().toISOString().split('T')[0] });
+                    const version = Math.max(master.version || 0, ...this.getDocumentHistory(master).map(x => x.version || 0)) + 1;
+                    const generated = DB.insert('documents', { package_id: pkgId, doc_type: master.document_code, name: docName, status: 'FINAL', date: master.document_date || new Date().toISOString().split('T')[0], document_number: master.document_number, document_date: master.document_date, filename: fileName, file_size: out.size, file_url: URL.createObjectURL(out), version, generated_by: 'Document Engine' });
+                    DB.update('package_documents', master.id, { generated_document_id: generated.id, version, status: 'FINAL', generated: true, file_url: generated.file_url });
                     this.toggleChecklist(pkgId, docName, true); 
 
                     addLog(`<span class="text-success font-bold">SELESAI! Dokumen berhasil dibuat dan diunduh.</span>`);
@@ -2261,7 +2364,7 @@
                 }
             }
 
-            prepareDocumentPayload(pkgId, docName) {
+            prepareDocumentPayload(pkgId, docName, master = null) {
                 const pkg = DB.getById('paket', pkgId);
                 const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
                 const pjb = DB.get('pejabat');
@@ -2311,7 +2414,7 @@
                 });
 
                 // Gunakan Helper Meta untuk mengambil nilai nomor dan tanggal final
-                const meta = this.getDocumentMeta(pkg, docName);
+                const meta = master ? {number: master.document_number || '', date: master.document_date || ''} : this.getDocumentMeta(pkg, docName);
                 
                 // Variabel Tanggal Terperinci
                 const dateObj = new Date(meta.date || pkg.tgl_mulai || new Date().toISOString().split('T')[0]);
@@ -2320,6 +2423,19 @@
 
                 return {
                     nomor_ba: meta.number,
+                    nomor_dokumen: meta.number,
+                    nama_ppk: ppk.name,
+                    nip_ppk: ppk.nip || '-',
+                    nilai_pagu: Utils.formatNumber(pkg.pagu || 0),
+                    pagu: Utils.formatNumber(pkg.pagu || 0),
+                    pagu_terbilang: Utils.toWords(pkg.pagu || 0) + ' rupiah',
+                    kode_rup: pkg.kode_rup || '-', kode_mak: pkg.mak || pkg.kode_rekening || '-',
+                    jenis_kontrak: pkg.jenis_kontrak || '-', jenis_pengadaan: pkg.jenis_pengadaan || '-',
+                    alamat_penyedia: supplier.address || '-', email_penyedia: supplier.email || '-',
+                    jabatan_direktur: supplier.jabatan_direktur || 'Direktur',
+                    tanggal_mulai_kontrak: Utils.formatDate(pkg.tgl_mulai), tanggal_akhir_kontrak: Utils.formatDate(pkg.tgl_selesai),
+                    tanggal_mulai_kerja: Utils.formatDate(pkg.tgl_mulai), tanggal_selesai: Utils.formatDate(pkg.tgl_selesai),
+                    lingkup_pekerjaan: pkg.ruang_lingkup || pkg.uraian || '-',
                     hari_tanggal: Utils.formatDate(meta.date), // Bisa diformat Hari, Tanggal secara spesifik jika butuh dlm word
                     nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
