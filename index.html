@@ -1609,10 +1609,10 @@
                     const c = (this.pkg.checklists || []).find(x => x.doc === doc);
                     const ok = c && c.status;
                     
-                    // REVISI 2 & 3: Get values from DB (c) if present, else get defaults (m)
+                    // REVISI (Penyimpanan Manual): Get nilai dari Meta yang sudah memprioritaskan override user
                     const m = app.getDocumentMeta(this.pkg, doc);
-                    const numVal = c && c.number !== undefined ? c.number : m.number;
-                    const dateVal = c && c.date !== undefined ? c.date : (m.date || '');
+                    const numVal = m.number || '';
+                    const dateVal = m.date || '';
                     
                     return `
                     <tr>
@@ -1660,14 +1660,18 @@
                         let item = chk.find(x => x.doc === docName);
                         
                         if (!item) {
-                            item = { doc: docName, status: false };
+                            // Jika belum ada di checklist, isi dengan data default agar field pasangannya tidak hilang
+                            const meta = app.getDocumentMeta(pkg, docName);
+                            item = { doc: docName, status: false, number: meta.number, date: meta.date };
                             chk.push(item);
                         }
+                        
+                        // Update field (number/date) yang diedit
                         item[field] = val;
                         
                         DB.update('paket', this.packageId, { checklists: chk });
-                        // Jangan di-reRender agar focus tidak hilang. Cukup show toast.
-                        app.notify('Data checklist disimpan otomatis', 'success');
+                        // Jangan di-reRender agar focus cursor pada input tidak hilang. Cukup munculkan notifikasi.
+                        app.notify(`Data ${field === 'number' ? 'Nomor' : 'Tanggal'} dokumen berhasil disimpan`, 'success');
                     });
                 });
             }
@@ -2417,8 +2421,12 @@
                 const pkg = DB.getById('paket', pkgId);
                 let chk = pkg.checklists || [];
                 const exist = chk.find(x => x.doc === doc);
-                if(exist) { exist.status = status; }
-                else { chk.push({ doc, status, date: new Date().toISOString().split('T')[0], pic: 'Sistem' }); }
+                if(exist) { 
+                    exist.status = status; 
+                } else { 
+                    const meta = this.getDocumentMeta(pkg, doc);
+                    chk.push({ doc, status, number: meta.number, date: meta.date, pic: 'Sistem' }); 
+                }
                 DB.update('paket', pkgId, { checklists: chk });
                 this.reRenderCurrentView();
             }
@@ -2496,9 +2504,13 @@
             }
 
             getDocumentMeta(pkg, doc) {
+                // Ambil data yang tersimpan secara manual oleh user dari checklist
+                const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc);
+
+                // --- 1. Kalkulasi Default ---
                 const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU'};
                 const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
-                const ruleList = DB.get('penomoran');
+                const ruleList = DB.get('penomoran') || [];
                 let rule = ruleList.find(r => r.code === code || r.code === doc);
                 
                 if (!rule) {
@@ -2510,11 +2522,11 @@
                     else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
                 }
 
-                const holidays = DB.get('libur').map(x => x.date);
+                const holidays = (DB.get('libur') || []).map(x => x.date);
                 const docOverrides = pkg.jadwal_override || {};
                 let dates = {};
 
-                DB.get('waktu').forEach(r => { 
+                (DB.get('waktu') || []).forEach(r => { 
                     if (docOverrides[`doc_${r.id}`]) {
                         dates[r.name] = docOverrides[`doc_${r.id}`];
                     } else {
@@ -2526,15 +2538,27 @@
                 let date = pkg.tgl_awal || pkg.tgl_mulai;
                 for (const [k, v] of Object.entries(dates)) { if (doc.includes(k) || k.includes(doc)) { date = v; break; } }
                 
-                if (!rule) return { number:'', date };
+                let number = '';
+                if (rule) {
+                    const d = new Date(`${date}T00:00:00`);
+                    const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
+                    const mm = toRoman(d.getMonth() + 1);
+                    const yyyy = d.getFullYear();
+                    const uraian = pkg.keyword_penomoran || pkg.uraian || 'PKT';
+                    number = rule.format.replace('[uraian]', uraian).replace('[bulan]', mm).replace('[tahun]', yyyy);
+                }
+
+                // --- 2. Terapkan Override (Prioritaskan nilai manual dari input form Checklist) ---
+                if (savedChecklist) {
+                    if (savedChecklist.number !== undefined && savedChecklist.number !== null) {
+                        number = savedChecklist.number;
+                    }
+                    if (savedChecklist.date !== undefined && savedChecklist.date !== null) {
+                        date = savedChecklist.date;
+                    }
+                }
                 
-                const d = new Date(`${date}T00:00:00`);
-                const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
-                const mm = toRoman(d.getMonth() + 1);
-                const yyyy = d.getFullYear();
-                const uraian = pkg.keyword_penomoran || pkg.uraian || 'PKT';
-                
-                return { number: rule.format.replace('[uraian]', uraian).replace('[bulan]', mm).replace('[tahun]', yyyy), date };
+                return { number, date };
             }
 
             simulateDependencyEngine(docName, pkgId) {
