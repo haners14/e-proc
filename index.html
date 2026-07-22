@@ -348,16 +348,20 @@
             },
             toWords: function(n) {
                 const a=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas']; 
+                const translate = (num) => {
+                    if(num<12) return a[num]; 
+                    if(num<20) return translate(num-10)+' belas'; 
+                    if(num<100) return translate(Math.floor(num/10))+' puluh '+(num%10===0?'':translate(num%10));
+                    if(num<200) return 'seratus '+(num-100===0?'':translate(num-100)); 
+                    if(num<1000) return translate(Math.floor(num/100))+' ratus '+(num%100===0?'':translate(num%100));
+                    if(num<2000) return 'seribu '+(num-1000===0?'':translate(num-1000)); 
+                    if(num<1000000) return translate(Math.floor(num/1000))+' ribu '+(num%1000===0?'':translate(num%1000));
+                    if(num<1000000000) return translate(Math.floor(num/1000000))+' juta '+(num%1000000===0?'':translate(num%1000000)); 
+                    return String(num);
+                };
                 n = Math.floor(Number(n)||0);
-                if(n<12) return a[n]; 
-                if(n<20) return this.toWords(n-10)+' belas'; 
-                if(n<100) return this.toWords(Math.floor(n/10))+' puluh '+this.toWords(n%10);
-                if(n<200) return 'seratus '+this.toWords(n-100); 
-                if(n<1000) return this.toWords(Math.floor(n/100))+' ratus '+this.toWords(n%100);
-                if(n<2000) return 'seribu '+this.toWords(n-1000); 
-                if(n<1000000) return this.toWords(Math.floor(n/1000))+' ribu '+this.toWords(n%1000);
-                if(n<1000000000) return this.toWords(Math.floor(n/1000000))+' juta '+this.toWords(n%1000000); 
-                return String(n);
+                if(n === 0) return 'nol';
+                return translate(n).replace(/\s+/g, ' ').trim();
             },
             debounce: (func, wait) => {
                 let timeout;
@@ -2148,6 +2152,7 @@
                 let ppn_hps = 0, ppn_pen = 0, ppn_neg = 0;
                 let ppn_persen = 11; // Default PPN
 
+                // Mempertahankan urutan asli item dan header tanpa difilter
                 const itemsPayload = (pkg.items || []).map((item) => {
                     if (item.is_header) {
                         return {
@@ -2160,15 +2165,19 @@
                         const taxRate = (Number(item.pajak) || 0) / 100;
                         if (taxRate > 0) ppn_persen = Number(item.pajak);
 
-                        const t_hps = (item.vol_hps * item.harga_hps); sub_hps += t_hps; ppn_hps += t_hps * taxRate;
-                        const t_pen = (item.vol_pen * item.harga_pen); sub_pen += t_pen; ppn_pen += t_pen * taxRate;
-                        const t_neg = (item.vol_neg * item.harga_neg); sub_neg += t_neg; ppn_neg += t_neg * taxRate;
+                        const base_hps = item.vol_hps * item.harga_hps;
+                        const base_pen = item.vol_pen * item.harga_pen;
+                        const base_neg = item.vol_neg * item.harga_neg;
+
+                        sub_hps += base_hps; ppn_hps += base_hps * taxRate;
+                        sub_pen += base_pen; ppn_pen += base_pen * taxRate;
+                        sub_neg += base_neg; ppn_neg += base_neg * taxRate;
 
                         return {
                             no: noCounter++, is_header: false, uraian: item.uraian, sat: item.sat,
-                            vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), total_hps: Utils.formatNumber(t_hps),
-                            vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), total_pen: Utils.formatNumber(t_pen),
-                            vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg), total_neg: Utils.formatNumber(t_neg)
+                            vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), total_hps: Utils.formatNumber(base_hps),
+                            vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), total_pen: Utils.formatNumber(base_pen),
+                            vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg), total_neg: Utils.formatNumber(base_neg)
                         };
                     }
                 });
@@ -2187,16 +2196,31 @@
                     nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
                     nama_penyedia: supplier.name, nama_direktur: supplier.direktur || "Direktur",
-                    nilai_hps_formatted: Utils.formatNumber(hpsRound), terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
-                    nilai_penawaran_formatted: Utils.formatNumber(penRound), terbilang_penawaran: Utils.toWords(penRound) + " rupiah",
-                    nilai_negosiasi_formatted: Utils.formatNumber(negoRound), terbilang_negosiasi: Utils.toWords(negoRound) + " rupiah",
+                    
+                    // Unify terbilang variables untuk mendeteksi semua variasi Tag di Word
+                    hps_nominal: Utils.formatNumber(hpsRound),
+                    hps_terbilang: Utils.toWords(hpsRound) + " rupiah",
+                    terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
+                    
+                    penawaran_nominal: Utils.formatNumber(penRound),
+                    penawaran_terbilang: Utils.toWords(penRound) + " rupiah",
+                    terbilang_pen: Utils.toWords(penRound) + " rupiah",
+                    
+                    penawaran_koreksi_nominal: Utils.formatNumber(penRound),
+                    penawaran_koreksi_terbilang: Utils.toWords(penRound) + " rupiah",
+                    
+                    negosiasi_nominal: Utils.formatNumber(negoRound),
+                    negosiasi_terbilang: Utils.toWords(negoRound) + " rupiah",
+                    terbilang_neg: Utils.toWords(negoRound) + " rupiah",
+
                     nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
                     lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
+                    
                     items: itemsPayload,
+                    
                     total_hps_formatted: Utils.formatNumber(hpsRound), total_penawaran_formatted: Utils.formatNumber(penRound), total_negosiasi_formatted: Utils.formatNumber(negoRound),
                     nama_pejabat_pengadaan: pp.name, nip_pejabat_pengadaan: pp.nip || "-",
                     
-                    // --- Ekstra Variabel Lanjutan (Kebutuhan Template Baru BA Negosiasi) ---
                     nomor_dokumen: meta.number,
                     hari: days[dateObj.getDay()],
                     tanggal_terbilang: Utils.toWords(dateObj.getDate()),
@@ -2204,11 +2228,6 @@
                     tahun_terbilang: Utils.toWords(dateObj.getFullYear()),
                     tanggal_negosiasi: Utils.formatDate(meta.date),
                     nama_pp: pp.name,
-                    hps_nominal: Utils.formatNumber(hpsRound),
-                    penawaran_nominal: Utils.formatNumber(penRound),
-                    penawaran_koreksi_nominal: Utils.formatNumber(penRound),
-                    penawaran_koreksi_terbilang: Utils.toWords(penRound) + " rupiah",
-                    negosiasi_nominal: Utils.formatNumber(negoRound),
                     durasi_kontrak: pkg.durasi_kontrak || 60,
                     durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 60),
                     
