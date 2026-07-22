@@ -1733,7 +1733,8 @@
                             <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Format Standar Jasa Konsultansi. Ketik otomatis tersimpan.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}',true)"><i class="ph ph-printer"></i> Cetak Uraian Singkat</button>
-                                <button class="btn btn-primary" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-file-pdf"></i> Preview & Cetak KAK</button>
+                                <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-printer"></i> Preview KAK</button>
+                                <button class="btn btn-primary" onclick="app.runDocumentEngine('KAK', '${this.packageId}')"><i class="ph ph-file-doc"></i> Generate KAK (Word)</button>
                             </div>
                         </div>
                         <form id="form-kak" class="flex flex-col gap-6">
@@ -2357,6 +2358,22 @@
                     nama_pp: pp.name,
                     durasi_kontrak: pkg.durasi_kontrak || 60,
                     durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 60),
+                    
+                    // Data Spesifik KAK
+                    latar_belakang: pkg.latar_belakang || '-',
+                    maksud_tujuan: pkg.maksud_tujuan || '-',
+                    sasaran: pkg.sasaran || '-',
+                    organisasi_pengadaan: pkg.organisasi_pengadaan || '-',
+                    sumber_pembiayaan: pkg.sumber_pembiayaan || '-',
+                    ruang_lingkup: pkg.ruang_lingkup || '-',
+                    kewenangan_penyedia: pkg.kewenangan_penyedia || '-',
+                    fasilitas_penyedia: pkg.fasilitas_penyedia || '-',
+                    pelaporan: pkg.pelaporan || '-',
+                    output_kak: pkg.output_kak || '-',
+                    outcome: pkg.outcome || '-',
+                    produksi_dalam_negeri: pkg.produksi_dalam_negeri || '-',
+                    alih_pengetahuan: pkg.alih_pengetahuan || '-',
+                    personil_kak: (pkg.personnel || []).map((p, i) => ({ no: i + 1, ...p })),
                     
                     // Rincian Kalkulasi Tabel
                     jumlah_hps: Utils.formatNumber(sub_hps),
