@@ -1732,8 +1732,33 @@
                     'BAST',
                     'BAP'
                 ];
-                const registers = app.syncChecklistDocumentRegisters(this.packageId, docs);
-                const sorted = [...registers].sort((a,b) => (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') || a.document_name.localeCompare(b.document_name));
+                const registers = docs.map(doc => {
+
+    let reg = DB.get("package_documents").find(r =>
+        r.package_id === this.packageId &&
+        (r.document_name || "").trim().toUpperCase() === doc.toUpperCase()
+    );
+
+    if (!reg) {
+
+        reg = DB.insert("package_documents", {
+            package_id: this.packageId,
+            document_name: doc,
+            status: "DRAFT",
+            generated: false,
+            version: 1
+        });
+
+    }
+
+    return reg;
+
+});
+
+const sorted = registers.sort((a,b)=>
+    (a.document_date || "9999-12-31").localeCompare(b.document_date || "9999-12-31")
+    || a.document_name.localeCompare(b.document_name)
+);
                 const row = master => {
                     const c = (this.pkg.checklists || []).find(x => x.doc === master.document_name);
                     const done = c?.status || ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status||'').toUpperCase());
