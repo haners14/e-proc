@@ -2893,7 +2893,8 @@
                 if (rule) {
                     const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
                     const d = new Date(`${dateForNumber}T00:00:00`);
-                    const toRoman = (num) => [\"I\",\"II\",\"III\",\"IV\",\"V\",\"VI\",\"VII\",\"VIII\",\"IX\",\"X\",\"XI\",\"XII\"][num-1] || \"\";
+                    const toRoman = (num) =>
+    ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
                     const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
