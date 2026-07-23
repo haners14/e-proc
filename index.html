@@ -1734,10 +1734,7 @@
                     'BAP'
                 ];
                 const registers = app.syncChecklistDocumentRegisters(this.packageId, docs);
-const sorted = [...registers].sort((a,b)=>
-    (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') ||
-    a.document_name.localeCompare(b.document_name)
-);
+                const sorted = [...registers].sort((a,b) => (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') || a.document_name.localeCompare(b.document_name));
                 const row = master => {
                     const c = (this.pkg.checklists || []).find(x => x.doc === master.document_name);
                     const done = c?.status || ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status||'').toUpperCase());
@@ -2415,7 +2412,7 @@ const sorted = [...registers].sort((a,b)=>
             uploadMasterDocument(event, docId) {
                 const file = event.target.files[0]; if (!file) return;
                 const master = DB.getById('package_documents', docId); if (!master) return;
-                const history = this.getDocumentHistory(master); const version = Math.max(master.version || 0, .....history.map(x => x.version || 0)) + 1;
+                const history = this.getDocumentHistory(master); const version = Math.max(master.version || 0, ...history.map(x => x.version || 0)) + 1;
                 const item = DB.insert('documents', {package_id: master.package_id, doc_type: master.document_code, name: master.document_name, status: 'UPLOADED', date: master.document_date || new Date().toISOString().slice(0,10), document_number: master.document_number, document_date: master.document_date, filename: file.name, file_size: file.size, file_url: URL.createObjectURL(file), version, generated_by: 'Manual upload'});
                 DB.update('package_documents', master.id, {generated_document_id: item.id, version, status: 'UPLOADED', generated: true, file_url: item.file_url});
                 this.notify('Versi unggahan ditambahkan ke riwayat.', 'success'); this.reRenderCurrentView();
@@ -2580,12 +2577,12 @@ const sorted = [...registers].sort((a,b)=>
 
                 // Calculate Package Sequence Number 001, 002
                 const allPkgs = DB.get('paket');
-                const sortedPkgs = [.....allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                const sortedPkgs = [...allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
                 const pkgIdx = sortedPkgs.findIndex(p => p.id === pkgId);
                 const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
 
                 return {
-                    .....dynamicDocVars,
+                    ...dynamicDocVars,
                     nomor_urut_paket: seqNum,
                     
                     // Specific mapping to match your word template examples
@@ -2896,15 +2893,14 @@ const sorted = [...registers].sort((a,b)=>
                 if (rule) {
                     const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
                     const d = new Date(`${dateForNumber}T00:00:00`);
-                    const toRoman = (num) =>
-    ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
+                    const toRoman = (num) => [\"I\",\"II\",\"III\",\"IV\",\"V\",\"VI\",\"VII\",\"VIII\",\"IX\",\"X\",\"XI\",\"XII\"][num-1] || \"\";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
                     const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
                     
                     // Hitung urutan paket dalam sistem untuk dijadikan [nomor] 3 digit
                     const allPkgs = DB.get('paket');
-                    const sortedPkgs = [.....allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+                    const sortedPkgs = [...allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
                     const pkgIdx = sortedPkgs.findIndex(p => p.id === pkg.id);
                     const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
                     
