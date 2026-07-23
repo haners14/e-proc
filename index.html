@@ -2490,7 +2490,15 @@ const sorted = registers.sort((a,b)=>
                 const history = this.getDocumentHistory(master); const version = Math.max(master.version || 0, ...history.map(x => x.version || 0)) + 1;
                 const item = DB.insert('documents', {package_id: master.package_id, doc_type: master.document_code, name: master.document_name, status: 'UPLOADED', date: master.document_date || new Date().toISOString().slice(0,10), document_number: master.document_number, document_date: master.document_date, filename: file.name, file_size: file.size, file_url: URL.createObjectURL(file), version, generated_by: 'Manual upload'});
                 DB.update('package_documents', master.id, {generated_document_id: item.id, version, status: 'UPLOADED', generated: true, file_url: item.file_url});
+                DB.update('package_documents', e.target.dataset.id, {
+    [e.target.dataset.field]: e.target.value
+});
+
+console.log(
+    DB.getById("package_documents", e.target.dataset.id)
+);
                 this.notify('Versi unggahan ditambahkan ke riwayat.', 'success'); this.reRenderCurrentView();
+                
             }
 
             previewDocument(docId) { const master = DB.getById('package_documents', docId), file = master && this.getDocumentHistory(master)[0]?.file_url || master?.file_url; if(file) window.open(file, '_blank'); }
