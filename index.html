@@ -2781,7 +2781,9 @@ console.log(
                     sasaran: pkg.sasaran || '-',
                     organisasi_pengadaan: pkg.organisasi_pengadaan || '-',
                     sumber_pembiayaan: pkg.sumber_pembiayaan || '-',
+                    dasar_hukum: pkg.dasar_hukum || '-',
                     ruang_lingkup: pkg.ruang_lingkup || '-',
+                    spesifikasi_teknis: pkg.spesifikasi_teknis || '-',
                     kewenangan_penyedia: pkg.kewenangan_penyedia || '-',
                     fasilitas_penyedia: pkg.fasilitas_penyedia || '-',
                     pelaporan: pkg.pelaporan || '-',
@@ -2789,6 +2791,7 @@ console.log(
                     outcome: pkg.outcome || '-',
                     produksi_dalam_negeri: pkg.produksi_dalam_negeri || '-',
                     alih_pengetahuan: pkg.alih_pengetahuan || '-',
+                    
                     
                     // Safe mapping array for table generating
                     tenaga_ahli: (pkg.personnel || []).map((p, i) => ({ 
