@@ -2822,7 +2822,7 @@
                 const head = { nomor: data.nomor, tanggal: data.tanggal, bulan: 'Juni', kegiatan: 'Pengelolaan Barang Milik Daerah', sub_kegiatan: data.sub_kegiatan, jenis_pencairan: data.jenis_pencairan, status: 'DRAFT' };
                 const res = DB.insert('pencairan', head);
                 
-                const item = { pencairan_id: res.id, rekening_kode: data.rekening_kode, keperluan: data.keperluan, nama_penerima: data.nama_penerima, nama_bank: data.nama_bank, rekening_bank: data.rekening_bank, jumlah: Number(String(data.jumlah).replace(/\D/g, '')) || 0, pajak_pph21: 0, pajak_ppn: 0 };
+                const item = { pencairan_id: res.id, rekening_kode: data.rekening_kode, keperluan: data.keperluan, nama_penerima: data.nama_penerima, nama_bank: data.nama_bank, rekening_bank: data.rekening_bank, jumlah: Number(String(data.jumlah).replace(/\\D/g, '')) || 0, pajak_pph21: 0, pajak_ppn: 0 };
                 DB.insert('pencairan_items', item);
                 
                 DOM.closeModal(); this.notify('Pengajuan dibuat', 'success'); this.reRenderCurrentView();
@@ -2893,7 +2893,7 @@
                 if (rule) {
                     const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
                     const d = new Date(`${dateForNumber}T00:00:00`);
-                    const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
+                    const toRoman = (num) => [\"I\",\"II\",\"III\",\"IV\",\"V\",\"VI\",\"VII\",\"VIII\",\"IX\",\"X\",\"XI\",\"XII\"][num-1] || \"\";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
                     const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
@@ -2905,11 +2905,11 @@
                     const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
                     
                     calcNumber = rule.format
-                                 .replace(/\[keyword_penomoran\]/g, keyword)
-                                 .replace(/\[uraian\]/g, keyword) 
-                                 .replace(/\[bulan\]/g, mm)
-                                 .replace(/\[tahun\]/g, yyyy)
-                                 .replace(/\[nomor\]/g, seqNum);
+                                 .replace(/\\[keyword_penomoran\\]/g, keyword)
+                                 .replace(/\\[uraian\\]/g, keyword) 
+                                 .replace(/\\[bulan\\]/g, mm)
+                                 .replace(/\\[tahun\\]/g, yyyy)
+                                 .replace(/\\[nomor\\]/g, seqNum);
                 }
 
                 const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
@@ -2928,14 +2928,14 @@
                 const p = DB.getById('paket',pkgId); 
                 
                 if (short) {
-                    const content = `<h1>Uraian Singkat Pekerjaan</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>`; 
+                    const content = `<h1>Uraian Singkat Pekerjaan</h1><div class=\"meta\">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>`; 
                     this.printDocument('Uraian Singkat Pekerjaan', content); 
                     return;
                 }
 
-                let personilRows = (p.personnel||[]).map((x,i) => `<tr><td class="c">${i+1}</td><td>${x.jabatan}</td><td>${x.pendidikan}</td><td class="c">${x.pengalaman}</td><td>${x.sertifikat}</td><td class="c">${x.jumlah}</td><td class="c">${x.orang_bulan}</td></tr>`).join('');
-                if(!personilRows) personilRows = '<tr><td colspan="7" class="c">Tidak ada Tenaga Ahli yang disyaratkan secara spesifik</td></tr>';
-                const tablePersonil = `<table><thead><tr><th style="width:40px;">No</th><th>Posisi/Jabatan</th><th>Pendidikan Minimal</th><th style="width:80px;">Pengalaman<br>(Thn)</th><th>Keahlian/Sertifikat</th><th style="width:60px;">Jumlah<br>Orang</th><th style="width:60px;">Bulan</th></tr></thead><tbody>${personilRows}</tbody></table>`;
+                let personilRows = (p.personnel||[]).map((x,i) => `<tr><td class=\"c\">${i+1}</td><td>${x.jabatan}</td><td>${x.pendidikan}</td><td class=\"c\">${x.pengalaman}</td><td>${x.sertifikat}</td><td class=\"c\">${x.jumlah}</td><td class=\"c\">${x.orang_bulan}</td></tr>`).join('');
+                if(!personilRows) personilRows = '<tr><td colspan=\"7\" class=\"c\">Tidak ada Tenaga Ahli yang disyaratkan secara spesifik</td></tr>';
+                const tablePersonil = `<table><thead><tr><th style=\"width:40px;\">No</th><th>Posisi/Jabatan</th><th>Pendidikan Minimal</th><th style=\"width:80px;\">Pengalaman<br>(Thn)</th><th>Keahlian/Sertifikat</th><th style=\"width:60px;\">Jumlah<br>Orang</th><th style=\"width:60px;\">Bulan</th></tr></thead><tbody>${personilRows}</tbody></table>`;
 
                 const sections = [
                     ['Latar Belakang', p.latar_belakang],
@@ -2955,7 +2955,7 @@
                     ['Alih Pengetahuan', p.alih_pengetahuan]
                 ];
 
-                const content = `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div>` + 
+                const content = `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class=\"meta\">${p.name}<br>${p.lokasi || ''}</div>` + 
                     sections.map(x => `<h2>${x[0]}</h2>${x[2] ? x[1] : `<p>${x[1] || '-'}</p>`}`).join('');
 
                 this.printDocument('KAK', content); 
@@ -2964,10 +2964,10 @@
             printHPS(pkgId) { 
                 const p = DB.getById('paket',pkgId);
                 const rows = (p.items||[]).map((x,i)=> {
-                    if (x.is_header) return `<tr><td colspan="6" style="background:#f3f4f6;font-weight:bold;">${x.uraian}</td></tr>`;
+                    if (x.is_header) return `<tr><td colspan=\"6\" style=\"background:#f3f4f6;font-weight:bold;\">${x.uraian}</td></tr>`;
                     return `<tr><td>${i+1}</td><td>${x.uraian}</td><td>${x.sat}</td><td>${x.vol_hps}</td><td>Rp ${Utils.formatNumber(x.harga_hps)}</td><td>Rp ${Utils.formatNumber(Number(x.vol_hps)*Number(x.harga_hps))}</td></tr>`;
                 }).join(''); 
-                this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class="meta">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
+                this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class=\"meta\">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
             }
             
             printPackageReport(pkgId) { 
@@ -2986,8 +2986,8 @@
 
             notify(message, type = 'info') {
                 const tc = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast';
-                const i = type === 'success' ? '<i class="ph-fill ph-check-circle text-success text-2xl"></i>' : (type === 'error' ? '<i class="ph-fill ph-warning-circle text-danger text-2xl"></i>' : '<i class="ph-fill ph-info text-info text-2xl"></i>');
-                t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
+                const i = type === 'success' ? '<i class=\"ph-fill ph-check-circle text-success text-2xl\"></i>' : (type === 'error' ? '<i class=\"ph-fill ph-warning-circle text-danger text-2xl\"></i>' : '<i class=\"ph-fill ph-info text-info text-2xl\"></i>');
+                t.innerHTML = `${i} <span class=\"text-main\">${message}</span>`; tc.appendChild(t);
                 setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
         }
