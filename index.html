@@ -1863,6 +1863,24 @@ const sorted = registers.sort((a,b)=>
                                 <div class="form-group"><label class="form-label">Latar Belakang</label><textarea name="latar_belakang" class="form-control" rows="3">${p.latar_belakang || ''}</textarea></div>
                                 <div class="form-group"><label class="form-label">Maksud & Tujuan</label><textarea name="maksud_tujuan" class="form-control" rows="3">${p.maksud_tujuan || ''}</textarea></div>
                                 <div class="form-group"><label class="form-label">Sasaran</label><textarea name="sasaran" class="form-control" rows="2">${p.sasaran || ''}</textarea></div>
+                                <div class="form-group">
+    <label>Dasar Hukum</label>
+    <input
+        type="text"
+        name="dasar_hukum"
+        class="form-control"
+        value="${pkg.dasar_hukum || ''}"
+        placeholder="Contoh: Perpres Nomor 46 Tahun 2025">
+</div>
+<div class="form-group">
+    <label>Spesifikasi Teknis</label>
+    <input
+        type="text"
+        name="spesifikasi_teknis"
+        class="form-control"
+        value="${pkg.spesifikasi_teknis || ''}"
+        placeholder="Contoh: Sesuai KAK">
+</div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
                                     <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><textarea name="sumber_pembiayaan" class="form-control" rows="2">${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
