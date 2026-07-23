@@ -323,6 +323,7 @@
                 const text = status ? status.toString().toUpperCase() : 'UNKNOWN';
                 const map = { 
                     'SELESAI': 'badge-success', 'KONTRAK': 'badge-success', 'AKTIF': 'badge-success', 'FINAL': 'badge-success',
+                    'BELUM PROSES': 'badge-neutral', 'PROSES SPSE': 'badge-info',
                     'NEGOSIASI': 'badge-warning', 'DRAFT': 'badge-warning', 'PROSES': 'badge-warning',
                     'PERSIAPAN': 'badge-info', 'KLARIFIKASI': 'badge-info', 'REVIU': 'badge-info',
                     'PEMILIHAN': 'badge-neutral', 'NONAKTIF': 'badge-neutral', 'BATAL': 'badge-danger'
@@ -405,7 +406,7 @@
         // Supabase document_templates records take precedence when configured.
         const BUILTIN_TEMPLATES = [
             {id:'NOTA_DINAS', code:'NOTA_DINAS', name:'Nota Dinas', file_url:'templates/1_NOTA_DINAS_TEMPLATE_revised.docx'},
-            {id:'BA_REVIU', code:'BA_REVIU', name:'BA Reviu DPP', file_url:'templates/2_BA_Reviu_DPP_TEMPLATE_revised.docx'},
+            {id:'BA_REVIU', code:'BA_REVIU', name:'BA Reviu Dokumen Persiapan', file_url:'templates/2_BA_Reviu_DPP_TEMPLATE_revised.docx'},
             {id:'SDP', code:'SDP', name:'SDP Pengadaan Langsung', file_url:'templates/5_SDP_Pengadaan_Langsung_TEMPLATE_revised.docx'},
             {id:'SSKK', code:'SSKK', name:'SSKK', file_url:'templates/3_SSKK_TEMPLATE_revised.docx'},
             {id:'SSKK_KONSTRUKSI', code:'SSKK_KONSTRUKSI', name:'SSKK Konstruksi', file_url:'templates/3_SSKK_TEMPLATE_Konstruksi.docx'},
@@ -567,7 +568,7 @@
             libur: { title: 'Hari Libur Nasional', table: 'libur', fields: [{ key: 'date', label: 'Tanggal', type: 'date', required: true, formatter: Utils.formatDate }, { key: 'desc', label: 'Keterangan', type: 'text', required: true }] },
             waktu: { title: 'Master Waktu Dokumen', table: 'waktu', fields: [{ key: 'name', label: 'Tahap/Dokumen', type: 'text', required: true }, { key: 'previous', label: 'Mengikuti Jadwal Sebelumnya', type: 'text', required: true }, { key: 'days', label: 'Selisih Hari Kerja', type: 'number', required: true }, { key: 'anchor', label: 'Acuan', type: 'select', options: ['mulai', 'selesai'] }] },
             jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Persiapan', 'Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
-            paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
+            paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'mak', label: 'MAK', type: 'text' }, { key: 'kode_rup', label: 'Kode RUP', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
         };
 
         const DOM = {
@@ -649,6 +650,8 @@
                 let thead = `<tr><th style="width:50px">No</th>` + fields.map(f => `<th style="width:${f.width||'auto'}">${f.label}</th>`).join('') + `<th style="width:100px; text-align:right;">Aksi</th></tr>`;
                 let tbody = paginated.map((item, index) => {
                     let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
+                    const rowColors = {'BELUM PROSES':'#f8fafc','PROSES SPSE':'#eff6ff','KONTRAK':'#f0fdf4','SELESAI':'#f0fdf4'};
+                    const rowStyle = this.schemaKey === 'paket' ? ` style="background:${rowColors[item.stage] || '#fff'}"` : '';
                     
                     let act = '';
                     if (this.schemaKey === 'paket') {
@@ -663,7 +666,7 @@
                                <button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
                     }
                     
-                    return `<tr>${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
+                    return `<tr${rowStyle}>${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
                 }).join('');
                 return `<table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
             }
@@ -687,7 +690,7 @@
                     const today = new Date().toISOString().split('T')[0];
                     const pjb = DB.get('pejabat'); 
                     const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'PERSIAPAN', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[], notes: '', jadwal_override: {}, jadwal_proses_override: {} });
+                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'BELUM PROSES', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[], notes: '', jadwal_override: {}, jadwal_proses_override: {} });
                     app.navigate('workspace', newPkg.id); return;
                 }
                 const item = id ? DB.getById(this.schema.table, id) : {};
@@ -1117,6 +1120,8 @@
                                     <div class="form-group"><label class="form-label">Kode Sub Kegiatan</label><input type="text" name="kode_sub_kegiatan" class="form-control" value="${this.pkg.kode_sub_kegiatan || ''}"></div>
                                     <div class="form-group"><label class="form-label">Nama Rekening</label><input type="text" name="nama_rekening" class="form-control" value="${this.pkg.nama_rekening || ''}"></div>
                                     <div class="form-group"><label class="form-label">Kode Rekening</label><input type="text" name="kode_rekening" class="form-control" value="${this.pkg.kode_rekening || ''}"></div>
+                                    <div class="form-group"><label class="form-label">MAK</label><input type="text" name="mak" class="form-control" value="${this.pkg.mak || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Kode RUP</label><input type="text" name="kode_rup" class="form-control" value="${this.pkg.kode_rup || ''}"></div>
                                 </div>
                             </fieldset>
 
@@ -1127,6 +1132,7 @@
                                     <div class="form-group"><label class="form-label">Metode Pemilihan</label><select name="metode_pemilihan" class="form-control"><option value="E-Purchasing" ${this.pkg.metode_pemilihan==='E-Purchasing'?'selected':''}>E-Purchasing</option><option value="Tender" ${this.pkg.metode_pemilihan==='Tender'?'selected':''}>Tender</option><option value="Pengadaan Langsung" ${this.pkg.metode_pemilihan==='Pengadaan Langsung'?'selected':''}>Pengadaan Langsung</option></select></div>
                                     <div class="form-group"><label class="form-label">Jenis Kontrak</label><select name="jenis_kontrak" class="form-control"><option value="Lumsum" ${this.pkg.jenis_kontrak==='Lumsum'?'selected':''}>Lumsum</option><option value="Harga Satuan" ${this.pkg.jenis_kontrak==='Harga Satuan'?'selected':''}>Harga Satuan</option></select></div>
                                     <div class="form-group"><label class="form-label">Kata Kunci Penomoran</label><input type="text" name="keyword_penomoran" class="form-control" value="${this.pkg.keyword_penomoran || ''}"></div>
+                                    <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><input type="text" name="sumber_pembiayaan" class="form-control" value="${this.pkg.sumber_pembiayaan || 'APBD Kota Bogor'}"></div>
                                 </div>
                             </fieldset>
 
@@ -1307,7 +1313,7 @@
                             <button class="btn btn-outline" onclick="app.downloadTemplateHPS()"><i class="ph ph-download"></i> Template Excel</button>
                             <button class="btn btn-outline" onclick="document.getElementById('import-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
                             
-                            <button class="btn btn-primary" onclick="app.printHPS('${this.packageId}')"><i class="ph ph-file-pdf"></i> Cetak PDF HPS</button>
+                            <button class="btn btn-primary" onclick="app.openDocumentOutput('HPS/RAB','${this.packageId}','HPS')"><i class="ph ph-file-pdf"></i> Cetak / Generate HPS</button>
                             <button class="btn btn-outline" onclick="app.addHargaHeader('${this.packageId}')"><i class="ph ph-list"></i> Tambah Header</button>
                             <button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button>
                         </div>
@@ -1642,91 +1648,23 @@
             }
 
             renderChecklist() {
-                const groups = [
-                    {title: 'Checklist Dokumen Pengadaan', docs: ['HPS/RAB','KAK','BA Reviu Dok Persiapan','SDP','BA Evaluasi','BA Pembuktian Kualifikasi','BA Negosiasi','Undangan Pengadaan Langsung','BA Hasil Pemilihan','SPPBJ','Undangan Pengadaan (Kontrak)','SPK','SSUK','SSKK','SPMK','BAST','BAP']},
-                    {title: 'Checklist Pengajuan Pencairan', docs: ['Summary Report','Surat Permohonan Pemilihan Penyedia','Surat Penawaran','Lampiran Penawaran (Profil Perusahaan dll)','Persyaratan Kualifikasi Peserta','Surat Pernyataan Sanggup Menyelesaikan Pekerjaan','Surat Permohonan Pencairan dari Penyedia','Invoice Lampiran Pembayaran Personil dan Non Personil','Kelengkapan Dokumen Lampiran (misal laporan)','Jaminan Pemeliharaan (Fisik)','Mutual Check / Laporan Kemajuan (Fisik)','KTP dan NPWP','Surat Referensi Bank','Faktur Pajak','Kwitansi']}
-                ];
-                
-                const row = doc => { 
-                    const c = (this.pkg.checklists || []).find(x => x.doc === doc);
-                    const ok = c && c.status;
-                    
-                    const m = app.getDocumentMeta(this.pkg, doc);
-                    const numVal = m.number || '';
-                    const dateVal = m.date || '';
-                    
-                    return `
-                    <tr>
-                        <td style="width: 40px; text-align: center;"><input type="checkbox" class="w-4 h-4 accent-primary" ${ok?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${doc}',this.checked)"></td>
-                        <td class="font-medium">${doc}</td>
-                        <!-- Input yang bisa di-edit (menyimpan ke db checklists otomatis saat blur/change) -->
-                        <td><input type="text" class="form-control chk-input" data-doc="${doc}" data-field="number" value="${numVal}" placeholder="No Dokumen"></td>
-                        <td><input type="date" class="form-control chk-input" data-doc="${doc}" data-field="date" value="${dateVal}"></td>
-                        
-                        <td style="width: 100px;">${ok ? '<span class="badge badge-success">Ada</span>' : '<span class="badge badge-warning">Kosong</span>'}</td>
-                        <td style="width: 120px;"><button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${doc}','${this.packageId}')"><i class="ph ph-magic-wand"></i> Buat</button></td>
-                    </tr>`; 
+                const docs = ['Nota Dinas','HPS/RAB','KAK','BA Reviu Dokumen Persiapan','SDP','BA Evaluasi','BA Pembuktian Kualifikasi','Undangan Negosiasi','BA Negosiasi','Undangan Pengadaan Langsung','BA Hasil Pemilihan','SPPBJ','Undangan Penandatanganan Kontrak','Rancangan Kontrak','SPK','SSUK','SSKK','SPMK','BAST','BAP'];
+                const registers = app.syncChecklistDocumentRegisters(this.packageId, docs);
+                const sorted = [...registers].sort((a,b) => (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') || a.document_name.localeCompare(b.document_name));
+                const row = master => {
+                    const c = (this.pkg.checklists || []).find(x => x.doc === master.document_name);
+                    const done = c?.status || ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status||'').toUpperCase());
+                    return `<tr><td style="width:40px;text-align:center"><input type="checkbox" class="w-4 h-4 accent-primary" ${done?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${master.document_name}',this.checked)"></td><td class="font-medium">${master.document_name}<div class="text-xs text-muted">${master.document_code}</div></td><td><input type="text" class="form-control chk-master-input" data-id="${master.id}" data-field="document_number" value="${master.document_number||''}" placeholder="Nomor dokumen"></td><td><input type="date" class="form-control chk-master-input" data-id="${master.id}" data-field="document_date" value="${master.document_date||''}"></td><td>${Utils.getBadge(master.status || (done?'FINAL':'DRAFT'))}</td><td><button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master.id}','${this.packageId}')"><i class="ph ph-magic-wand"></i> Generate</button></td></tr>`;
                 };
-                
-                return `
-                    <div class="mb-4">
-                        <p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700">
-                            <b>Catatan:</b> Nomor Dokumen dan Tanggal akan diisi default dari pengaturan Master Penomoran dan Kalkulasi Jadwal. Bulan pada nomor akan otomatis menyesuaikan tanggal masing-masing dokumen. <b>Anda dapat mengeditnya secara manual</b>, atau <b>kosongkan kolom</b> untuk mengembalikannya ke kalkulasi otomatis sistem.
-                        </p>
-                    </div>
-                    ${groups.map(g => `
-                    <div class="card p-0 mb-6" style="overflow:visible">
-                        <div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">${g.title}</h3></div>
-                        <div class="table-container" style="border:0;border-radius:0;overflow-x:auto">
-                            <table class="data-table">
-                                <thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen (Tersimpan)</th><th>Tanggal (Tersimpan)</th><th>Status</th><th>Generate</th></tr></thead>
-                                <tbody>${g.docs.map(row).join('')}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                `).join('')}`;
+                return `<div class="mb-4"><p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700"><b>Master dokumen:</b> nomor dan tanggal di bawah disimpan per dokumen pada <code>package_documents</code>. Generator selalu memakai nilai ini, bukan data checklist lama.</p></div><div class="card p-0 mb-6" style="overflow:visible"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">Checklist Dokumen Pengadaan — urut tanggal</h3></div><div class="table-container" style="border:0;border-radius:0;overflow-x:auto"><table class="data-table"><thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Status</th><th>Generate</th></tr></thead><tbody>${sorted.map(row).join('')}</tbody></table></div></div>`;
             }
 
             attachChecklistEvents() {
-                // Event listener untuk menyimpan perubahan manual pada Checklist (Nomor & Tanggal)
-                document.querySelectorAll('.chk-input').forEach(el => {
+                document.querySelectorAll('.chk-master-input').forEach(el => {
                     el.addEventListener('change', (e) => {
-                        const docName = e.target.dataset.doc;
-                        const field = e.target.dataset.field;
-                        const val = e.target.value;
-                        
-                        // Gunakan object fresh dari DB untuk menghindari stale data
-                        const pkg = DB.getById('paket', this.packageId);
-                        let chk = pkg.checklists || [];
-                        let item = chk.find(x => x.doc === docName);
-                        
-                        if (!item) {
-                            item = { doc: docName, status: false };
-                            chk.push(item);
-                        }
-                        
-                        // Simpan nilai manual ke property terpisah agar tidak mengganggu kalkulasi default
-                        if (field === 'number') {
-                            item.manual_number = val;
-                            if (!val) delete item.manual_number; // Hapus jika dikosongkan agar kembali ke default
-                        } else if (field === 'date') {
-                            item.manual_date = val;
-                            if (!val) delete item.manual_date;
-                        }
-
-                        // Bersihkan cache statik dari versi sebelumnya jika ada (Backward Compatibility)
-                        delete item.number;
-                        delete item.date;
-                        
-                        DB.update('paket', this.packageId, { checklists: chk });
-                        
-                        if (field === 'date') {
-                            // Jika tanggal berubah, re-render agar bulan pada nomor otomatis ikut berubah di UI
-                            this.reRenderCurrentView();
-                            app.notify('Tanggal disimpan. Penomoran disesuaikan.', 'success');
-                        } else {
-                            app.notify('Nomor dokumen manual disimpan', 'success');
-                        }
+                        DB.update('package_documents', e.target.dataset.id, { [e.target.dataset.field]: e.target.value });
+                        if (e.target.dataset.field === 'document_date') this.reRenderCurrentView();
+                        else app.notify('Nomor dokumen disimpan di register.', 'success');
                     });
                 });
             }
@@ -1754,7 +1692,7 @@
                             <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Format Standar Jasa Konsultansi. Ketik otomatis tersimpan.</p></div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}',true)"><i class="ph ph-printer"></i> Cetak Uraian Singkat</button>
-                                <button class="btn btn-outline" onclick="app.printKAK('${this.packageId}')"><i class="ph ph-printer"></i> Preview KAK</button>
+                                <button class="btn btn-outline" onclick="app.openDocumentOutput('KAK','${this.packageId}','KAK')"><i class="ph ph-printer"></i> Preview / Generate KAK</button>
                                 <button class="btn btn-primary" onclick="app.runDocumentEngine('KAK', '${this.packageId}')"><i class="ph ph-file-doc"></i> Generate KAK (Word)</button>
                             </div>
                         </div>
@@ -2222,7 +2160,29 @@
             }
 
             documentCode(name) {
-                const aliases = {'Nota Dinas':'NOTA_DINAS','BA Reviu Dok Persiapan':'BA_REVIU','BA Reviu DPP':'BA_REVIU','SDP':'SDP','SPK':'SPK','SSKK':'SSKK'};
+                const aliases = {
+                    'Nota Dinas':'NOTA_DINAS',
+                    'HPS/RAB':'HPS_RAB',
+                    'KAK':'KAK',
+                    'BA Reviu Dok Persiapan':'BA_REVIU',
+                    'BA Reviu Dokumen Persiapan':'BA_REVIU',
+                    'SDP':'SDP',
+                    'BA Evaluasi': 'BA_EVALUASI',
+                    'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
+                    'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
+                    'BA Negosiasi': 'BA_NEGOSIASI',
+                    'Undangan Pengadaan Langsung': 'UNDANGAN_PENGADAAN_LANGSUNG',
+                    'BA Hasil Pemilihan': 'BA_HASIL',
+                    'SPPBJ': 'SPPBJ',
+                    'Undangan Penandatanganan Kontrak':'UNDANGAN_KONTRAK',
+                    'Rancangan Kontrak':'RANCANGAN_KONTRAK',
+                    'SPK':'SPK',
+                    'SSUK':'SSUK',
+                    'SSKK':'SSKK',
+                    'SPMK':'SPMK',
+                    'BAST':'BAST',
+                    'BAP':'BAP'
+                };
                 return aliases[name] || String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
             }
 
@@ -2294,6 +2254,13 @@
             previewDocument(docId) { const master = DB.getById('package_documents', docId), file = master && this.getDocumentHistory(master)[0]?.file_url || master?.file_url; if(file) window.open(file, '_blank'); }
             downloadDocument(docId) { const master = DB.getById('package_documents', docId), item = master && this.getDocumentHistory(master)[0]; if(!item?.file_url) return; const a=document.createElement('a'); a.href=item.file_url; a.download=item.filename || item.name || 'dokumen'; a.click(); }
             showDocumentHistory(docId) { const master = DB.getById('package_documents', docId); const rows = master ? this.getDocumentHistory(master).map(x=>`<tr><td>v${x.version||1}</td><td>${x.filename||x.name}</td><td>${Utils.formatDate(x.document_date||x.date)}</td><td>${Utils.getBadge(x.status)}</td></tr>`).join('') : ''; DOM.openModal('Riwayat Dokumen', `<table class="data-table"><thead><tr><th>Versi</th><th>File</th><th>Tanggal</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Belum ada riwayat.</td></tr>'}</tbody></table>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button>`); }
+
+            openDocumentOutput(name, pkgId, fallbackPrint = '') {
+                const master = this.resolveDocumentMaster(name, pkgId);
+                const latest = this.getDocumentHistory(master)[0];
+                if (latest?.file_url) { window.open(latest.file_url, '_blank'); return; }
+                this.runDocumentEngine(master.id, pkgId);
+            }
 
             async runDocumentEngine(reference, pkgId) {
                 const master = this.resolveDocumentMaster(reference, pkgId);
@@ -2421,7 +2388,37 @@
                 const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
                 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+                // DYNAMIC DOCUMENT VARIABLES (Inject Nomor & Tanggal Spesifik per Dokumen)
+                const docCodes = ['NOTA_DINAS', 'HPS_RAB', 'KAK', 'BA_REVIU', 'SDP', 'BA_EVALUASI', 'BA_PEMBUKTIAN', 'UNDANGAN_NEGOSIASI', 'BA_NEGOSIASI', 'UNDANGAN_PENGADAAN_LANGSUNG', 'BA_HASIL', 'SPPBJ', 'UNDANGAN_KONTRAK', 'RANCANGAN_KONTRAK', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP'];
+                const dynamicDocVars = {};
+                const allPackageDocs = DB.get('package_documents').filter(d => d.package_id === pkgId);
+                
+                docCodes.forEach(code => {
+                    let d = allPackageDocs.find(x => x.document_code === code);
+                    const lowerCode = code.toLowerCase();
+                    const aliasesRev = {
+                        'NOTA_DINAS':'Nota Dinas', 'HPS_RAB':'HPS/RAB', 'KAK':'KAK', 'BA_REVIU': 'BA Reviu Dokumen Persiapan', 'SDP':'SDP', 'BA_EVALUASI':'BA Evaluasi', 'BA_PEMBUKTIAN':'BA Pembuktian Kualifikasi', 'UNDANGAN_NEGOSIASI':'Undangan Negosiasi', 'BA_NEGOSIASI':'BA Negosiasi', 'UNDANGAN_PENGADAAN_LANGSUNG':'Undangan Pengadaan Langsung', 'BA_HASIL':'BA Hasil Pemilihan', 'SPPBJ':'SPPBJ', 'UNDANGAN_KONTRAK': 'Undangan Penandatanganan Kontrak', 'RANCANGAN_KONTRAK': 'Rancangan Kontrak', 'SPK':'SPK', 'SSUK':'SSUK', 'SSKK':'SSKK', 'SPMK':'SPMK', 'BAST':'BAST', 'BAP':'BAP'
+                    };
+                    
+                    if (d && d.document_number) {
+                        dynamicDocVars[`nomor_${lowerCode}`] = d.document_number;
+                    } else {
+                        const calc = this.calculateDocumentMeta(pkg, aliasesRev[code] || code);
+                        dynamicDocVars[`nomor_${lowerCode}`] = calc.number || '-';
+                    }
+                    
+                    if (d && d.document_date) {
+                        dynamicDocVars[`tanggal_${lowerCode}`] = Utils.formatDate(d.document_date);
+                    } else {
+                        const calc = this.calculateDocumentMeta(pkg, aliasesRev[code] || code);
+                        dynamicDocVars[`tanggal_${lowerCode}`] = Utils.formatDate(calc.date) || '-';
+                    }
+                });
+
                 return {
+                    // Spread seluruh variabel dinamis (nomor_spk, tanggal_nota_dinas, dsb)
+                    ...dynamicDocVars,
+                    
                     nomor_ba: meta.number,
                     nomor_dokumen: meta.number,
                     nama_ppk: ppk.name,
@@ -2465,7 +2462,6 @@
                     total_hps_formatted: Utils.formatNumber(hpsRound), total_penawaran_formatted: Utils.formatNumber(penRound), total_negosiasi_formatted: Utils.formatNumber(negoRound),
                     nama_pejabat_pengadaan: pp.name, nip_pejabat_pengadaan: pp.nip || "-",
                     
-                    nomor_dokumen: meta.number,
                     hari: days[dateObj.getDay()],
                     tanggal_terbilang: Utils.toWords(dateObj.getDate()),
                     bulan: months[dateObj.getMonth()],
@@ -2736,7 +2732,7 @@
 
             advanceStage(pkgId) { 
                 const pkg = DB.getById('paket', pkgId); 
-                const st = ['PERSIAPAN', 'REVIU', 'PEMILIHAN', 'KLARIFIKASI', 'NEGOSIASI', 'KONTRAK', 'SELESAI']; 
+                const st = ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'SELESAI']; 
                 const i = st.indexOf(pkg.stage); 
                 if(i < st.length - 1) { 
                     DB.update('paket', pkgId, { stage: st[i+1], progress: pkg.progress + 15 }); 
@@ -2769,6 +2765,8 @@
                     chk.push({ doc, status, pic: 'Sistem' }); // Tidak lagi me-lock nomor dan tanggal ke nilai default secara permanen
                 }
                 DB.update('paket', pkgId, { checklists: chk });
+                const master = DB.get('package_documents').find(d => d.package_id === pkgId && d.document_code === this.documentCode(doc));
+                if (master) DB.update('package_documents', master.id, { status: status ? 'FINAL' : 'DRAFT' });
                 this.reRenderCurrentView();
             }
 
@@ -2844,7 +2842,7 @@
                 this.reRenderCurrentView();
             }
 
-            getDocumentMeta(pkg, doc) {
+            calculateDocumentMeta(pkg, doc) {
                 const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
 
                 // --- 1. Kalkulasi Tanggal Default ---
@@ -2864,7 +2862,7 @@
                 let calcDate = ''; // REVISI: Kosongkan jika dokumen tidak ada di Master Waktu
                 
                 // --- PENYESUAIAN KHUSUS UNTUK SPK DAN BAST ---
-                if (doc === 'SPK' && pkg.tgl_mulai) {
+                if (['SPK','SSUK','SSKK'].includes(doc) && pkg.tgl_mulai) {
                     calcDate = pkg.tgl_mulai;
                 } else if (doc === 'BAST' && pkg.tgl_selesai) {
                     calcDate = pkg.tgl_selesai;
@@ -2872,7 +2870,8 @@
                     // Logika default master waktu untuk dokumen lainnya
                     for (const [k, v] of Object.entries(dates)) { 
                         // Pengecekan disempurnakan (ignore case)
-                        if (doc.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(doc.toLowerCase())) { 
+                        const names = doc === 'BA Reviu Dokumen Persiapan' ? ['BA Reviu Dok Persiapan','BA Reviu Dokumen Persiapan','BA Reviu'] : [doc];
+                        if (names.some(name => name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase()))) { 
                             calcDate = v; 
                             break; 
                         } 
@@ -2883,7 +2882,7 @@
                 const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
 
                 // --- 2. Kalkulasi Penomoran Default menggunakan Final Date ---
-                const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU'};
+                const aliases = {'BA Reviu Dok Persiapan':'BA_REVIU','BA Reviu Dokumen Persiapan':'BA_REVIU','Undangan Penandatanganan Kontrak':'UNDANGAN_KONTRAK','Undangan Negosiasi':'UNDANGAN_NEGOSIASI','Rancangan Kontrak':'RANCANGAN_KONTRAK'};
                 const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
                 const ruleList = DB.get('penomoran') || [];
                 let rule = ruleList.find(r => r.code === code || r.code === doc);
@@ -2918,6 +2917,33 @@
                 const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
                 
                 return { number: finalNumber, date: finalDate };
+            }
+
+            getDocumentMeta(pkg, doc) {
+                const code = this.documentCode(doc);
+                const master = DB.get('package_documents').find(d => d.package_id === pkg.id && d.document_code === code);
+                if (master && (master.document_number || master.document_date)) return { number: master.document_number || '', date: master.document_date || '' };
+                return this.calculateDocumentMeta(pkg, doc);
+            }
+
+            syncChecklistDocumentRegisters(pkgId, names) {
+                const pkg = DB.getById('paket', pkgId);
+                return names.map(name => {
+                    const code = this.documentCode(name);
+                    let master = DB.get('package_documents').find(d => d.package_id === pkgId && d.document_code === code);
+                    if (!master) {
+                        const meta = this.calculateDocumentMeta(pkg, name);
+                        const template = this.selectTemplate(code, pkg);
+                        master = DB.insert('package_documents', { package_id: pkgId, document_name: name, document_code: code, document_number: meta.number, document_date: meta.date, template_id: template?.id || null, status: 'DRAFT', version: 1, generated: false });
+                    } else if (!master.document_number || !master.document_date || master.document_name !== name) {
+                        const meta = this.calculateDocumentMeta(pkg, name);
+                        const patch = master.document_name !== name ? { document_name: name } : {};
+                        if (!master.document_number) patch.document_number = meta.number;
+                        if (!master.document_date) patch.document_date = meta.date;
+                        master = DB.update('package_documents', master.id, patch) || master;
+                    }
+                    return master;
+                });
             }
 
             simulateDependencyEngine(docName, pkgId) {
