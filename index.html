@@ -2495,7 +2495,7 @@
                 }
             }
 
-            prepareDocumentPayload(pkgId, docName, master = null) {
+           prepareDocumentPayload(pkgId, docName, master = null) {
                 const pkg = DB.getById('paket', pkgId);
                 const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
                 const pjb = DB.get('pejabat');
