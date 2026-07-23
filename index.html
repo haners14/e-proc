@@ -2505,9 +2505,17 @@ const sorted = registers.sort((a,b)=>
             }
 
             async runDocumentEngine(reference, pkgId) {
-                const master = this.resolveDocumentMaster(reference, pkgId);
-                const docName = master.document_name;
-                const pkg = DB.getById('paket', pkgId);
+
+    const master = this.resolveDocumentMaster(reference, pkgId);
+
+    console.log("===== GENERATE =====");
+    console.log("MASTER =", master);
+    console.log("ID =", master.id);
+    console.log("NUMBER =", master.document_number);
+    console.log("DATE =", master.document_date);
+
+    const docName = master.document_name;
+    const pkg = DB.getById('paket', pkgId);
                 let templateCode = docName.replace(/ /g, '_').toUpperCase();
                 
                 const template = this.selectTemplate(master.document_code || templateCode, pkg, master.template_id);
