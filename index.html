@@ -2845,6 +2845,33 @@
                 return { number: finalNumber, date: finalDate };
             }
 
+            getDocumentMeta(pkg, doc) {
+                const code = this.documentCode(doc);
+                const master = DB.get('package_documents').find(d => d.package_id === pkg.id && d.document_code === code);
+                if (master && (master.document_number || master.document_date)) return { number: master.document_number || '', date: master.document_date || '' };
+                return this.calculateDocumentMeta(pkg, doc);
+            }
+
+            syncChecklistDocumentRegisters(pkgId, names) {
+                const pkg = DB.getById('paket', pkgId);
+                return names.map(name => {
+                    const code = this.documentCode(name);
+                    let master = DB.get('package_documents').find(d => d.package_id === pkgId && d.document_code === code);
+                    if (!master) {
+                        const meta = this.calculateDocumentMeta(pkg, name);
+                        const template = this.selectTemplate(code, pkg);
+                        master = DB.insert('package_documents', { package_id: pkgId, document_name: name, document_code: code, document_number: meta.number, document_date: meta.date, template_id: template?.id || null, status: 'DRAFT', version: 1, generated: false });
+                    } else if (!master.document_number || !master.document_date || master.document_name !== name) {
+                        const meta = this.calculateDocumentMeta(pkg, name);
+                        const patch = master.document_name !== name ? { document_name: name } : {};
+                        if (!master.document_number) patch.document_number = meta.number;
+                        if (!master.document_date) patch.document_date = meta.date;
+                        master = DB.update('package_documents', master.id, patch) || master;
+                    }
+                    return master;
+                });
+            }
+
             printDocument(title, content, customStyle = '') {
                 const win = window.open('', '_blank'); 
                 if(!win) { this.notify('Izinkan pop-up untuk mencetak dokumen.', 'error'); return; }
