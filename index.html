@@ -2295,7 +2295,7 @@ const sorted = registers.sort((a,b)=>
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
                     
-                    const pkg = DB.getById('paket', pkgId);
+                    
                     let items = Array.isArray(pkg.items) ? [...pkg.items] : [];
 
                     rows.slice(1).forEach(r => {
@@ -2597,6 +2597,9 @@ console.log(
 
             prepareDocumentPayload(pkgId, docName, master = null) {
                 const pkg = DB.getById('paket', pkgId);
+                console.log("PKG =", pkg);
+                console.log("nama_sub_kegiatan =", pkg.nama_sub_kegiatan);
+                console.log("kode_sub_kegiatan =", pkg.kode_sub_kegiatan);
                 const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
                 const pjb = DB.get('pejabat');
                 
