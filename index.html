@@ -2726,7 +2726,15 @@ console.log(
                     negosiasi_terbilang: Utils.toWords(negoRound) + " rupiah",
                     terbilang_neg: Utils.toWords(negoRound) + " rupiah",
 
-                    nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
+                    kode_program: pkg.kode_program || "-",
+                    program: pkg.program || "-",
+                    
+                    kode_kegiatan: pkg.kode_kegiatan || "-",
+                    kegiatan: pkg.kegiatan || "-",
+                    
+                    kode_sub_kegiatan: pkg.kode_sub_kegiatan || "-",
+                    sub_kegiatan: pkg.nama_sub_kegiatan || "-",
+                    
                     lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
                     
                     items: itemsPayload,
