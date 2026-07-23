@@ -340,7 +340,9 @@
                 catch(e) { return Math.random().toString(36).substring(2, 10).toUpperCase(); }
             },
             addWorkingDays: (startDate, days, holidays = []) => {
-                let date = new Date(startDate); let added = 0;
+                let date = new Date(startDate); 
+                if (isNaN(date.getTime())) date = new Date();
+                let added = 0;
                 if (days === 0) return date.toISOString().split('T')[0];
 
                 while (added < days) { 
@@ -1595,7 +1597,7 @@
                 rules.forEach((r,i) => {
                     let start, end, isManual = false;
                     
-                    if (overrides[`proc_${r.id}`]) {
+                    if (overrides[`proc_${r.id}`] && overrides[`proc_${r.id}`] !== '') {
                         end = overrides[`proc_${r.id}`];
                         // Estimasi start dari manual end (kurangi durasi)
                         let tempDate = new Date(end);
@@ -1651,7 +1653,7 @@
 
                 rules.forEach(r => { 
                     let finalDate;
-                    if(docOverrides[`doc_${r.id}`]) {
+                    if(docOverrides[`doc_${r.id}`] && docOverrides[`doc_${r.id}`] !== '') {
                         finalDate = docOverrides[`doc_${r.id}`];
                     } else {
                         const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : docDates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
@@ -1664,7 +1666,7 @@
                 let baseProc = this.pkg.tgl_awal || this.pkg.tgl_mulai;
                 procRules.forEach(r => {
                     let start, end;
-                    if(procOverrides[`proc_${r.id}`]) {
+                    if(procOverrides[`proc_${r.id}`] && procOverrides[`proc_${r.id}`] !== '') {
                         end = procOverrides[`proc_${r.id}`];
                         start = end; // Simplifikasi display kalender untuk yg manual
                         baseProc = end;
@@ -1734,11 +1736,11 @@
                     'BAP'
                 ];
                 const registers = app.syncChecklistDocumentRegisters(this.packageId, docs);
-                const sorted = [...registers].sort((a,b) => (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') || a.document_name.localeCompare(b.document_name));
+                const sorted = [...registers].sort((a,b) => (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') || (a.document_name || '').localeCompare(b.document_name || ''));
                 const row = master => {
                     const c = (this.pkg.checklists || []).find(x => x.doc === master.document_name);
-                    const done = c?.status || ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status||'').toUpperCase());
-                    return `<tr><td style="width:40px;text-align:center"><input type="checkbox" class="w-4 h-4 accent-primary" ${done?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${master.document_name}',this.checked)"></td><td class="font-medium">${master.document_name}<div class="text-xs text-muted">${master.document_code}</div></td><td><input type="text" class="form-control chk-master-input" data-id="${master.id}" data-field="document_number" value="${master.document_number||''}" placeholder="Nomor dokumen"></td><td><input type="date" class="form-control chk-master-input" data-id="${master.id}" data-field="document_date" value="${master.document_date||''}"></td><td>${Utils.getBadge(master.status || (done?'FINAL':'DRAFT'))}</td><td><button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master.id}','${this.packageId}')"><i class="ph ph-magic-wand"></i> Generate</button></td></tr>`;
+                    const done = c?.status || ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master?.status||'').toUpperCase());
+                    return `<tr><td style="width:40px;text-align:center"><input type="checkbox" class="w-4 h-4 accent-primary" ${done?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${master?.document_name||''}',this.checked)"></td><td class="font-medium">${master?.document_name||'-'}<div class="text-xs text-muted">${master?.document_code||'-'}</div></td><td><input type="text" class="form-control chk-master-input" data-id="${master?.id}" data-field="document_number" value="${master?.document_number||''}" placeholder="Nomor dokumen"></td><td><input type="date" class="form-control chk-master-input" data-id="${master?.id}" data-field="document_date" value="${master?.document_date||''}"></td><td>${Utils.getBadge(master?.status || (done?'FINAL':'DRAFT'))}</td><td><button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master?.id}','${this.packageId}')"><i class="ph ph-magic-wand"></i> Generate</button></td></tr>`;
                 };
                 return `<div class="mb-4"><p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700"><b>Master dokumen:</b> nomor dan tanggal di bawah disimpan per dokumen pada <code>package_documents</code>. Generator selalu memakai nilai ini, bukan data checklist lama.</p></div><div class="card p-0 mb-6" style="overflow:visible"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">Checklist Dokumen Pengadaan — urut tanggal</h3></div><div class="table-container" style="border:0;border-radius:0;overflow-x:auto"><table class="data-table"><thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Status</th><th>Generate</th></tr></thead><tbody>${sorted.map(row).join('')}</tbody></table></div></div>`;
             }
@@ -1788,7 +1790,7 @@
                                 <div class="form-group"><label class="form-label">Maksud & Tujuan</label><textarea name="maksud_tujuan" class="form-control" rows="3">${p.maksud_tujuan || ''}</textarea></div>
                                 <div class="form-group"><label class="form-label">Sasaran</label><textarea name="sasaran" class="form-control" rows="2">${p.sasaran || ''}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\\nBadan Keuangan dan Aset Daerah'}</textarea></div>
                                     <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><textarea name="sumber_pembiayaan" class="form-control" rows="2">${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
                                 </div>
                             </fieldset>
@@ -1831,7 +1833,7 @@
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">4. Pelaporan & Hasil Akhir</legend>
-                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir)</label><textarea name="pelaporan" class="form-control" rows="4">${p.pelaporan || '1. Laporan Pendahuluan\n2. Laporan Bulanan\n3. Laporan Akhir'}</textarea></div>
+                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir)</label><textarea name="pelaporan" class="form-control" rows="4">${p.pelaporan || '1. Laporan Pendahuluan\\n2. Laporan Bulanan\\n3. Laporan Akhir'}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Output</label><textarea name="output_kak" class="form-control" rows="2">${p.output_kak || ''}</textarea></div>
                                     <div class="form-group"><label class="form-label">Outcome</label><textarea name="outcome" class="form-control" rows="2">${p.outcome || ''}</textarea></div>
@@ -1911,7 +1913,7 @@
                 const guaranteeInput = document.querySelector('.guarantee-input');
                 
                 const updateGuarantee = () => {
-                    const n = Number(String(negoInput.value).replace(/\D/g, '')) || 0; 
+                    const n = Number(String(negoInput.value).replace(/\\D/g, '')) || 0; 
                     const p = Number(percentInput.value) || 0;
                     guaranteeInput.value = Utils.formatCurrency(n * (p / 100));
                 };
@@ -1919,7 +1921,7 @@
                 if(percentInput) percentInput.addEventListener('input', updateGuarantee);
                 if(negoInput) {
                     negoInput.addEventListener('input', (e) => {
-                        e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
+                        e.target.value = Utils.formatNumber(String(e.target.value).replace(/\\D/g, ''));
                         updateGuarantee();
                     });
                 }
@@ -1935,9 +1937,9 @@
                     const date = d.document_date || latest?.document_date || latest?.date;
                     const status = d.status || (latest ? latest.status : 'DRAFT');
                     const file = latest?.file_url || d.file_url;
-                    return `<tr><td><div class="font-semibold">${d.document_name}</div><div class="text-xs text-muted">${d.document_code || '-'}</div></td><td>${number}</td><td>${Utils.formatDate(date)}</td><td>${template ? template.name : 'Belum dipilih'}</td><td>${Utils.getBadge(status)}</td><td>v${d.version || latest?.version || 1}</td><td><div class="flex gap-1" style="flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="app.runDocumentEngine('${d.id}','${this.packageId}')">Generate</button><button class="btn btn-outline btn-sm" onclick="app.previewDocument('${d.id}')" ${file?'':'disabled'}>Preview</button><button class="btn btn-outline btn-sm" onclick="app.downloadDocument('${d.id}')" ${file?'':'disabled'}>Unduh</button><button class="btn btn-outline btn-sm" onclick="app.openDocumentUpload('${d.id}')">Upload</button><button class="btn btn-ghost btn-sm" onclick="app.showDocumentHistory('${d.id}')">Riwayat (${versions.length})</button></div></td></tr>`;
+                    return `<tr><td><div class=\"font-semibold\">${d.document_name}</div><div class=\"text-xs text-muted\">${d.document_code || '-'}</div></td><td>${number}</td><td>${Utils.formatDate(date)}</td><td>${template ? template.name : 'Belum dipilih'}</td><td>${Utils.getBadge(status)}</td><td>v${d.version || latest?.version || 1}</td><td><div class=\"flex gap-1\" style=\"flex-wrap:wrap\"><button class=\"btn btn-primary btn-sm\" onclick=\"app.runDocumentEngine('${d.id}','${this.packageId}')\">Generate</button><button class=\"btn btn-outline btn-sm\" onclick=\"app.previewDocument('${d.id}')\" ${file?'':'disabled'}>Preview</button><button class=\"btn btn-outline btn-sm\" onclick=\"app.downloadDocument('${d.id}')\" ${file?'':'disabled'}>Unduh</button><button class=\"btn btn-outline btn-sm\" onclick=\"app.openDocumentUpload('${d.id}')\">Upload</button><button class=\"btn btn-ghost btn-sm\" onclick=\"app.showDocumentHistory('${d.id}')\">Riwayat (${versions.length})</button></div></td></tr>`;
                 }).join('');
-                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg text-main">Register Dokumen Paket</h2><p class="text-sm text-muted"><code>package_documents</code> adalah master nomor, tanggal, status, dan template. <code>generated_documents</code> menyimpan riwayat versi.</p></div><button class="btn btn-primary" onclick="app.openDocumentForm('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Dokumen</button></div><div class="card p-0 overflow-hidden"><div class="table-container"><table class="data-table"><thead><tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="text-center text-muted p-8">Belum ada dokumen master. Tambahkan dokumen atau pilih dari template yang sudah Anda unggah.</td></tr>'}</tbody></table></div></div></div>`;
+                return `<div class=\"max-w-6xl mx-auto\"><div class=\"flex justify-between items-center mb-4\"><div><h2 class=\"font-bold text-lg text-main\">Register Dokumen Paket</h2><p class=\"text-sm text-muted\"><code>package_documents</code> adalah master nomor, tanggal, status, dan template. <code>generated_documents</code> menyimpan riwayat versi.</p></div><button class=\"btn btn-primary\" onclick=\"app.openDocumentForm('${this.packageId}')\"><i class=\"ph ph-plus\"></i> Tambah Dokumen</button></div><div class=\"card p-0 overflow-hidden\"><div class=\"table-container\"><table class=\"data-table\"><thead><tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr></thead><tbody>${rows || '<tr><td colspan=\"7\" class=\"text-center text-muted p-8\">Belum ada dokumen master. Tambahkan dokumen atau pilih dari template yang sudah Anda unggah.</td></tr>'}</tbody></table></div></div></div>`;
             }
 
             renderLaporan() {
@@ -1947,22 +1949,13 @@
                 const personnel = (this.pkg.personnel || []).reduce((sum,p) => sum + (Number(p.jumlah)||0), 0);
                 const progress = Number(this.pkg.progress) || (docs.length ? Math.round(completed / docs.length * 100) : 0);
                 const cards = [['Progress',`${progress}%`,`${completed}/${docs.length} dokumen selesai`],['Dokumen',`${completed}/${docs.length}`,'Register & riwayat versi'],['Nilai Negosiasi',Utils.formatCurrency(this.pkg.pembulatan_negosiasi || totals.negosiasi),`HPS ${Utils.formatCurrency(this.pkg.pembulatan_hps || totals.hps)}`],['Personel',personnel,`${(this.pkg.personnel||[]).length} persyaratan`],['Jadwal',DB.get('jadwal_proses').length,'tahap proses']];
-                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg">Dashboard Laporan Paket</h2><p class="text-sm text-muted">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak</button></div><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">${cards.map(c=>`<div class="card p-4"><div class="text-xs text-muted">${c[0]}</div><div class="font-bold text-lg mt-1">${c[1]}</div><div class="text-xs text-muted mt-1">${c[2]}</div></div>`).join('')}</div><div class="card p-5 mt-4"><div class="flex justify-between"><span class="font-semibold">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style="height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden"><div style="height:100%;width:${progress}%;background:var(--primary-600)"></div></div></div></div>`;
+                return `<div class=\"max-w-6xl mx-auto\"><div class=\"flex justify-between items-center mb-4\"><div><h2 class=\"font-bold text-lg\">Dashboard Laporan Paket</h2><p class=\"text-sm text-muted\">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><button class=\"btn btn-outline\" onclick=\"app.printPackageReport('${this.packageId}')\"><i class=\"ph ph-printer\"></i> Cetak</button></div><div class=\"grid\" style=\"grid-template-columns:repeat(5,minmax(0,1fr));gap:12px\">${cards.map(c=>`<div class=\"card p-4\"><div class=\"text-xs text-muted\">${c[0]}</div><div class=\"font-bold text-lg mt-1\">${c[1]}</div><div class=\"text-xs text-muted mt-1\">${c[2]}</div></div>`).join('')}</div><div class=\"card p-5 mt-4\"><div class=\"flex justify-between\"><span class=\"font-semibold\">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style=\"height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden\"><div style=\"height:100%;width:${progress}%;background:var(--primary-600)\"></div></div></div></div>`;
             }
             
             renderAktivitas() {
                 const pkgIdStr = this.pkg.supplier_id ? `ID Penyedia: ${this.pkg.supplier_id}` : '';
                 return `
-                    <div class="card p-6 max-w-3xl mx-auto">
-                        <h2 class="font-bold text-lg mb-6 border-b pb-2">Log Aktivitas Sistem (Audit Trail)</h2>
-                        <div class="timeline-container">
-                            <div class="timeline-node"><div class="timeline-indicator mt-0"><div class="timeline-dot completed"></div></div>
-                            <div><p class="font-bold text-sm">Paket Dibuat di Supabase</p><p class="text-xs text-muted">Sistem / Initial</p></div></div>
-                            ${this.pkg.supplier_id ? `<div class="timeline-node"><div class="timeline-indicator mt-0"><div class="timeline-dot completed"></div></div>
-                            <div><p class="font-bold text-sm">Penyedia Ditetapkan</p><p class="text-xs text-muted">${pkgIdStr}</p></div></div>` : ''}
-                        </div>
-                    </div>
-                `;
+                    <div class=\"card p-6 max-w-3xl mx-auto\">\n                        <h2 class=\"font-bold text-lg mb-6 border-b pb-2\">Log Aktivitas Sistem (Audit Trail)</h2>\n                        <div class=\"timeline-container\">\n                            <div class=\"timeline-node\"><div class=\"timeline-indicator mt-0\"><div class=\"timeline-dot completed\"></div></div>\n                            <div><p class=\"font-bold text-sm\">Paket Dibuat di Supabase</p><p class=\"text-xs text-muted\">Sistem / Initial</p></div></div>\n                            ${this.pkg.supplier_id ? `<div class=\"timeline-node\"><div class=\"timeline-indicator mt-0\"><div class=\"timeline-dot completed\"></div></div>\n                            <div><p class=\"font-bold text-sm\">Penyedia Ditetapkan</p><p class=\"text-xs text-muted\">${pkgIdStr}</p></div></div>` : ''}\n                        </div>\n                    </div>\n                `;
             }
         }
 
@@ -1997,98 +1990,33 @@
                     const bg = isHeader ? (r.kode.split('.').length <= 4 ? 'bg-warning-100' : 'bg-gray-100') : '';
                     
                     return `
-                    <tr class="${bg} ${isHeader ? 'font-bold' : ''}" style="${isHeader ? 'border-top: 1px dashed var(--gray-400); border-bottom: 1px dashed var(--gray-400);' : ''}">
-                        <td>${r.kode}</td>
-                        <td style="padding-left: ${indent+8}px;">${r.uraian}</td>
-                        <td class="text-right">${Utils.formatCurrency(r.pagu_calculated)}</td>
-                        <td class="text-right text-success-600">${Utils.formatCurrency(r.realisasi)}</td>
-                        <td class="text-right">${Utils.formatCurrency(sisa)}</td>
-                        <td class="text-center">
-                            <button class="btn btn-ghost btn-sm text-primary" onclick="app.editRekening('${r.id}')"><i class="ph ph-pencil-simple"></i></button>
-                        </td>
-                    </tr>`;
+                    <tr class=\"${bg} ${isHeader ? 'font-bold' : ''}\" style=\"${isHeader ? 'border-top: 1px dashed var(--gray-400); border-bottom: 1px dashed var(--gray-400);' : ''}\">\n                        <td>${r.kode}</td>\n                        <td style=\"padding-left: ${indent+8}px;\">${r.uraian}</td>\n                        <td class=\"text-right\">${Utils.formatCurrency(r.pagu_calculated)}</td>\n                        <td class=\"text-right text-success-600\">${Utils.formatCurrency(r.realisasi)}</td>\n                        <td class=\"text-right\">${Utils.formatCurrency(sisa)}</td>\n                        <td class=\"text-center\">\n                            <button class=\"btn btn-ghost btn-sm text-primary\" onclick=\"app.editRekening('${r.id}')\"><i class=\"ph ph-pencil-simple\"></i></button>\n                        </td>\n                    </tr>`;
                 }).join('');
 
                 container.innerHTML = `
-                    <div class="p-6 h-full flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1><p class="text-muted text-sm mt-1">Hierarki otomatis terjumlah berdasarkan kode rekening.</p></div>
-                            <button class="btn btn-primary" onclick="app.editRekening()"><i class="ph ph-plus"></i> Tambah Rekening Baru</button>
-                        </div>
-                        <div class="card flex-1 flex flex-col overflow-hidden">
-                            <div class="table-container flex-1 overflow-auto border-0 rounded-none">
-                                <table class="data-table" style="font-size: 0.75rem;">
-                                    <thead style="position: sticky; top:0; z-index:10;">
-                                        <tr><th style="width: 150px;">Kode Rekening</th><th>Uraian</th><th class="text-right" style="width: 150px;">Pagu Anggaran</th><th class="text-right" style="width: 150px;">Realisasi Pencairan</th><th class="text-right" style="width: 150px;">Sisa Anggaran</th><th style="width: 60px;"></th></tr>
-                                    </thead>
-                                    <tbody>${rows}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6 h-full flex flex-col\">\n                        <div class=\"flex justify-between items-center mb-6\">\n                            <div><h1 class=\"text-2xl font-bold text-main\">Pagu & Realisasi Anggaran</h1><p class=\"text-muted text-sm mt-1\">Hierarki otomatis terjumlah berdasarkan kode rekening.</p></div>\n                            <button class=\"btn btn-primary\" onclick=\"app.editRekening()\"><i class=\"ph ph-plus\"></i> Tambah Rekening Baru</button>\n                        </div>\n                        <div class=\"card flex-1 flex flex-col overflow-hidden\">\n                            <div class=\"table-container flex-1 overflow-auto border-0 rounded-none\">\n                                <table class=\"data-table\" style=\"font-size: 0.75rem;\">\n                                    <thead style=\"position: sticky; top:0; z-index:10;\">\n                                        <tr><th style=\"width: 150px;\">Kode Rekening</th><th>Uraian</th><th class=\"text-right\" style=\"width: 150px;\">Pagu Anggaran</th><th class=\"text-right\" style=\"width: 150px;\">Realisasi Pencairan</th><th class=\"text-right\" style=\"width: 150px;\">Sisa Anggaran</th><th style=\"width: 60px;\"></th></tr>\n                                    </thead>\n                                    <tbody>${rows}</tbody>\n                                </table>\n                            </div>\n                        </div>\n                    </div>\n                `;
             }
 
             static renderKendali(container) {
                 container.innerHTML = `
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Kartu Kendali Kegiatan</h1><p class="text-muted text-sm mt-1">Monitoring SPJ per Sub Kegiatan dan Bulan</p></div>
-                            <div class="flex gap-2">
-                                <select class="form-control" style="width: 250px;"><option>Bulan Juni</option><option>Bulan Juli</option></select>
-                                <button class="btn btn-primary" onclick="app.printKendali()"><i class="ph ph-printer"></i> Cetak Kartu Kendali</button>
-                            </div>
-                        </div>
-                        <div class="card p-8 flex flex-col items-center justify-center text-center bg-gray-50 border-dashed" style="min-height: 400px;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Lambang_Kota_Bogor.png/400px-Lambang_Kota_Bogor.png" width="60" class="mb-4 opacity-50">
-                            <h3 class="text-lg font-bold text-gray-700">Preview Kartu Kendali</h3>
-                            <p class="text-muted text-sm max-w-lg mt-2">Kartu Kendali menggunakan format landscape khusus yang kompleks. Klik tombol "Cetak Kartu Kendali" di pojok kanan atas untuk melihat dan mengunduh format lengkapnya.</p>
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6\">\n                        <div class=\"flex justify-between items-center mb-6\">\n                            <div><h1 class=\"text-2xl font-bold text-main\">Kartu Kendali Kegiatan</h1><p class=\"text-muted text-sm mt-1\">Monitoring SPJ per Sub Kegiatan dan Bulan</p></div>\n                            <div class=\"flex gap-2\">\n                                <select class=\"form-control\" style=\"width: 250px;\"><option>Bulan Juni</option><option>Bulan Juli</option></select>\n                                <button class=\"btn btn-primary\" onclick=\"app.printKendali()\"><i class=\"ph ph-printer\"></i> Cetak Kartu Kendali</button>\n                            </div>\n                        </div>\n                        <div class=\"card p-8 flex flex-col items-center justify-center text-center bg-gray-50 border-dashed\" style=\"min-height: 400px;\">\n                            <img src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Lambang_Kota_Bogor.png/400px-Lambang_Kota_Bogor.png\" width=\"60\" class=\"mb-4 opacity-50\">\n                            <h3 class=\"text-lg font-bold text-gray-700\">Preview Kartu Kendali</h3>\n                            <p class=\"text-muted text-sm max-w-lg mt-2\">Kartu Kendali menggunakan format landscape khusus yang kompleks. Klik tombol \"Cetak Kartu Kendali\" di pojok kanan atas untuk melihat dan mengunduh format lengkapnya.</p>\n                        </div>\n                    </div>\n                `;
             }
 
             static renderPengajuan(container) {
                 const data = DB.get('pencairan');
-                let rows = data.map((d, i) => `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis_pencairan}</td><td>${d.sub_kegiatan}</td><td>${Utils.getBadge(d.status)}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.printSI('${d.id}')"><i class="ph ph-printer"></i> Cetak Lampiran</button></td></tr>`).join('');
-                if(!rows) rows = '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada data pengajuan.</td></tr>';
+                let rows = data.map((d, i) => `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis_pencairan}</td><td>${d.sub_kegiatan}</td><td>${Utils.getBadge(d.status)}</td><td><button class=\"btn btn-ghost btn-sm text-primary\" onclick=\"app.printSI('${d.id}')\"><i class=\"ph ph-printer\"></i> Cetak Lampiran</button></td></tr>`).join('');
+                if(!rows) rows = '<tr><td colspan=\"7\" class=\"text-center text-muted py-4\">Belum ada data pengajuan.</td></tr>';
 
                 container.innerHTML = `
-                    <div class="p-6 h-full flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pengajuan Pencairan (SI)</h1><p class="text-muted text-sm mt-1">Buat Lampiran Permintaan Pembayaran dan set status.</p></div>
-                            <button class="btn btn-primary" onclick="app.formPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
-                        </div>
-                        <div class="card flex-1 overflow-auto">
-                            <table class="data-table">
-                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Sub Kegiatan</th><th>Status</th><th>Aksi</th></tr></thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6 h-full flex flex-col\">\n                        <div class=\"flex justify-between items-center mb-6\">\n                            <div><h1 class=\"text-2xl font-bold text-main\">Pengajuan Pencairan (SI)</h1><p class=\"text-muted text-sm mt-1\">Buat Lampiran Permintaan Pembayaran dan set status.</p></div>\n                            <button class=\"btn btn-primary\" onclick=\"app.formPencairan()\"><i class=\"ph ph-plus\"></i> Buat Pengajuan Baru</button>\n                        </div>\n                        <div class=\"card flex-1 overflow-auto\">\n                            <table class=\"data-table\">\n                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Sub Kegiatan</th><th>Status</th><th>Aksi</th></tr></thead>\n                                <tbody>${rows}</tbody>\n                            </table>\n                        </div>\n                    </div>\n                `;
             }
 
             static renderSPJ(container) {
                 const data = DB.get('pencairan');
-                const options = data.map(d => `<option value="${d.id}">${d.nomor} - ${d.sub_kegiatan}</option>`).join('');
+                const options = data.map(d => `<option value=\"${d.id}\">${d.nomor} - ${d.sub_kegiatan}</option>`).join('');
                 
                 container.innerHTML = `
-                    <div class="p-6 max-w-4xl mx-auto w-full">
-                        <h1 class="text-2xl font-bold text-main mb-6">SPJ dan Daftar Hadir / Absen</h1>
-                        <div class="card p-6 mb-6">
-                            <h2 class="font-bold mb-4 border-b pb-2">Pilih Data Pencairan</h2>
-                            <div class="form-group">
-                                <label class="form-label">Nomor Pengajuan (Terkait Honorarium)</label>
-                                <select id="spj-select" class="form-control"><option value="">-- Pilih --</option>${options}</select>
-                            </div>
-                            <button class="btn btn-primary" onclick="app.printSPJ()"><i class="ph ph-printer"></i> Cetak SPJ Honorarium</button>
-                        </div>
-                        <div class="bg-info-50 p-4 border border-info-200 rounded text-sm text-info-700">
-                            <b>Info:</b> Cetakan SPJ akan secara otomatis membuat daftar nama, jumlah honor, potongan pajak, dan kolom tanda tangan ganda sesuai format standar.
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6 max-w-4xl mx-auto w-full\">\n                        <h1 class=\"text-2xl font-bold text-main mb-6\">SPJ dan Daftar Hadir / Absen</h1>\n                        <div class=\"card p-6 mb-6\">\n                            <h2 class=\"font-bold mb-4 border-b pb-2\">Pilih Data Pencairan</h2>\n                            <div class=\"form-group\">\n                                <label class=\"form-label\">Nomor Pengajuan (Terkait Honorarium)</label>\n                                <select id=\"spj-select\" class=\"form-control\"><option value=\"\">-- Pilih --</option>${options}</select>\n                            </div>\n                            <button class=\"btn btn-primary\" onclick=\"app.printSPJ()\"><i class=\"ph ph-printer\"></i> Cetak SPJ Honorarium</button>\n                        </div>\n                        <div class=\"bg-info-50 p-4 border border-info-200 rounded text-sm text-info-700\">\n                            <b>Info:</b> Cetakan SPJ akan secara otomatis membuat daftar nama, jumlah honor, potongan pajak, dan kolom tanda tangan ganda sesuai format standar.\n                        </div>\n                    </div>\n                `;
             }
         }
 
@@ -2350,7 +2278,7 @@
                     'BAST':'BAST',
                     'BAP':'BAP'
                 };
-                return aliases[name] || String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
+                return aliases[name] || String(name || '').replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
             }
 
             normalizeProcurementType(value) {
@@ -2495,7 +2423,7 @@
                 }
             }
 
-           prepareDocumentPayload(pkgId, docName, master = null) {
+            prepareDocumentPayload(pkgId, docName, master = null) {
                 const pkg = DB.getById('paket', pkgId);
                 const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
                 const pjb = DB.get('pejabat');
@@ -2893,7 +2821,7 @@
                 if (rule) {
                     const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
                     const d = new Date(`${dateForNumber}T00:00:00`);
-                    const toRoman = (num) =>  ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
+                    const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
                     const mm = toRoman(d.getMonth() + 1);
                     const yyyy = d.getFullYear();
                     const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
@@ -2905,11 +2833,11 @@
                     const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
                     
                     calcNumber = rule.format
-                                 .replace(/\\[keyword_penomoran\\]/g, keyword)
-                                 .replace(/\\[uraian\\]/g, keyword) 
-                                 .replace(/\\[bulan\\]/g, mm)
-                                 .replace(/\\[tahun\\]/g, yyyy)
-                                 .replace(/\\[nomor\\]/g, seqNum);
+                                 .replace(/\[keyword_penomoran\]/g, keyword)
+                                 .replace(/\[uraian\]/g, keyword) 
+                                 .replace(/\[bulan\]/g, mm)
+                                 .replace(/\[tahun\]/g, yyyy)
+                                 .replace(/\[nomor\]/g, seqNum);
                 }
 
                 const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
@@ -2928,14 +2856,14 @@
                 const p = DB.getById('paket',pkgId); 
                 
                 if (short) {
-                    const content = `<h1>Uraian Singkat Pekerjaan</h1><div class=\"meta\">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>`; 
+                    const content = `<h1>Uraian Singkat Pekerjaan</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div><p>${p.uraian_kak || p.uraian || '-'}</p>`; 
                     this.printDocument('Uraian Singkat Pekerjaan', content); 
                     return;
                 }
 
-                let personilRows = (p.personnel||[]).map((x,i) => `<tr><td class=\"c\">${i+1}</td><td>${x.jabatan}</td><td>${x.pendidikan}</td><td class=\"c\">${x.pengalaman}</td><td>${x.sertifikat}</td><td class=\"c\">${x.jumlah}</td><td class=\"c\">${x.orang_bulan}</td></tr>`).join('');
-                if(!personilRows) personilRows = '<tr><td colspan=\"7\" class=\"c\">Tidak ada Tenaga Ahli yang disyaratkan secara spesifik</td></tr>';
-                const tablePersonil = `<table><thead><tr><th style=\"width:40px;\">No</th><th>Posisi/Jabatan</th><th>Pendidikan Minimal</th><th style=\"width:80px;\">Pengalaman<br>(Thn)</th><th>Keahlian/Sertifikat</th><th style=\"width:60px;\">Jumlah<br>Orang</th><th style=\"width:60px;\">Bulan</th></tr></thead><tbody>${personilRows}</tbody></table>`;
+                let personilRows = (p.personnel||[]).map((x,i) => `<tr><td class="c">${i+1}</td><td>${x.jabatan}</td><td>${x.pendidikan}</td><td class="c">${x.pengalaman}</td><td>${x.sertifikat}</td><td class="c">${x.jumlah}</td><td class="c">${x.orang_bulan}</td></tr>`).join('');
+                if(!personilRows) personilRows = '<tr><td colspan="7" class="c">Tidak ada Tenaga Ahli yang disyaratkan secara spesifik</td></tr>';
+                const tablePersonil = `<table><thead><tr><th style="width:40px;">No</th><th>Posisi/Jabatan</th><th>Pendidikan Minimal</th><th style="width:80px;">Pengalaman<br>(Thn)</th><th>Keahlian/Sertifikat</th><th style="width:60px;">Jumlah<br>Orang</th><th style="width:60px;">Bulan</th></tr></thead><tbody>${personilRows}</tbody></table>`;
 
                 const sections = [
                     ['Latar Belakang', p.latar_belakang],
@@ -2955,7 +2883,7 @@
                     ['Alih Pengetahuan', p.alih_pengetahuan]
                 ];
 
-                const content = `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class=\"meta\">${p.name}<br>${p.lokasi || ''}</div>` + 
+                const content = `<h1>KERANGKA ACUAN KERJA (KAK)</h1><div class="meta">${p.name}<br>${p.lokasi || ''}</div>` + 
                     sections.map(x => `<h2>${x[0]}</h2>${x[2] ? x[1] : `<p>${x[1] || '-'}</p>`}`).join('');
 
                 this.printDocument('KAK', content); 
@@ -2964,10 +2892,10 @@
             printHPS(pkgId) { 
                 const p = DB.getById('paket',pkgId);
                 const rows = (p.items||[]).map((x,i)=> {
-                    if (x.is_header) return `<tr><td colspan=\"6\" style=\"background:#f3f4f6;font-weight:bold;\">${x.uraian}</td></tr>`;
+                    if (x.is_header) return `<tr><td colspan="6" style="background:#f3f4f6;font-weight:bold;">${x.uraian}</td></tr>`;
                     return `<tr><td>${i+1}</td><td>${x.uraian}</td><td>${x.sat}</td><td>${x.vol_hps}</td><td>Rp ${Utils.formatNumber(x.harga_hps)}</td><td>Rp ${Utils.formatNumber(Number(x.vol_hps)*Number(x.harga_hps))}</td></tr>`;
                 }).join(''); 
-                this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class=\"meta\">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
+                this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class="meta">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
             }
             
             printPackageReport(pkgId) { 
@@ -2986,8 +2914,8 @@
 
             notify(message, type = 'info') {
                 const tc = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast';
-                const i = type === 'success' ? '<i class=\"ph-fill ph-check-circle text-success text-2xl\"></i>' : (type === 'error' ? '<i class=\"ph-fill ph-warning-circle text-danger text-2xl\"></i>' : '<i class=\"ph-fill ph-info text-info text-2xl\"></i>');
-                t.innerHTML = `${i} <span class=\"text-main\">${message}</span>`; tc.appendChild(t);
+                const i = type === 'success' ? '<i class="ph-fill ph-check-circle text-success text-2xl"></i>' : (type === 'error' ? '<i class="ph-fill ph-warning-circle text-danger text-2xl"></i>' : '<i class="ph-fill ph-info text-info text-2xl"></i>');
+                t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
                 setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
         }
