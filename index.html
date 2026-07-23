@@ -191,6 +191,11 @@
         /* CSS Tambahan TomSelect Overrides */
         .ts-control { border-radius: var(--radius-sm); padding: 8px 12px; border-color: var(--border-color); box-shadow: none; }
         .ts-control.focus { border-color: var(--primary-500); box-shadow: 0 0 0 3px var(--primary-100); }
+        
+        /* Drag and Drop styling */
+        .draggable-row.dragging { opacity: 0.5; background-color: var(--primary-50); }
+        .drag-handle { cursor: grab; font-size: 1.25rem; color: var(--gray-400); display: inline-flex; align-items: center; justify-content: center; width: 24px; }
+        .drag-handle:active { cursor: grabbing; color: var(--primary-600); }
     </style>
 </head>
 <body>
@@ -439,7 +444,7 @@
 
                 if (this.cache['packages']) {
                     this.cache['packages'].forEach(pkg => {
-                        pkg.items = this.cache['package_items']?.filter(i => i.package_id === pkg.id) || [];
+                        pkg.items = (this.cache['package_items']?.filter(i => i.package_id === pkg.id) || []).sort((a,b) => (a.urutan||0) - (b.urutan||0));
                         pkg.personnel = this.cache['package_personnel']?.filter(i => i.package_id === pkg.id) || [];
                     });
                 }
@@ -495,7 +500,7 @@
                     let cpy = { ...payload };
 
                     if (payload.items !== undefined) {
-                        const items = payload.items.map(item => ({ ...item, package_id: id }));
+                        const items = payload.items.map((item, idx) => ({ ...item, package_id: id, urutan: idx }));
                         (async () => {
                             try {
                                 await fetch(`${SUPABASE_URL}package_items?package_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
@@ -609,11 +614,23 @@
 
             render(container) {
                 this.loadData();
+                let extraButtons = '';
+                if (this.schemaKey === 'paket') {
+                    extraButtons = `
+                        <input type="file" id="import-paket-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importPaket(event)">
+                        <button class="btn btn-outline" onclick="app.exportPaket()"><i class="ph ph-download"></i> Export Data</button>
+                        <button class="btn btn-outline" onclick="document.getElementById('import-paket-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
+                    `;
+                }
+
                 container.innerHTML = `
                     <div class="p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6">
                             <div><h1 class="text-2xl font-bold text-main">${this.schema.title}</h1><p class="text-muted text-sm mt-1">Live Sync dari Supabase.</p></div>
-                            <button class="btn btn-primary" onclick="app.crudEngine.showForm()"><i class="ph ph-plus"></i> Tambah Data</button>
+                            <div class="flex gap-2">
+                                ${extraButtons}
+                                <button class="btn btn-primary" onclick="app.crudEngine.showForm()"><i class="ph ph-plus"></i> Tambah Data</button>
+                            </div>
                         </div>
                         <div class="card flex-1 flex flex-col overflow-hidden">
                             <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -1237,8 +1254,10 @@
                 const trs = items.map((i, index) => {
                     if (i.is_header) {
                         return `
-                        <tr data-index="${index}" class="bg-gray-100">
-                            <td class="cell-readonly text-center font-bold">${index + 1}</td>
+                        <tr data-index="${index}" class="draggable-row bg-gray-100" draggable="true">
+                            <td class="cell-readonly text-center font-bold">
+                                <div class="flex items-center gap-1"><i class="ph ph-dots-six-vertical drag-handle"></i> ${index + 1}</div>
+                            </td>
                             <td colspan="10"><input type="text" class="cell-input hrg-input" style="font-weight:bold" data-field="uraian" value="${i.uraian}" placeholder="Contoh: Pekerjaan Non Personil"></td>
                             <td><button class="btn btn-ghost btn-sm text-danger" onclick="app.removeHargaRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
                         </tr>
@@ -1251,8 +1270,10 @@
                     const negT = (Number(i.vol_neg) * Number(i.harga_neg)) * tax; negSub += (Number(i.vol_neg) * Number(i.harga_neg)); negPPN += negT - (Number(i.vol_neg) * Number(i.harga_neg));
 
                     return `
-                    <tr data-index="${index}">
-                        <td class="cell-readonly text-center">${index + 1}</td>
+                    <tr data-index="${index}" class="draggable-row" draggable="true">
+                        <td class="cell-readonly text-center">
+                            <div class="flex items-center gap-1"><i class="ph ph-dots-six-vertical drag-handle"></i> ${index + 1}</div>
+                        </td>
                         <td><input type="text" class="cell-input hrg-input" data-field="uraian" value="${i.uraian}"></td>
                         <td><input type="text" class="cell-input hrg-input text-center" data-field="sat" value="${i.sat}"></td>
                         
@@ -1297,7 +1318,7 @@
                     <div class="flex justify-between items-center mb-4">
                         <div>
                             <h2 class="font-bold text-lg text-main">Rincian Harga</h2>
-                            <p class="text-sm text-muted">Ketik untuk simpan otomatis. Mendukung Copy-Paste (Ctrl+V) langsung dari Excel.</p>
+                            <p class="text-sm text-muted">Ketik untuk simpan otomatis. Mendukung Copy-Paste (Ctrl+V) langsung dari Excel. <br><span class="text-primary-600 font-semibold"><i class="ph ph-hand-swipe-right"></i> Anda dapat drag-and-drop baris untuk mengubah urutannya.</span></p>
                         </div>
                         <div class="flex gap-2">
                             <input type="file" id="import-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importHPS(event, '${this.packageId}')">
@@ -1467,6 +1488,53 @@
                     el.addEventListener('change', e => {
                         DB.update('paket', this.packageId, { [e.target.dataset.round]: Number(String(e.target.value).replace(/\D/g, '')) || 0 });
                         this.refreshHargaUI(); 
+                    });
+                });
+
+                // --- Drag and Drop Logic ---
+                let dragIndex = null;
+                table.querySelectorAll('.draggable-row').forEach(row => {
+                    row.addEventListener('dragstart', (e) => {
+                        dragIndex = parseInt(e.target.closest('tr').dataset.index);
+                        e.dataTransfer.effectAllowed = "move";
+                        row.classList.add('dragging');
+                    });
+                    
+                    row.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        const targetRow = e.target.closest('tr.draggable-row');
+                        if (targetRow && parseInt(targetRow.dataset.index) !== dragIndex) {
+                            targetRow.style.borderTop = '2px solid var(--primary-500)';
+                        }
+                    });
+                    
+                    row.addEventListener('dragleave', (e) => {
+                        const targetRow = e.target.closest('tr.draggable-row');
+                        if (targetRow) targetRow.style.borderTop = '';
+                    });
+                    
+                    row.addEventListener('dragend', (e) => {
+                        row.classList.remove('dragging');
+                        table.querySelectorAll('.draggable-row').forEach(r => r.style.borderTop = '');
+                    });
+                    
+                    row.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const targetRow = e.target.closest('tr.draggable-row');
+                        if (!targetRow) return;
+                        targetRow.style.borderTop = '';
+                        
+                        const dropIndex = parseInt(targetRow.dataset.index);
+                        if (dragIndex === null || dragIndex === dropIndex) return;
+
+                        let items = Array.isArray(this.pkg.items) ? [...this.pkg.items] : [];
+                        const draggedItem = items.splice(dragIndex, 1)[0];
+                        items.splice(dropIndex, 0, draggedItem);
+                        
+                        // DB.update akan otomatis meng-assign urutan baru berdasarkan index array
+                        DB.update('paket', this.packageId, { items });
+                        app.notify('Urutan baris berhasil diubah', 'success');
+                        app.reRenderCurrentView();
                     });
                 });
             }
@@ -2048,6 +2116,85 @@
                     }
                 });
             }
+
+            // Fungsi Excel Export / Import Paket
+            exportPaket() {
+                const pkgs = DB.get('paket');
+                const data = pkgs.map(p => ({
+                    "ID Paket": p.id,
+                    "Nama Paket": p.name || '',
+                    "Uraian": p.uraian || '',
+                    "Lokasi": p.lokasi || '',
+                    "Tahun Anggaran": p.tahun_anggaran || '',
+                    "Pagu": p.pagu || 0,
+                    "Metode Pemilihan": p.metode_pemilihan || '',
+                    "Jenis Pengadaan": p.jenis_pengadaan || '',
+                    "Jenis Kontrak": p.jenis_kontrak || '',
+                    "Tahapan": p.stage || 'BELUM PROSES',
+                    "OPD": p.opd || '',
+                    "Kode RUP": p.kode_rup || '',
+                    "MAK": p.mak || ''
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Daftar Paket");
+                XLSX.writeFile(wb, "Export_Daftar_Paket_EProc.xlsx");
+            }
+
+            importPaket(event) {
+                const file = event.target.files[0];
+                if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    rows.forEach(r => {
+                        const payload = {
+                            name: r["Nama Paket"] || 'Paket Baru',
+                            uraian: r["Uraian"] || '',
+                            lokasi: r["Lokasi"] || '',
+                            tahun_anggaran: String(r["Tahun Anggaran"] || new Date().getFullYear()),
+                            pagu: Number(r["Pagu"]) || 0,
+                            metode_pemilihan: r["Metode Pemilihan"] || 'Pengadaan Langsung',
+                            jenis_pengadaan: r["Jenis Pengadaan"] || 'Barang',
+                            jenis_kontrak: r["Jenis Kontrak"] || 'Lumsum',
+                            stage: r["Tahapan"] || 'BELUM PROSES',
+                            opd: r["OPD"] || 'BKAD Kota Bogor',
+                            kode_rup: r["Kode RUP"] || '',
+                            mak: r["MAK"] || ''
+                        };
+                        
+                        if(r["ID Paket"]) {
+                            const existing = DB.getById('paket', r["ID Paket"]);
+                            if (existing) {
+                                DB.update('paket', r["ID Paket"], payload);
+                                return; // lanjutkan loop ke baris berikutnya
+                            }
+                        }
+                        
+                        // Set Pejabat default jika buat paket baru
+                        const today = new Date().toISOString().split('T')[0];
+                        const pjb = DB.get('pejabat'); 
+                        const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
+                        
+                        DB.insert('paket', { 
+                            ...payload,
+                            tgl_awal: today, tgl_mulai: today, 
+                            tgl_selesai: Utils.addWorkingDays(today, 30, DB.get('libur').map(l=>l.date)), 
+                            ppk_id: first('PPK'), pp_id: first('Pejabat Pengadaan'), pptk_id: first('PPTK'), bendahara_id: first('Bendahara'),
+                            durasi_kontrak: 30
+                        });
+                    });
+                    this.notify('Data Paket berhasil diimpor dari Excel', 'success');
+                    this.reRenderCurrentView();
+                    event.target.value = ''; // reset input
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
 
             // Fungsi Excel Export / Import HPS
             downloadTemplateHPS() {
