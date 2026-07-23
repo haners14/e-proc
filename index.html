@@ -340,7 +340,9 @@
                 catch(e) { return Math.random().toString(36).substring(2, 10).toUpperCase(); }
             },
             addWorkingDays: (startDate, days, holidays = []) => {
-                let date = new Date(startDate); let added = 0;
+                let date = new Date(startDate); 
+                if (isNaN(date.getTime())) date = new Date();
+                let added = 0;
                 if (days === 0) return date.toISOString().split('T')[0];
 
                 while (added < days) { 
@@ -1114,6 +1116,7 @@
                                     <div class="form-group"><label class="form-label">Tahun Anggaran</label><input type="text" name="tahun_anggaran" class="form-control" value="${this.pkg.tahun_anggaran || ''}"></div>
                                     <div class="form-group"><label class="form-label">OPD</label><input type="text" name="opd" class="form-control" value="${this.pkg.opd || 'Badan Keuangan dan Aset Daerah'}"></div>
                                     <div class="form-group"><label class="form-label">Bidang</label><input type="text" name="bidang" class="form-control" value="${this.pkg.bidang || 'Bidang Pengelolaan Barang Milik Daerah'}"></div>
+                                    <div class="form-group col-span-2"><label class="form-label">Dasar Hukum</label><textarea name="dasar_hukum" class="form-control" rows="2">${this.pkg.dasar_hukum || ''}</textarea></div>
                                 </div>
                             </fieldset>
 
@@ -1594,7 +1597,7 @@
                 rules.forEach((r,i) => {
                     let start, end, isManual = false;
                     
-                    if (overrides[`proc_${r.id}`]) {
+                    if (overrides[`proc_${r.id}`] && overrides[`proc_${r.id}`] !== '') {
                         end = overrides[`proc_${r.id}`];
                         // Estimasi start dari manual end (kurangi durasi)
                         let tempDate = new Date(end);
@@ -1650,7 +1653,7 @@
 
                 rules.forEach(r => { 
                     let finalDate;
-                    if(docOverrides[`doc_${r.id}`]) {
+                    if(docOverrides[`doc_${r.id}`] && docOverrides[`doc_${r.id}`] !== '') {
                         finalDate = docOverrides[`doc_${r.id}`];
                     } else {
                         const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : docDates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
@@ -1663,7 +1666,7 @@
                 let baseProc = this.pkg.tgl_awal || this.pkg.tgl_mulai;
                 procRules.forEach(r => {
                     let start, end;
-                    if(procOverrides[`proc_${r.id}`]) {
+                    if(procOverrides[`proc_${r.id}`] && procOverrides[`proc_${r.id}`] !== '') {
                         end = procOverrides[`proc_${r.id}`];
                         start = end; // Simplifikasi display kalender untuk yg manual
                         baseProc = end;
@@ -1732,90 +1735,13 @@
                     'BAST',
                     'BAP'
                 ];
-                const registers = docs.map(doc => {
-
-    let reg = DB.get("package_documents").find(r =>
-        r.package_id === this.packageId &&
-        (r.document_name || "").trim().toUpperCase() === doc.toUpperCase()
-    );
-
-    if (!reg) {
-
-        reg = DB.insert("package_documents", {
-            package_id: this.packageId,
-            document_name: doc,
-            status: "DRAFT",
-            generated: false,
-            version: 1
-        });
-
-    }
-
-    return reg;
-
-});
-
-const sorted = registers.sort((a,b)=>
-    (a.document_date || "9999-12-31").localeCompare(b.document_date || "9999-12-31")
-    || a.document_name.localeCompare(b.document_name)
-);
+                const registers = app.syncChecklistDocumentRegisters(this.packageId, docs);
+                const sorted = [...registers].sort((a,b) => (a.document_date || '9999-12-31').localeCompare(b.document_date || '9999-12-31') || (a.document_name || '').localeCompare(b.document_name || ''));
                 const row = master => {
-
-    const done = [
-        'FINAL',
-        'SIGNED',
-        'GENERATED',
-        'UPLOADED'
-    ].includes(String(master.status || '').toUpperCase());
-
-    return `
-    <tr>
-        <td style="width:40px;text-align:center">
-            <input
-                type="checkbox"
-                class="w-4 h-4 accent-primary"
-                ${done ? 'checked' : ''}
-                onclick="app.toggleChecklist('${this.packageId}','${master.document_name}', this.checked)">
-        </td>
-
-        <td class="font-medium">
-            ${master.document_name}
-            <div class="text-xs text-muted">${master.document_code || '-'}</div>
-        </td>
-
-        <td>
-            <input
-                type="text"
-                class="form-control chk-master-input"
-                data-id="${master.id}"
-                data-field="document_number"
-                value="${master.document_number || ''}"
-                placeholder="Nomor dokumen">
-        </td>
-
-        <td>
-            <input
-                type="date"
-                class="form-control chk-master-input"
-                data-id="${master.id}"
-                data-field="document_date"
-                value="${master.document_date || ''}">
-        </td>
-
-        <td>
-            ${Utils.getBadge(master.status || 'DRAFT')}
-        </td>
-
-        <td>
-            <button
-                class="btn btn-outline btn-sm text-primary w-full"
-                onclick="app.runDocumentEngine('${master.id}','${this.packageId}')">
-                <i class="ph ph-magic-wand"></i>
-                Generate
-            </button>
-        </td>
-    </tr>`;
-};
+                    const c = (this.pkg.checklists || []).find(x => x.doc === master.document_name);
+                    const done = c?.status || ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master?.status||'').toUpperCase());
+                    return `<tr><td style="width:40px;text-align:center"><input type="checkbox" class="w-4 h-4 accent-primary" ${done?'checked':''} onclick="app.toggleChecklist('${this.packageId}','${master?.document_name||''}',this.checked)"></td><td class="font-medium">${master?.document_name||'-'}<div class="text-xs text-muted">${master?.document_code||'-'}</div></td><td><input type="text" class="form-control chk-master-input" data-id="${master?.id}" data-field="document_number" value="${master?.document_number||''}" placeholder="Nomor dokumen"></td><td><input type="date" class="form-control chk-master-input" data-id="${master?.id}" data-field="document_date" value="${master?.document_date||''}"></td><td>${Utils.getBadge(master?.status || (done?'FINAL':'DRAFT'))}</td><td><button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master?.id}','${this.packageId}')"><i class="ph ph-magic-wand"></i> Generate</button></td></tr>`;
+                };
                 return `<div class="mb-4"><p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700"><b>Master dokumen:</b> nomor dan tanggal di bawah disimpan per dokumen pada <code>package_documents</code>. Generator selalu memakai nilai ini, bukan data checklist lama.</p></div><div class="card p-0 mb-6" style="overflow:visible"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">Checklist Dokumen Pengadaan — urut tanggal</h3></div><div class="table-container" style="border:0;border-radius:0;overflow-x:auto"><table class="data-table"><thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Status</th><th>Generate</th></tr></thead><tbody>${sorted.map(row).join('')}</tbody></table></div></div>`;
             }
 
@@ -1864,7 +1790,7 @@ const sorted = registers.sort((a,b)=>
                                 <div class="form-group"><label class="form-label">Maksud & Tujuan</label><textarea name="maksud_tujuan" class="form-control" rows="3">${p.maksud_tujuan || ''}</textarea></div>
                                 <div class="form-group"><label class="form-label">Sasaran</label><textarea name="sasaran" class="form-control" rows="2">${p.sasaran || ''}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\\nBadan Keuangan dan Aset Daerah'}</textarea></div>
                                     <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><textarea name="sumber_pembiayaan" class="form-control" rows="2">${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
                                 </div>
                             </fieldset>
@@ -1872,6 +1798,7 @@ const sorted = registers.sort((a,b)=>
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">2. Ruang Lingkup & Pelaksanaan</legend>
                                 <div class="form-group"><label class="form-label">Ruang Lingkup</label><textarea name="ruang_lingkup" class="form-control" rows="3">${p.ruang_lingkup || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Spesifikasi Teknis</label><textarea name="spesifikasi_teknis" class="form-control" rows="3">${p.spesifikasi_teknis || ''}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Kewenangan Penyedia</label><textarea name="kewenangan_penyedia" class="form-control" rows="3">${p.kewenangan_penyedia || ''}</textarea></div>
                                     <div class="form-group"><label class="form-label">Fasilitas yang Disediakan Penyedia</label><textarea name="fasilitas_penyedia" class="form-control" rows="3">${p.fasilitas_penyedia || ''}</textarea></div>
@@ -1906,7 +1833,7 @@ const sorted = registers.sort((a,b)=>
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">4. Pelaporan & Hasil Akhir</legend>
-                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir)</label><textarea name="pelaporan" class="form-control" rows="4">${p.pelaporan || '1. Laporan Pendahuluan\n2. Laporan Bulanan\n3. Laporan Akhir'}</textarea></div>
+                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir)</label><textarea name="pelaporan" class="form-control" rows="4">${p.pelaporan || '1. Laporan Pendahuluan\\n2. Laporan Bulanan\\n3. Laporan Akhir'}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Output</label><textarea name="output_kak" class="form-control" rows="2">${p.output_kak || ''}</textarea></div>
                                     <div class="form-group"><label class="form-label">Outcome</label><textarea name="outcome" class="form-control" rows="2">${p.outcome || ''}</textarea></div>
@@ -1986,7 +1913,7 @@ const sorted = registers.sort((a,b)=>
                 const guaranteeInput = document.querySelector('.guarantee-input');
                 
                 const updateGuarantee = () => {
-                    const n = Number(String(negoInput.value).replace(/\D/g, '')) || 0; 
+                    const n = Number(String(negoInput.value).replace(/\\D/g, '')) || 0; 
                     const p = Number(percentInput.value) || 0;
                     guaranteeInput.value = Utils.formatCurrency(n * (p / 100));
                 };
@@ -1994,7 +1921,7 @@ const sorted = registers.sort((a,b)=>
                 if(percentInput) percentInput.addEventListener('input', updateGuarantee);
                 if(negoInput) {
                     negoInput.addEventListener('input', (e) => {
-                        e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
+                        e.target.value = Utils.formatNumber(String(e.target.value).replace(/\\D/g, ''));
                         updateGuarantee();
                     });
                 }
@@ -2010,9 +1937,9 @@ const sorted = registers.sort((a,b)=>
                     const date = d.document_date || latest?.document_date || latest?.date;
                     const status = d.status || (latest ? latest.status : 'DRAFT');
                     const file = latest?.file_url || d.file_url;
-                    return `<tr><td><div class="font-semibold">${d.document_name}</div><div class="text-xs text-muted">${d.document_code || '-'}</div></td><td>${number}</td><td>${Utils.formatDate(date)}</td><td>${template ? template.name : 'Belum dipilih'}</td><td>${Utils.getBadge(status)}</td><td>v${d.version || latest?.version || 1}</td><td><div class="flex gap-1" style="flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="app.runDocumentEngine('${d.id}','${this.packageId}')">Generate</button><button class="btn btn-outline btn-sm" onclick="app.previewDocument('${d.id}')" ${file?'':'disabled'}>Preview</button><button class="btn btn-outline btn-sm" onclick="app.downloadDocument('${d.id}')" ${file?'':'disabled'}>Unduh</button><button class="btn btn-outline btn-sm" onclick="app.openDocumentUpload('${d.id}')">Upload</button><button class="btn btn-ghost btn-sm" onclick="app.showDocumentHistory('${d.id}')">Riwayat (${versions.length})</button></div></td></tr>`;
+                    return `<tr><td><div class=\"font-semibold\">${d.document_name}</div><div class=\"text-xs text-muted\">${d.document_code || '-'}</div></td><td>${number}</td><td>${Utils.formatDate(date)}</td><td>${template ? template.name : 'Belum dipilih'}</td><td>${Utils.getBadge(status)}</td><td>v${d.version || latest?.version || 1}</td><td><div class=\"flex gap-1\" style=\"flex-wrap:wrap\"><button class=\"btn btn-primary btn-sm\" onclick=\"app.runDocumentEngine('${d.id}','${this.packageId}')\">Generate</button><button class=\"btn btn-outline btn-sm\" onclick=\"app.previewDocument('${d.id}')\" ${file?'':'disabled'}>Preview</button><button class=\"btn btn-outline btn-sm\" onclick=\"app.downloadDocument('${d.id}')\" ${file?'':'disabled'}>Unduh</button><button class=\"btn btn-outline btn-sm\" onclick=\"app.openDocumentUpload('${d.id}')\">Upload</button><button class=\"btn btn-ghost btn-sm\" onclick=\"app.showDocumentHistory('${d.id}')\">Riwayat (${versions.length})</button></div></td></tr>`;
                 }).join('');
-                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg text-main">Register Dokumen Paket</h2><p class="text-sm text-muted"><code>package_documents</code> adalah master nomor, tanggal, status, dan template. <code>generated_documents</code> menyimpan riwayat versi.</p></div><button class="btn btn-primary" onclick="app.openDocumentForm('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Dokumen</button></div><div class="card p-0 overflow-hidden"><div class="table-container"><table class="data-table"><thead><tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="text-center text-muted p-8">Belum ada dokumen master. Tambahkan dokumen atau pilih dari template yang sudah Anda unggah.</td></tr>'}</tbody></table></div></div></div>`;
+                return `<div class=\"max-w-6xl mx-auto\"><div class=\"flex justify-between items-center mb-4\"><div><h2 class=\"font-bold text-lg text-main\">Register Dokumen Paket</h2><p class=\"text-sm text-muted\"><code>package_documents</code> adalah master nomor, tanggal, status, dan template. <code>generated_documents</code> menyimpan riwayat versi.</p></div><button class=\"btn btn-primary\" onclick=\"app.openDocumentForm('${this.packageId}')\"><i class=\"ph ph-plus\"></i> Tambah Dokumen</button></div><div class=\"card p-0 overflow-hidden\"><div class=\"table-container\"><table class=\"data-table\"><thead><tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr></thead><tbody>${rows || '<tr><td colspan=\"7\" class=\"text-center text-muted p-8\">Belum ada dokumen master. Tambahkan dokumen atau pilih dari template yang sudah Anda unggah.</td></tr>'}</tbody></table></div></div></div>`;
             }
 
             renderLaporan() {
@@ -2022,22 +1949,13 @@ const sorted = registers.sort((a,b)=>
                 const personnel = (this.pkg.personnel || []).reduce((sum,p) => sum + (Number(p.jumlah)||0), 0);
                 const progress = Number(this.pkg.progress) || (docs.length ? Math.round(completed / docs.length * 100) : 0);
                 const cards = [['Progress',`${progress}%`,`${completed}/${docs.length} dokumen selesai`],['Dokumen',`${completed}/${docs.length}`,'Register & riwayat versi'],['Nilai Negosiasi',Utils.formatCurrency(this.pkg.pembulatan_negosiasi || totals.negosiasi),`HPS ${Utils.formatCurrency(this.pkg.pembulatan_hps || totals.hps)}`],['Personel',personnel,`${(this.pkg.personnel||[]).length} persyaratan`],['Jadwal',DB.get('jadwal_proses').length,'tahap proses']];
-                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg">Dashboard Laporan Paket</h2><p class="text-sm text-muted">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak</button></div><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">${cards.map(c=>`<div class="card p-4"><div class="text-xs text-muted">${c[0]}</div><div class="font-bold text-lg mt-1">${c[1]}</div><div class="text-xs text-muted mt-1">${c[2]}</div></div>`).join('')}</div><div class="card p-5 mt-4"><div class="flex justify-between"><span class="font-semibold">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style="height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden"><div style="height:100%;width:${progress}%;background:var(--primary-600)"></div></div></div></div>`;
+                return `<div class=\"max-w-6xl mx-auto\"><div class=\"flex justify-between items-center mb-4\"><div><h2 class=\"font-bold text-lg\">Dashboard Laporan Paket</h2><p class=\"text-sm text-muted\">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><button class=\"btn btn-outline\" onclick=\"app.printPackageReport('${this.packageId}')\"><i class=\"ph ph-printer\"></i> Cetak</button></div><div class=\"grid\" style=\"grid-template-columns:repeat(5,minmax(0,1fr));gap:12px\">${cards.map(c=>`<div class=\"card p-4\"><div class=\"text-xs text-muted\">${c[0]}</div><div class=\"font-bold text-lg mt-1\">${c[1]}</div><div class=\"text-xs text-muted mt-1\">${c[2]}</div></div>`).join('')}</div><div class=\"card p-5 mt-4\"><div class=\"flex justify-between\"><span class=\"font-semibold\">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style=\"height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden\"><div style=\"height:100%;width:${progress}%;background:var(--primary-600)\"></div></div></div></div>`;
             }
             
             renderAktivitas() {
                 const pkgIdStr = this.pkg.supplier_id ? `ID Penyedia: ${this.pkg.supplier_id}` : '';
                 return `
-                    <div class="card p-6 max-w-3xl mx-auto">
-                        <h2 class="font-bold text-lg mb-6 border-b pb-2">Log Aktivitas Sistem (Audit Trail)</h2>
-                        <div class="timeline-container">
-                            <div class="timeline-node"><div class="timeline-indicator mt-0"><div class="timeline-dot completed"></div></div>
-                            <div><p class="font-bold text-sm">Paket Dibuat di Supabase</p><p class="text-xs text-muted">Sistem / Initial</p></div></div>
-                            ${this.pkg.supplier_id ? `<div class="timeline-node"><div class="timeline-indicator mt-0"><div class="timeline-dot completed"></div></div>
-                            <div><p class="font-bold text-sm">Penyedia Ditetapkan</p><p class="text-xs text-muted">${pkgIdStr}</p></div></div>` : ''}
-                        </div>
-                    </div>
-                `;
+                    <div class=\"card p-6 max-w-3xl mx-auto\">\n                        <h2 class=\"font-bold text-lg mb-6 border-b pb-2\">Log Aktivitas Sistem (Audit Trail)</h2>\n                        <div class=\"timeline-container\">\n                            <div class=\"timeline-node\"><div class=\"timeline-indicator mt-0\"><div class=\"timeline-dot completed\"></div></div>\n                            <div><p class=\"font-bold text-sm\">Paket Dibuat di Supabase</p><p class=\"text-xs text-muted\">Sistem / Initial</p></div></div>\n                            ${this.pkg.supplier_id ? `<div class=\"timeline-node\"><div class=\"timeline-indicator mt-0\"><div class=\"timeline-dot completed\"></div></div>\n                            <div><p class=\"font-bold text-sm\">Penyedia Ditetapkan</p><p class=\"text-xs text-muted\">${pkgIdStr}</p></div></div>` : ''}\n                        </div>\n                    </div>\n                `;
             }
         }
 
@@ -2072,98 +1990,33 @@ const sorted = registers.sort((a,b)=>
                     const bg = isHeader ? (r.kode.split('.').length <= 4 ? 'bg-warning-100' : 'bg-gray-100') : '';
                     
                     return `
-                    <tr class="${bg} ${isHeader ? 'font-bold' : ''}" style="${isHeader ? 'border-top: 1px dashed var(--gray-400); border-bottom: 1px dashed var(--gray-400);' : ''}">
-                        <td>${r.kode}</td>
-                        <td style="padding-left: ${indent+8}px;">${r.uraian}</td>
-                        <td class="text-right">${Utils.formatCurrency(r.pagu_calculated)}</td>
-                        <td class="text-right text-success-600">${Utils.formatCurrency(r.realisasi)}</td>
-                        <td class="text-right">${Utils.formatCurrency(sisa)}</td>
-                        <td class="text-center">
-                            <button class="btn btn-ghost btn-sm text-primary" onclick="app.editRekening('${r.id}')"><i class="ph ph-pencil-simple"></i></button>
-                        </td>
-                    </tr>`;
+                    <tr class=\"${bg} ${isHeader ? 'font-bold' : ''}\" style=\"${isHeader ? 'border-top: 1px dashed var(--gray-400); border-bottom: 1px dashed var(--gray-400);' : ''}\">\n                        <td>${r.kode}</td>\n                        <td style=\"padding-left: ${indent+8}px;\">${r.uraian}</td>\n                        <td class=\"text-right\">${Utils.formatCurrency(r.pagu_calculated)}</td>\n                        <td class=\"text-right text-success-600\">${Utils.formatCurrency(r.realisasi)}</td>\n                        <td class=\"text-right\">${Utils.formatCurrency(sisa)}</td>\n                        <td class=\"text-center\">\n                            <button class=\"btn btn-ghost btn-sm text-primary\" onclick=\"app.editRekening('${r.id}')\"><i class=\"ph ph-pencil-simple\"></i></button>\n                        </td>\n                    </tr>`;
                 }).join('');
 
                 container.innerHTML = `
-                    <div class="p-6 h-full flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1><p class="text-muted text-sm mt-1">Hierarki otomatis terjumlah berdasarkan kode rekening.</p></div>
-                            <button class="btn btn-primary" onclick="app.editRekening()"><i class="ph ph-plus"></i> Tambah Rekening Baru</button>
-                        </div>
-                        <div class="card flex-1 flex flex-col overflow-hidden">
-                            <div class="table-container flex-1 overflow-auto border-0 rounded-none">
-                                <table class="data-table" style="font-size: 0.75rem;">
-                                    <thead style="position: sticky; top:0; z-index:10;">
-                                        <tr><th style="width: 150px;">Kode Rekening</th><th>Uraian</th><th class="text-right" style="width: 150px;">Pagu Anggaran</th><th class="text-right" style="width: 150px;">Realisasi Pencairan</th><th class="text-right" style="width: 150px;">Sisa Anggaran</th><th style="width: 60px;"></th></tr>
-                                    </thead>
-                                    <tbody>${rows}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6 h-full flex flex-col\">\n                        <div class=\"flex justify-between items-center mb-6\">\n                            <div><h1 class=\"text-2xl font-bold text-main\">Pagu & Realisasi Anggaran</h1><p class=\"text-muted text-sm mt-1\">Hierarki otomatis terjumlah berdasarkan kode rekening.</p></div>\n                            <button class=\"btn btn-primary\" onclick=\"app.editRekening()\"><i class=\"ph ph-plus\"></i> Tambah Rekening Baru</button>\n                        </div>\n                        <div class=\"card flex-1 flex flex-col overflow-hidden\">\n                            <div class=\"table-container flex-1 overflow-auto border-0 rounded-none\">\n                                <table class=\"data-table\" style=\"font-size: 0.75rem;\">\n                                    <thead style=\"position: sticky; top:0; z-index:10;\">\n                                        <tr><th style=\"width: 150px;\">Kode Rekening</th><th>Uraian</th><th class=\"text-right\" style=\"width: 150px;\">Pagu Anggaran</th><th class=\"text-right\" style=\"width: 150px;\">Realisasi Pencairan</th><th class=\"text-right\" style=\"width: 150px;\">Sisa Anggaran</th><th style=\"width: 60px;\"></th></tr>\n                                    </thead>\n                                    <tbody>${rows}</tbody>\n                                </table>\n                            </div>\n                        </div>\n                    </div>\n                `;
             }
 
             static renderKendali(container) {
                 container.innerHTML = `
-                    <div class="p-6">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Kartu Kendali Kegiatan</h1><p class="text-muted text-sm mt-1">Monitoring SPJ per Sub Kegiatan dan Bulan</p></div>
-                            <div class="flex gap-2">
-                                <select class="form-control" style="width: 250px;"><option>Bulan Juni</option><option>Bulan Juli</option></select>
-                                <button class="btn btn-primary" onclick="app.printKendali()"><i class="ph ph-printer"></i> Cetak Kartu Kendali</button>
-                            </div>
-                        </div>
-                        <div class="card p-8 flex flex-col items-center justify-center text-center bg-gray-50 border-dashed" style="min-height: 400px;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Lambang_Kota_Bogor.png/400px-Lambang_Kota_Bogor.png" width="60" class="mb-4 opacity-50">
-                            <h3 class="text-lg font-bold text-gray-700">Preview Kartu Kendali</h3>
-                            <p class="text-muted text-sm max-w-lg mt-2">Kartu Kendali menggunakan format landscape khusus yang kompleks. Klik tombol "Cetak Kartu Kendali" di pojok kanan atas untuk melihat dan mengunduh format lengkapnya.</p>
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6\">\n                        <div class=\"flex justify-between items-center mb-6\">\n                            <div><h1 class=\"text-2xl font-bold text-main\">Kartu Kendali Kegiatan</h1><p class=\"text-muted text-sm mt-1\">Monitoring SPJ per Sub Kegiatan dan Bulan</p></div>\n                            <div class=\"flex gap-2\">\n                                <select class=\"form-control\" style=\"width: 250px;\"><option>Bulan Juni</option><option>Bulan Juli</option></select>\n                                <button class=\"btn btn-primary\" onclick=\"app.printKendali()\"><i class=\"ph ph-printer\"></i> Cetak Kartu Kendali</button>\n                            </div>\n                        </div>\n                        <div class=\"card p-8 flex flex-col items-center justify-center text-center bg-gray-50 border-dashed\" style=\"min-height: 400px;\">\n                            <img src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Lambang_Kota_Bogor.png/400px-Lambang_Kota_Bogor.png\" width=\"60\" class=\"mb-4 opacity-50\">\n                            <h3 class=\"text-lg font-bold text-gray-700\">Preview Kartu Kendali</h3>\n                            <p class=\"text-muted text-sm max-w-lg mt-2\">Kartu Kendali menggunakan format landscape khusus yang kompleks. Klik tombol \"Cetak Kartu Kendali\" di pojok kanan atas untuk melihat dan mengunduh format lengkapnya.</p>\n                        </div>\n                    </div>\n                `;
             }
 
             static renderPengajuan(container) {
                 const data = DB.get('pencairan');
-                let rows = data.map((d, i) => `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis_pencairan}</td><td>${d.sub_kegiatan}</td><td>${Utils.getBadge(d.status)}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.printSI('${d.id}')"><i class="ph ph-printer"></i> Cetak Lampiran</button></td></tr>`).join('');
-                if(!rows) rows = '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada data pengajuan.</td></tr>';
+                let rows = data.map((d, i) => `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis_pencairan}</td><td>${d.sub_kegiatan}</td><td>${Utils.getBadge(d.status)}</td><td><button class=\"btn btn-ghost btn-sm text-primary\" onclick=\"app.printSI('${d.id}')\"><i class=\"ph ph-printer\"></i> Cetak Lampiran</button></td></tr>`).join('');
+                if(!rows) rows = '<tr><td colspan=\"7\" class=\"text-center text-muted py-4\">Belum ada data pengajuan.</td></tr>';
 
                 container.innerHTML = `
-                    <div class="p-6 h-full flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pengajuan Pencairan (SI)</h1><p class="text-muted text-sm mt-1">Buat Lampiran Permintaan Pembayaran dan set status.</p></div>
-                            <button class="btn btn-primary" onclick="app.formPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
-                        </div>
-                        <div class="card flex-1 overflow-auto">
-                            <table class="data-table">
-                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Sub Kegiatan</th><th>Status</th><th>Aksi</th></tr></thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6 h-full flex flex-col\">\n                        <div class=\"flex justify-between items-center mb-6\">\n                            <div><h1 class=\"text-2xl font-bold text-main\">Pengajuan Pencairan (SI)</h1><p class=\"text-muted text-sm mt-1\">Buat Lampiran Permintaan Pembayaran dan set status.</p></div>\n                            <button class=\"btn btn-primary\" onclick=\"app.formPencairan()\"><i class=\"ph ph-plus\"></i> Buat Pengajuan Baru</button>\n                        </div>\n                        <div class=\"card flex-1 overflow-auto\">\n                            <table class=\"data-table\">\n                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Sub Kegiatan</th><th>Status</th><th>Aksi</th></tr></thead>\n                                <tbody>${rows}</tbody>\n                            </table>\n                        </div>\n                    </div>\n                `;
             }
 
             static renderSPJ(container) {
                 const data = DB.get('pencairan');
-                const options = data.map(d => `<option value="${d.id}">${d.nomor} - ${d.sub_kegiatan}</option>`).join('');
+                const options = data.map(d => `<option value=\"${d.id}\">${d.nomor} - ${d.sub_kegiatan}</option>`).join('');
                 
                 container.innerHTML = `
-                    <div class="p-6 max-w-4xl mx-auto w-full">
-                        <h1 class="text-2xl font-bold text-main mb-6">SPJ dan Daftar Hadir / Absen</h1>
-                        <div class="card p-6 mb-6">
-                            <h2 class="font-bold mb-4 border-b pb-2">Pilih Data Pencairan</h2>
-                            <div class="form-group">
-                                <label class="form-label">Nomor Pengajuan (Terkait Honorarium)</label>
-                                <select id="spj-select" class="form-control"><option value="">-- Pilih --</option>${options}</select>
-                            </div>
-                            <button class="btn btn-primary" onclick="app.printSPJ()"><i class="ph ph-printer"></i> Cetak SPJ Honorarium</button>
-                        </div>
-                        <div class="bg-info-50 p-4 border border-info-200 rounded text-sm text-info-700">
-                            <b>Info:</b> Cetakan SPJ akan secara otomatis membuat daftar nama, jumlah honor, potongan pajak, dan kolom tanda tangan ganda sesuai format standar.
-                        </div>
-                    </div>
-                `;
+                    <div class=\"p-6 max-w-4xl mx-auto w-full\">\n                        <h1 class=\"text-2xl font-bold text-main mb-6\">SPJ dan Daftar Hadir / Absen</h1>\n                        <div class=\"card p-6 mb-6\">\n                            <h2 class=\"font-bold mb-4 border-b pb-2\">Pilih Data Pencairan</h2>\n                            <div class=\"form-group\">\n                                <label class=\"form-label\">Nomor Pengajuan (Terkait Honorarium)</label>\n                                <select id=\"spj-select\" class=\"form-control\"><option value=\"\">-- Pilih --</option>${options}</select>\n                            </div>\n                            <button class=\"btn btn-primary\" onclick=\"app.printSPJ()\"><i class=\"ph ph-printer\"></i> Cetak SPJ Honorarium</button>\n                        </div>\n                        <div class=\"bg-info-50 p-4 border border-info-200 rounded text-sm text-info-700\">\n                            <b>Info:</b> Cetakan SPJ akan secara otomatis membuat daftar nama, jumlah honor, potongan pajak, dan kolom tanda tangan ganda sesuai format standar.\n                        </div>\n                    </div>\n                `;
             }
         }
 
@@ -2425,7 +2278,7 @@ const sorted = registers.sort((a,b)=>
                     'BAST':'BAST',
                     'BAP':'BAP'
                 };
-                return aliases[name] || String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
+                return aliases[name] || String(name || '').replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
             }
 
             normalizeProcurementType(value) {
@@ -2490,15 +2343,7 @@ const sorted = registers.sort((a,b)=>
                 const history = this.getDocumentHistory(master); const version = Math.max(master.version || 0, ...history.map(x => x.version || 0)) + 1;
                 const item = DB.insert('documents', {package_id: master.package_id, doc_type: master.document_code, name: master.document_name, status: 'UPLOADED', date: master.document_date || new Date().toISOString().slice(0,10), document_number: master.document_number, document_date: master.document_date, filename: file.name, file_size: file.size, file_url: URL.createObjectURL(file), version, generated_by: 'Manual upload'});
                 DB.update('package_documents', master.id, {generated_document_id: item.id, version, status: 'UPLOADED', generated: true, file_url: item.file_url});
-                DB.update('package_documents', e.target.dataset.id, {
-    [e.target.dataset.field]: e.target.value
-});
-
-console.log(
-    DB.getById("package_documents", e.target.dataset.id)
-);
                 this.notify('Versi unggahan ditambahkan ke riwayat.', 'success'); this.reRenderCurrentView();
-                
             }
 
             previewDocument(docId) { const master = DB.getById('package_documents', docId), file = master && this.getDocumentHistory(master)[0]?.file_url || master?.file_url; if(file) window.open(file, '_blank'); }
@@ -2513,17 +2358,9 @@ console.log(
             }
 
             async runDocumentEngine(reference, pkgId) {
-
-    const master = this.resolveDocumentMaster(reference, pkgId);
-
-    console.log("===== GENERATE =====");
-    console.log("MASTER =", master);
-    console.log("ID =", master.id);
-    console.log("NUMBER =", master.document_number);
-    console.log("DATE =", master.document_date);
-
-    const docName = master.document_name;
-    const pkg = DB.getById('paket', pkgId);
+                const master = this.resolveDocumentMaster(reference, pkgId);
+                const docName = master.document_name;
+                const pkg = DB.getById('paket', pkgId);
                 let templateCode = docName.replace(/ /g, '_').toUpperCase();
                 
                 const template = this.selectTemplate(master.document_code || templateCode, pkg, master.template_id);
@@ -2555,15 +2392,6 @@ console.log(
                     addLog(`Menyusun dokumen dengan Docxtemplater...`);
                     const zip = new window.PizZip(arrayBuffer);
                     const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-                    if (!master.document_number) {
-                        this.notify("Nomor dokumen belum diisi.","error");
-                        return;
-                    }
-                    
-                    if (!master.document_date) {
-                        this.notify("Tanggal dokumen belum diisi.","error");
-                        return;
-                    }
                     doc.render(payload);
                     addLog(`Merapikan file final...`);
 
@@ -2575,7 +2403,7 @@ console.log(
                     const version = Math.max(master.version || 0, ...this.getDocumentHistory(master).map(x => x.version || 0)) + 1;
                     const generated = DB.insert('documents', { package_id: pkgId, doc_type: master.document_code, name: docName, status: 'FINAL', date: master.document_date || new Date().toISOString().split('T')[0], document_number: master.document_number, document_date: master.document_date, filename: fileName, file_size: out.size, file_url: URL.createObjectURL(out), version, generated_by: 'Document Engine' });
                     DB.update('package_documents', master.id, { generated_document_id: generated.id, version, status: 'FINAL', generated: true, file_url: generated.file_url });
-                   
+                    this.toggleChecklist(pkgId, docName, true); 
 
                     addLog(`<span class="text-success font-bold">SELESAI! Dokumen berhasil dibuat dan diunduh.</span>`);
                     
@@ -2699,7 +2527,9 @@ console.log(
                     nilai_pagu: Utils.formatNumber(pkg.pagu || 0),
                     pagu: Utils.formatNumber(pkg.pagu || 0),
                     pagu_terbilang: Utils.toWords(pkg.pagu || 0) + ' rupiah',
-                    kode_rup: pkg.kode_rup || '-', kode_mak: pkg.mak || pkg.kode_rekening || '-',
+                    kode_rup: pkg.kode_rup || '-',
+                    mak: pkg.mak || '-', 
+                    kode_mak: pkg.mak || '-',
                     jenis_kontrak: pkg.jenis_kontrak || '-', jenis_pengadaan: pkg.jenis_pengadaan || '-',
                     alamat_penyedia: supplier.address || '-', email_penyedia: supplier.email || '-',
                     jabatan_direktur: supplier.jabatan_direktur || 'Direktur',
@@ -2707,7 +2537,14 @@ console.log(
                     tanggal_mulai_kerja: Utils.formatDate(pkg.tgl_mulai), tanggal_selesai: Utils.formatDate(pkg.tgl_selesai),
                     lingkup_pekerjaan: pkg.ruang_lingkup || pkg.uraian || '-',
                     hari_tanggal: Utils.formatDate(meta.date),
-                    nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
+                    nama_paket: pkg.name,
+                    nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", 
+                    kode_kegiatan: pkg.kode_kegiatan || "-",
+                    nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
+                    kode_sub_kegiatan: pkg.kode_sub_kegiatan || "-",
+                    kode_rekening: pkg.kode_rekening || "-", 
+                    nama_rekening: pkg.nama_rekening || "-", 
+                    sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
                     nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
                     
@@ -2726,7 +2563,6 @@ console.log(
                     negosiasi_terbilang: Utils.toWords(negoRound) + " rupiah",
                     terbilang_neg: Utils.toWords(negoRound) + " rupiah",
 
-                    nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
                     lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
                     
                     items: itemsPayload,
@@ -2746,6 +2582,8 @@ console.log(
                     
                     kbli: '-', uraian_kbli: '-', kualifikasi_penyedia: '-', tahun_pajak_terakhir: '2025',
                     
+                    dasar_hukum: pkg.dasar_hukum || '-',
+                    spesifikasi_teknis: pkg.spesifikasi_teknis || '-',
                     latar_belakang: pkg.latar_belakang || '-',
                     maksud_tujuan: pkg.maksud_tujuan || '-',
                     sasaran: pkg.sasaran || '-',
