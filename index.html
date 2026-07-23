@@ -1114,6 +1114,7 @@
                                     <div class="form-group"><label class="form-label">Tahun Anggaran</label><input type="text" name="tahun_anggaran" class="form-control" value="${this.pkg.tahun_anggaran || ''}"></div>
                                     <div class="form-group"><label class="form-label">OPD</label><input type="text" name="opd" class="form-control" value="${this.pkg.opd || 'Badan Keuangan dan Aset Daerah'}"></div>
                                     <div class="form-group"><label class="form-label">Bidang</label><input type="text" name="bidang" class="form-control" value="${this.pkg.bidang || 'Bidang Pengelolaan Barang Milik Daerah'}"></div>
+                                    <div class="form-group col-span-2"><label class="form-label">Dasar Hukum</label><textarea name="dasar_hukum" class="form-control" rows="2">${this.pkg.dasar_hukum || ''}</textarea></div>
                                 </div>
                             </fieldset>
 
@@ -1795,6 +1796,7 @@
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">2. Ruang Lingkup & Pelaksanaan</legend>
                                 <div class="form-group"><label class="form-label">Ruang Lingkup</label><textarea name="ruang_lingkup" class="form-control" rows="3">${p.ruang_lingkup || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Spesifikasi Teknis</label><textarea name="spesifikasi_teknis" class="form-control" rows="3">${p.spesifikasi_teknis || ''}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Kewenangan Penyedia</label><textarea name="kewenangan_penyedia" class="form-control" rows="3">${p.kewenangan_penyedia || ''}</textarea></div>
                                     <div class="form-group"><label class="form-label">Fasilitas yang Disediakan Penyedia</label><textarea name="fasilitas_penyedia" class="form-control" rows="3">${p.fasilitas_penyedia || ''}</textarea></div>
@@ -2597,7 +2599,9 @@
                     nilai_pagu: Utils.formatNumber(pkg.pagu || 0),
                     pagu: Utils.formatNumber(pkg.pagu || 0),
                     pagu_terbilang: Utils.toWords(pkg.pagu || 0) + ' rupiah',
-                    kode_rup: pkg.kode_rup || '-', kode_mak: pkg.mak || pkg.kode_rekening || '-',
+                    kode_rup: pkg.kode_rup || '-',
+                    mak: pkg.mak || '-', 
+                    kode_mak: pkg.mak || '-',
                     jenis_kontrak: pkg.jenis_kontrak || '-', jenis_pengadaan: pkg.jenis_pengadaan || '-',
                     alamat_penyedia: supplier.address || '-', email_penyedia: supplier.email || '-',
                     jabatan_direktur: supplier.jabatan_direktur || 'Direktur',
@@ -2605,7 +2609,14 @@
                     tanggal_mulai_kerja: Utils.formatDate(pkg.tgl_mulai), tanggal_selesai: Utils.formatDate(pkg.tgl_selesai),
                     lingkup_pekerjaan: pkg.ruang_lingkup || pkg.uraian || '-',
                     hari_tanggal: Utils.formatDate(meta.date),
-                    nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
+                    nama_paket: pkg.name,
+                    nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", 
+                    kode_kegiatan: pkg.kode_kegiatan || "-",
+                    nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
+                    kode_sub_kegiatan: pkg.kode_sub_kegiatan || "-",
+                    kode_rekening: pkg.kode_rekening || "-", 
+                    nama_rekening: pkg.nama_rekening || "-", 
+                    sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
                     nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
                     
@@ -2624,7 +2635,6 @@
                     negosiasi_terbilang: Utils.toWords(negoRound) + " rupiah",
                     terbilang_neg: Utils.toWords(negoRound) + " rupiah",
 
-                    nama_kegiatan: pkg.kegiatan || "Pengelolaan Barang Milik Daerah", nama_sub_kegiatan: pkg.nama_sub_kegiatan || "Optimalisasi Penggunaan Barang Milik Daerah",
                     lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 60} Hari Kalender`,
                     
                     items: itemsPayload,
@@ -2644,6 +2654,8 @@
                     
                     kbli: '-', uraian_kbli: '-', kualifikasi_penyedia: '-', tahun_pajak_terakhir: '2025',
                     
+                    dasar_hukum: pkg.dasar_hukum || '-',
+                    spesifikasi_teknis: pkg.spesifikasi_teknis || '-',
                     latar_belakang: pkg.latar_belakang || '-',
                     maksud_tujuan: pkg.maksud_tujuan || '-',
                     sasaran: pkg.sasaran || '-',
