@@ -2436,9 +2436,16 @@
                     ...dynamicDocVars,
                     nomor_urut_paket: seqNum,
                     
+                    // Specific mapping to match your word template examples
+                    hari_tanggal_nota_dinas: `${days[new Date(dynamicDocVars.tanggal_nota_dinas || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_nota_dinas || '-'}`,
+                    nomor_dokumen_nota_dinas: dynamicDocVars.nomor_nota_dinas || '-',
+                    "hari_tanggal_undangan pengadaan": `${days[new Date(dynamicDocVars.tanggal_und_pengadaan || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_und_pengadaan || '-'}`,
+                    nomor_undangan_pengadaan: dynamicDocVars.nomor_und_pengadaan || '-',
+                    tanggal_hps: dynamicDocVars.tanggal_hps_rab || '-',
+                    
                     nomor_ba: meta.number,
                     nomor_dokumen: meta.number,
-                    nama_ppk: ppk.name,
+                    nama_ppk: ppk.name || '-',
                     nip_ppk: ppk.nip || '-',
                     nilai_pagu: Utils.formatNumber(pkg.pagu || 0),
                     pagu: Utils.formatNumber(pkg.pagu || 0),
@@ -2453,7 +2460,7 @@
                     hari_tanggal: Utils.formatDate(meta.date),
                     nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
-                    nama_penyedia: supplier.name, nama_direktur: supplier.direktur || "Direktur",
+                    nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
                     
                     hps_nominal: Utils.formatNumber(hpsRound),
                     hps_terbilang: Utils.toWords(hpsRound) + " rupiah",
@@ -2476,16 +2483,19 @@
                     items: itemsPayload,
                     
                     total_hps_formatted: Utils.formatNumber(hpsRound), total_penawaran_formatted: Utils.formatNumber(penRound), total_negosiasi_formatted: Utils.formatNumber(negoRound),
-                    nama_pejabat_pengadaan: pp.name, nip_pejabat_pengadaan: pp.nip || "-",
+                    nama_pejabat_pengadaan: pp.name || '-', nip_pejabat_pengadaan: pp.nip || "-",
                     
                     hari: days[dateObj.getDay()],
                     tanggal_terbilang: Utils.toWords(dateObj.getDate()),
                     bulan: months[dateObj.getMonth()],
                     tahun_terbilang: Utils.toWords(dateObj.getFullYear()),
+                    tanggal_numerik: Utils.formatDate(meta.date),
                     tanggal_negosiasi: Utils.formatDate(meta.date),
-                    nama_pp: pp.name,
+                    nama_pp: pp.name || '-',
                     durasi_kontrak: pkg.durasi_kontrak || 60,
                     durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 60),
+                    
+                    kbli: '-', uraian_kbli: '-', kualifikasi_penyedia: '-', tahun_pajak_terakhir: '2025',
                     
                     latar_belakang: pkg.latar_belakang || '-',
                     maksud_tujuan: pkg.maksud_tujuan || '-',
@@ -2500,7 +2510,21 @@
                     outcome: pkg.outcome || '-',
                     produksi_dalam_negeri: pkg.produksi_dalam_negeri || '-',
                     alih_pengetahuan: pkg.alih_pengetahuan || '-',
-                    personil_kak: (pkg.personnel || []).map((p, i) => ({ no: i + 1, ...p })),
+                    
+                    // Safe mapping array for table generating
+                    tenaga_ahli: (pkg.personnel || []).map((p, i) => ({ 
+                        no_urut: i + 1, 
+                        posisi: p.jabatan || '-', 
+                        kualifikasi: `${p.pendidikan||'-'} ${p.pengalaman||'0'} Tahun ${p.sertifikat?' ('+p.sertifikat+')':''}`, 
+                        jumlah: p.jumlah || 1, 
+                        satuan: 'Orang' 
+                    })),
+                    tim_teknis: (pkg.tim_teknis || []).map((p, i) => ({ 
+                        no_urut: i + 1, 
+                        nama: p.nama || '-', 
+                        jabatan: p.jabatan || '-', 
+                        nip: p.nip || '-' 
+                    })),
                     
                     jumlah_hps: Utils.formatNumber(sub_hps),
                     jumlah_pen: Utils.formatNumber(sub_pen),
