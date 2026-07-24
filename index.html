@@ -1819,62 +1819,38 @@ const sorted = registers.sort((a,b)=>
     || a.document_name.localeCompare(b.document_name)
 );
                 const row = master => {
+                    const done = ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status || '').toUpperCase());
 
-    const done = [
-        'FINAL',
-        'SIGNED',
-        'GENERATED',
-        'UPLOADED'
-    ].includes(String(master.status || '').toUpperCase());
+                    // PERBAIKAN: Tarik nilai otomatis dari jadwal & master penomoran jika kosong
+                    const autoMeta = app.calculateDocumentMeta(this.pkg, master.document_name);
+                    const displayNum = master.document_number || autoMeta.number || '';
+                    const displayDate = master.document_date || autoMeta.date || '';
 
-    return `
-    <tr>
-        <td style="width:40px;text-align:center">
-            <input
-                type="checkbox"
-                class="w-4 h-4 accent-primary"
-                ${done ? 'checked' : ''}
-                onclick="app.toggleChecklist('${this.packageId}','${master.document_name}', this.checked)">
-        </td>
-
-        <td class="font-medium">
-            ${master.document_name}
-            <div class="text-xs text-muted">${master.document_code || '-'}</div>
-        </td>
-
-        <td>
-            <input
-                type="text"
-                class="form-control chk-master-input"
-                data-id="${master.id}"
-                data-field="document_number"
-                value="${master.document_number || ''}"
-                placeholder="Nomor dokumen">
-        </td>
-
-        <td>
-            <input
-                type="date"
-                class="form-control chk-master-input"
-                data-id="${master.id}"
-                data-field="document_date"
-                value="${master.document_date || ''}">
-        </td>
-
-        <td>
-            ${Utils.getBadge(master.status || 'DRAFT')}
-        </td>
-
-        <td>
-            <button
-                class="btn btn-outline btn-sm text-primary w-full"
-                onclick="app.runDocumentEngine('${master.id}','${this.packageId}')">
-                <i class="ph ph-magic-wand"></i>
-                Generate
-            </button>
-        </td>
-    </tr>`;
-};
+                    return `
+                    <tr>
+                        <td style="width:40px;text-align:center">
+                            <input type="checkbox" class="w-4 h-4 accent-primary" ${done ? 'checked' : ''} onclick="app.toggleChecklist('${this.packageId}','${master.document_name}', this.checked)">
+                        </td>
+                        <td class="font-medium">
+                            ${master.document_name}
+                            <div class="text-xs text-muted">${master.document_code || '-'}</div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control chk-master-input" data-id="${master.id}" data-field="document_number" value="${displayNum}" placeholder="Nomor dokumen">
+                        </td>
+                        <td>
+                            <input type="date" class="form-control chk-master-input" data-id="${master.id}" data-field="document_date" value="${displayDate}">
+                        </td>
+                        <td>
+                            ${Utils.getBadge(master.status || 'DRAFT')}
+                        </td>
+                        <td>
+                            <button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master.id}','${this.packageId}')">
+                                <i class="ph ph-magic-wand"></i> Generate
+                            </button>
+                        </td>
+                    </tr>`;
+                };
                 return `<div class="mb-4"><p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700"><b>Master dokumen:</b> nomor dan tanggal di bawah disimpan per dokumen pada <code>package_documents</code>. Generator selalu memakai nilai ini, bukan data checklist lama.</p></div><div class="card p-0 mb-6" style="overflow:visible"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">Checklist Dokumen Pengadaan — urut tanggal</h3></div><div class="table-container" style="border:0;border-radius:0;overflow-x:auto"><table class="data-table"><thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Status</th><th>Generate</th></tr></thead><tbody>${sorted.map(row).join('')}</tbody></table></div></div>`;
             }
 
@@ -2633,13 +2609,19 @@ console.log(
                     addLog(`Menyusun dokumen dengan Docxtemplater...`);
                     const zip = new window.PizZip(arrayBuffer);
                     const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-                    if (!master.document_number) {
-                        this.notify("Nomor dokumen belum diisi.","error");
-                        return;
-                    }
-                    
-                    if (!master.document_date) {
-                        this.notify("Tanggal dokumen belum diisi.","error");
+                    const autoMeta = this.calculateDocumentMeta(pkg, docName);
+                    if (!master.document_number) master.document_number = autoMeta.number;
+                    if (!master.document_date) master.document_date = autoMeta.date;
+
+                    // Langsung simpan nilai otomatis ini ke database sebagai nilai permanen
+                    DB.update('package_documents', master.id, { 
+                        document_number: master.document_number, 
+                        document_date: master.document_date 
+                    });
+
+                    // Cekatan terakhir jika master penomoran benar-benar gagal membuat nomor/tanggal
+                    if (!master.document_number || !master.document_date) {
+                        this.notify("Nomor atau Tanggal dokumen tidak ditemukan di jadwal. Harap isi manual.", "error");
                         return;
                     }
                     doc.render(payload);
