@@ -1563,21 +1563,6 @@
                 // REVISI 7: Mengurutkan Jadwal berdasarkan tanggal dari awal hingga akhir
                 calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
                 
-                const packageDocs = DB.get("package_documents")
-    .filter(d => d.package_id === this.packageId);
-
-calculated.forEach(item => {
-    const doc = packageDocs.find(d =>
-        d.document_name === item.name
-    );
-
-    if (doc) {
-        DB.update("package_documents", doc.id, {
-            document_date: item.calculatedDate
-        });
-    }
-});
-                
                 return `
                     <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
@@ -1770,20 +1755,6 @@ calculated.forEach(item => {
 
 });
 
-const jadwal = this.calculateDocumentMeta();
-
-registers.forEach(reg => {
-    const item = jadwal.find(j => j.name === reg.document_name);
-
-    if (item && !reg.document_date) {
-        DB.update("package_documents", reg.id, {
-            document_date: item.calculatedDate
-        });
-
-        reg.document_date = item.calculatedDate;
-    }
-});
-                
 const sorted = registers.sort((a,b)=>
     (a.document_date || "9999-12-31").localeCompare(b.document_date || "9999-12-31")
     || a.document_name.localeCompare(b.document_name)
@@ -2591,27 +2562,7 @@ console.log(
                 try {
                     addLog(`Memulai Document Dependency Engine...`);
                     addLog(`Menyiapkan data payload untuk ${docName}...`);
-                    if (!master.document_date) {
-
-                        const calculated = this.calculateDocumentSchedule();
-                    
-                        const jadwal = calculated.find(j =>
-                            j.name === master.document_name
-                        );
-                    
-                        if (jadwal) {
-                    
-                            master.document_date = jadwal.calculatedDate;
-                    
-                            DB.update("package_documents", master.id, {
-                                document_date: jadwal.calculatedDate
-                            });
-                    
-                        }
-                    
-                    }
                     const payload = this.prepareDocumentPayload(pkgId, docName, master);
-                    
                     addLog(`Mengunduh file template dari server...`);
                     
                     const response = await fetch(template.file_url);
@@ -2639,8 +2590,7 @@ console.log(
                     saveAs(out, fileName);
 
                     const version = Math.max(master.version || 0, ...this.getDocumentHistory(master).map(x => x.version || 0)) + 1;
-                    const generated = DB.insert('documents', { package_id: pkgId, doc_type: master.document_code, name: docName, status: 'FINAL', date: master.document_date,
-document_date: master.document_date, document_number: master.document_number, document_date: master.document_date, filename: fileName, file_size: out.size, file_url: URL.createObjectURL(out), version, generated_by: 'Document Engine' });
+                    const generated = DB.insert('documents', { package_id: pkgId, doc_type: master.document_code, name: docName, status: 'FINAL', date: master.document_date || new Date().toISOString().split('T')[0], document_number: master.document_number, document_date: master.document_date, filename: fileName, file_size: out.size, file_url: URL.createObjectURL(out), version, generated_by: 'Document Engine' });
                     DB.update('package_documents', master.id, { generated_document_id: generated.id, version, status: 'FINAL', generated: true, file_url: generated.file_url });
                    
 
@@ -2729,8 +2679,6 @@ document_date: master.document_date, document_number: master.document_number, do
                     const aliasesRev = {
                         'NOTA_DINAS':'Nota Dinas', 'HPS_RAB':'HPS/RAB', 'KAK':'KAK', 'URAIAN_SINGKAT': 'Uraian Singkat', 'BA_REVIU': 'BA Reviu Dokumen Persiapan', 'SDP':'SDP', 'BA_EVALUASI':'BA Evaluasi', 'BA_PEMBUKTIAN':'BA Pembuktian Kualifikasi', 'UNDANGAN_NEGOSIASI':'Undangan Negosiasi', 'BA_NEGOSIASI':'BA Negosiasi', 'UND_PENGADAAN':'Undangan Pengadaan Langsung', 'UND_VERIFIKASI': 'Undangan Verifikasi', 'UND_REVIU': 'Undangan Reviu', 'BA_HASIL':'BA Hasil Pemilihan', 'SPPBJ':'SPPBJ', 'UND_KONTRAK': 'Undangan Penandatanganan Kontrak', 'RANCANGAN_KONTRAK': 'Rancangan Kontrak', 'SPK':'SPK', 'SSUK':'SSUK', 'SSKK':'SSKK', 'SPMK':'SPMK', 'BAST':'BAST', 'BAP':'BAP'
                     };
-
-    
                     
                     if (d && d.document_number) {
                         dynamicDocVars[`nomor_${lowerCode}`] = d.document_number;
@@ -2752,15 +2700,6 @@ document_date: master.document_date, document_number: master.document_number, do
                 const sortedPkgs = [...allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
                 const pkgIdx = sortedPkgs.findIndex(p => p.id === pkgId);
                 const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
-
-                const dateVars = {
-                    tanggal_dokumen: Utils.formatDate(meta.date),
-                    hari: days[dateObj.getDay()],
-                    tanggal: dateObj.getDate(),
-                    bulan: months[dateObj.getMonth()],
-                    tahun: dateObj.getFullYear(),
-                    tanggal_terbilang: Utils.toWords(dateObj.getDate())
-                };
 
                 return {
                     ...dynamicDocVars,
