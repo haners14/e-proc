@@ -3171,6 +3171,78 @@ console.log(
                 t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
                 setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
+        // FUNGSI BARU: Menampilkan Modal Edit Manual Jadwal
+    editManualJadwal(pkgId, type = 'doc') {
+        const pkg = DB.getById('paket', pkgId);
+        if (!pkg) return;
+
+        // Ambil jadwal yang sudah dihitung oleh engine
+        const { calculated } = this.calculateAllScheduleDates(pkg); 
+        
+        let html = `<div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">`;
+        html += `<p class="text-sm text-gray-500 mb-4">Ubah tanggal di bawah ini untuk melakukan override manual. Kosongkan untuk kembali ke perhitungan otomatis.</p>`;
+        
+        calculated.forEach(r => {
+            // Cek apakah ada override yang tersimpan
+            const overrideVal = (pkg.jadwal_override && pkg.jadwal_override[`${type}_${r.id}`]) || '';
+            
+            html += `
+                <div class="flex flex-col gap-1 border-b pb-2">
+                    <label class="text-sm font-semibold text-gray-700">${r.name}</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="date" id="override_${type}_${r.id}" class="input w-full" value="${overrideVal || r.calculatedDate}">
+                        ${overrideVal 
+                            ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` 
+                            : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `</div>
+        <div class="mt-6 flex justify-end gap-2 pt-4 border-t">
+            <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
+            <button class="btn btn-primary" onclick="app.saveManualJadwal('${pkgId}', '${type}')">Simpan Jadwal</button>
+        </div>`;
+
+        DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses'}`, html);
+    }
+
+    // FUNGSI BARU: Menyimpan perubahan jadwal ke database
+    saveManualJadwal(pkgId, type) {
+        const pkg = DB.getById('paket', pkgId);
+        if (!pkg) return;
+        
+        if (!pkg.jadwal_override) pkg.jadwal_override = {};
+        
+        // Ambil data dari state jadwal (waktu / jadwal_proses)
+        const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || []; 
+        
+        rules.forEach(r => {
+            const inputEl = document.getElementById(`override_${type}_${r.id}`);
+            if (inputEl) {
+                const newVal = inputEl.value;
+                // Ambil nilai auto sebagai perbandingan sederhana
+                const { calculated } = this.calculateAllScheduleDates(pkg);
+                const autoDate = calculated.find(c => c.id === r.id)?.calculatedDate;
+
+                // Jika nilainya diisi dan berbeda dari perhitungan auto, simpan sebagai override
+                if (newVal && newVal !== autoDate) {
+                     pkg.jadwal_override[`${type}_${r.id}`] = newVal;
+                } else {
+                     // Hapus override jika kosong atau kembali ke nilai auto
+                     delete pkg.jadwal_override[`${type}_${r.id}`];
+                }
+            }
+        });
+        
+        // Simpan ke Supabase/LocalDB
+        DB.update('paket', pkgId, { jadwal_override: pkg.jadwal_override });
+        
+        DOM.closeModal();
+        this.notify('Jadwal berhasil diperbarui', 'success');
+        this.reRenderCurrentView();
+    }
         }
         
         document.addEventListener('DOMContentLoaded', () => { 
