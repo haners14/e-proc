@@ -1598,19 +1598,36 @@
                 });
             }
 
-           renderJadwal() {
+          renderJadwal() {
                 const holidays = DB.get('libur').map(l => l.date); 
                 const rules = DB.get('waktu'); 
+                const allDocs = DB.get('package_documents') || [];
                 
                 let calculated = [];
                 let dates = {};
                 
                 rules.forEach(r => { 
-                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
-                    const finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays);
+                    // Cek apakah dokumen ini sudah memiliki tanggal tersimpan di package_documents (Checklist)
+                    const matchedDoc = allDocs.find(d => 
+                        d.package_id === this.packageId && 
+                        (d.document_name || "").trim().toLowerCase() === r.name.trim().toLowerCase()
+                    );
+
+                    let finalDate;
+                    let isFromChecklist = false;
+
+                    if (matchedDoc && matchedDoc.document_date) {
+                        // Jika di checklist tanggalnya sudah diisi/disimpan, ikuti tanggal dari checklist
+                        finalDate = matchedDoc.document_date;
+                        isFromChecklist = true;
+                    } else {
+                        // Jika belum, gunakan kalkulasi otomatis berbasis master waktu
+                        const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
+                        finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays);
+                    }
                     
                     dates[r.name] = finalDate;
-                    calculated.push({ ...r, calculatedDate: finalDate });
+                    calculated.push({ ...r, calculatedDate: finalDate, isFromChecklist });
                 });
 
                 calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
@@ -1618,13 +1635,24 @@
                 return `
                     <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Dokumen (Otomatis)</h2><p class="text-sm text-muted">Jadwal dihitung otomatis berdasarkan master waktu dan dependensi hari kerja.</p></div>
+                            <div>
+                                <h2 class="font-bold text-lg">Jadwal Dokumen</h2>
+                                <p class="text-sm text-muted">Tanggal secara otomatis sinkron dengan perubahan yang Anda atur di tab Checklist.</p>
+                            </div>
                             <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Status</th><th>Tanggal Otomatis</th></tr></thead>
+                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Sumber Tanggal</th><th>Tanggal Sinkron</th></tr></thead>
                             <tbody>
-                                ${calculated.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous || 'Tanggal Awal'}</td><td><span class="badge badge-info">Otomatis</span></td><td class="font-bold">${Utils.formatDate(r.calculatedDate)}</td></tr>`).join('')}
+                                ${calculated.map((r,i)=>`
+                                    <tr>
+                                        <td>${i+1}</td>
+                                        <td class="font-medium">${r.name}</td>
+                                        <td>${r.previous || 'Tanggal Awal'}</td>
+                                        <td>${r.isFromChecklist ? '<span class="badge badge-success">Dari Checklist</span>' : '<span class="badge badge-info">Otomatis Master</span>'}</td>
+                                        <td class="font-bold">${Utils.formatDate(r.calculatedDate)}</td>
+                                    </tr>
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
