@@ -480,7 +480,10 @@
             update(table, id, payload) {
                 const sbTable = TABLE_MAP[table] || table;
                 const data = this.get(table);
-                const index = data.findIndex(i => i.id === id);
+                
+                // PERBAIKAN 1: Konversi kedua ID menjadi String agar selalu cocok
+                const index = data.findIndex(i => String(i.id) === String(id));
+                
                 if(index > -1) {
                     if (table === 'paket') {
                         if (payload.pagu !== undefined) payload.pagu = Number(String(payload.pagu).replace(/\D/g, '')) || 0;
@@ -494,10 +497,22 @@
                         }
                     }
 
+                    // PERBAIKAN 3: Ubah semua string kosong ("") menjadi null 
+                    // agar Supabase tidak menolak tipe data tanggal/angka
+                    for (let key in payload) {
+                        if (payload[key] === "") {
+                            payload[key] = null;
+                        }
+                    }
+
                     const updated = { ...data[index], ...payload };
                     data[index] = updated;
 
                     let cpy = { ...payload };
+
+                    // PERBAIKAN 2: Hapus ID dari payload sebelum dikirim ke Supabase 
+                    // untuk mencegah error "cannot update primary key column"
+                    delete cpy.id;
 
                     if (payload.items !== undefined) {
                         const items = payload.items.map((item, idx) => ({ ...item, package_id: id, urutan: idx }));
