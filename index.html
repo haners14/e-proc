@@ -557,11 +557,14 @@
                     }
 
                     if (payload.personnel !== undefined) {
-                        const personnel = payload.personnel.map(item => ({ ...item, package_id: id }));
+                        const personnelToInsert = payload.personnel.map(item => {
+                            const { id: localId, ...cleanItem } = item; // Buang ID lokal
+                            return { ...cleanItem, package_id: id };
+                        });
                         (async () => {
                             try {
                                 await fetch(`${SUPABASE_URL}package_personnel?package_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
-                                if(personnel.length > 0) await fetch(`${SUPABASE_URL}package_personnel`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(personnel) });
+                                if(personnelToInsert.length > 0) await fetch(`${SUPABASE_URL}package_personnel`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(personnelToInsert) });
                             } catch (e) { console.error(e); }
                         })();
                         delete cpy.personnel;
