@@ -3171,6 +3171,57 @@ console.log(
                 t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
                 setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
+            // PASTIKAN FUNGSI INI ADA DI DALAM CLASS APP
+            calculateAllScheduleDates(pkg) {
+                const rules = DB.get('waktu') || [];
+                const holidays = (DB.get('libur') || []).map(l => l.date);
+                const overrides = pkg.jadwal_override || {};
+                
+                let dates = {};
+                let calculated = [];
+                
+                const baseStart = pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+                dates['Tanggal Awal'] = baseStart;
+                if (pkg.tgl_mulai) dates['SPK'] = pkg.tgl_mulai;
+                
+                let pending = [...rules];
+                let maxLoops = 10;
+                
+                while(pending.length > 0 && maxLoops > 0) {
+                    let nextPending = [];
+                    for (let r of pending) {
+                        if (overrides[`doc_${r.id}`]) {
+                            dates[r.name] = overrides[`doc_${r.id}`];
+                            calculated.push({ ...r, calculatedDate: dates[r.name], isManual: true });
+                        } else if (r.anchor === 'selesai') {
+                            dates[r.name] = Utils.addWorkingDays(pkg.tgl_selesai || baseStart, Number(r.days)||0, holidays);
+                            calculated.push({ ...r, calculatedDate: dates[r.name], isManual: false });
+                        } else {
+                            let prev = !r.previous || r.previous === '-' ? 'Tanggal Awal' : r.previous;
+                            
+                            if (dates[prev] !== undefined) {
+                                dates[r.name] = Utils.addWorkingDays(dates[prev], Number(r.days)||0, holidays);
+                                calculated.push({ ...r, calculatedDate: dates[r.name], isManual: false });
+                            } else {
+                                nextPending.push(r);
+                            }
+                        }
+                    }
+                    if (pending.length === nextPending.length) {
+                        for(let r of nextPending) {
+                            dates[r.name] = baseStart;
+                            calculated.push({ ...r, calculatedDate: baseStart, isManual: false });
+                        }
+                        break;
+                    }
+                    pending = nextPending;
+                    maxLoops--;
+                }
+                
+                calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
+                return { dates, calculated };
+            }
+            
         // FUNGSI BARU: Menampilkan Modal Edit Manual Jadwal
     editManualJadwal(pkgId, type = 'doc') {
         const pkg = DB.getById('paket', pkgId);
