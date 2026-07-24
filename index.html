@@ -3308,6 +3308,25 @@ console.log(
                 this.notify('Checklist, nomor, dan tanggal dokumen berhasil disimpan ke database!', 'success');
                 this.reRenderCurrentView();
             }
+            togglePinPackage(pkgId) {
+                if (!DB.cache['pinned_packages']) {
+                    DB.cache['pinned_packages'] = [];
+                }
+                const index = DB.cache['pinned_packages'].indexOf(pkgId);
+                if (index > -1) {
+                    DB.cache['pinned_packages'].splice(index, 1);
+                    this.notify('Paket dilepas dari sematan', 'info');
+                } else {
+                    DB.cache['pinned_packages'].push(pkgId);
+                    this.notify('Paket berhasil disematkan', 'success');
+                }
+                
+                try {
+                    localStorage.setItem('pf_pinned', JSON.stringify(DB.cache['pinned_packages']));
+                } catch(e) {}
+                
+                this.reRenderCurrentView();
+            }
         }
         
         document.addEventListener('DOMContentLoaded', () => { 
