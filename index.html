@@ -3170,14 +3170,14 @@ if ([
     "SSUK"
 ].includes(code)) {
 
-    // Kalau SPK sudah punya nomor, ikuti SPK
     if (spk?.document_number) {
         return {
             number: spk.document_number,
             date: spk.document_date
         };
     }
-}
+}   // <-- INI YANG HILANG
+
 if (code === "URAIAN_SINGKAT") {
 
     if (kak?.document_number) {
@@ -3186,13 +3186,14 @@ if (code === "URAIAN_SINGKAT") {
             date: kak.document_date
         };
     }
-                    
-                    calcNumber = rule.format
-                                 .replace(/\[keyword_penomoran\]/g, keyword)
-                                 .replace(/\[uraian\]/g, keyword) 
-                                 .replace(/\[bulan\]/g, mm)
-                                 .replace(/\[tahun\]/g, yyyy)
-                                 .replace(/\[nomor\]/g, seqNum);
+}   // <-- ini juga harus ditutup
+
+calcNumber = rule.format
+    .replace(/\[keyword_penomoran\]/g, keyword)
+    .replace(/\[uraian\]/g, keyword)
+    .replace(/\[bulan\]/g, mm)
+    .replace(/\[tahun\]/g, yyyy)
+    .replace(/\[nomor\]/g, seqNum);
                 }
 
                 const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
