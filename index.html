@@ -1763,7 +1763,7 @@
 
 });
 
-const jadwal = this.getCalculatedSchedule();
+const jadwal = this.calculateDocumentMeta();
 
 registers.forEach(reg => {
     const item = jadwal.find(j => j.name === reg.document_name);
