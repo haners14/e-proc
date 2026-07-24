@@ -1761,7 +1761,33 @@ const sorted = registers.sort((a,b)=>
 );
                 const row = master => {
 
-    const done = [
+    const docs = DB.get("package_documents")
+    .filter(d => d.package_id === this.packageId);
+
+const referenceMap = {
+    RANCANGAN_KONTRAK: "SPK",
+    SSKK: "SPK",
+    SSUK: "SPK",
+    URAIAN_SINGKAT: "KAK"
+};
+
+const refCode = referenceMap[master.document_code];
+
+let displayNumber = master.document_number;
+let displayDate = master.document_date;
+
+if (refCode) {
+
+    const ref = docs.find(d => d.document_code === refCode);
+
+    if (ref) {
+        displayNumber = ref.document_number;
+        displayDate = ref.document_date;
+    }
+
+}
+                    
+                    const done = [
         'FINAL',
         'SIGNED',
         'GENERATED',
@@ -1789,7 +1815,7 @@ const sorted = registers.sort((a,b)=>
                 class="form-control chk-master-input"
                 data-id="${master.id}"
                 data-field="document_number"
-                value="${master.document_number || ''}"
+                value="${displayNumber || ''}"
                 placeholder="Nomor dokumen">
         </td>
 
@@ -1799,7 +1825,7 @@ const sorted = registers.sort((a,b)=>
                 class="form-control chk-master-input"
                 data-id="${master.id}"
                 data-field="document_date"
-                value="${master.document_date || ''}">
+                value="${displayDate || ''}">
         </td>
 
         <td>
@@ -2480,17 +2506,70 @@ if (code === "UND_VERIFIKASI") {
             }
 
             resolveDocumentMaster(reference, pkgId) {
-                const records = DB.get('package_documents');
-                let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (d.document_name === reference || d.document_code === reference));
-                if (!master) {
-                    const code = this.documentCode(reference);
-                    const pkg = DB.getById('paket', pkgId);
-                    const template = this.selectTemplate(code, pkg);
-                    master = DB.insert('package_documents', {package_id: pkgId, document_name: reference, document_code: code, template_id: template?.id || null, status: 'DRAFT', version: 1, generated: false});
-                }
-                return master;
-            }
 
+    const records = DB.get('package_documents');
+
+    let master =
+        records.find(d => d.id === reference && d.package_id === pkgId)
+        || records.find(d =>
+            d.package_id === pkgId &&
+            (d.document_name === reference || d.document_code === reference)
+        );
+
+    const code = this.documentCode(reference);
+    const pkg = DB.getById('paket', pkgId);
+    const template = this.selectTemplate(code, pkg);
+
+    // Ambil nomor & tanggal hasil perhitungan
+    const meta = this.calculateDocumentMeta(pkg, reference);
+
+    if (!master) {
+
+        master = DB.insert('package_documents', {
+
+            package_id: pkgId,
+
+            document_name: reference,
+
+            document_code: code,
+
+            template_id: template?.id || null,
+
+            status: 'DRAFT',
+
+            version: 1,
+
+            generated: false,
+
+            document_number: meta?.number || "",
+
+            document_date: meta?.date || ""
+
+        });
+
+    } else {
+
+        // Isi nomor & tanggal jika masih kosong
+        let changed = false;
+
+        if (!master.document_number && meta?.number) {
+            master.document_number = meta.number;
+            changed = true;
+        }
+
+        if (!master.document_date && meta?.date) {
+            master.document_date = meta.date;
+            changed = true;
+        }
+
+        if (changed) {
+            DB.update('package_documents', master);
+        }
+
+    }
+
+    return master;
+}
             openDocumentForm(pkgId) {
                 const pkg = DB.getById('paket', pkgId), type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
                 const templates = [...DB.get('template'), ...BUILTIN_TEMPLATES.filter(b => !DB.get('template').some(t => t.code === b.code))].filter(t => !t.type || this.normalizeProcurementType(t.type) === type || this.normalizeProcurementType(t.type) === 'Umum');
@@ -3116,27 +3195,22 @@ if ([
     "SSUK"
 ].includes(code)) {
 
-    return {
-
-        number: spk?.document_number || "",
-
-        date: spk?.document_date || ""
-
-    };
-
-}
+    // Kalau SPK sudah punya nomor, ikuti SPK
+    if (spk?.document_number) {
+        return {
+            number: spk.document_number,
+            date: spk.document_date
+        };
+    }
 
 if (code === "URAIAN_SINGKAT") {
 
-    return {
-
-        number: kak?.document_number || "",
-
-        date: kak?.document_date || ""
-
-    };
-
-}
+    if (kak?.document_number) {
+        return {
+            number: kak.document_number,
+            date: kak.document_date
+        };
+    }
                     
                     calcNumber = rule.format
                                  .replace(/\[keyword_penomoran\]/g, keyword)
