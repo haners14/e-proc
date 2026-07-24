@@ -1814,10 +1814,23 @@
 
 });
 
-const sorted = registers.sort((a,b)=>
-    (a.document_date || "9999-12-31").localeCompare(b.document_date || "9999-12-31")
-    || a.document_name.localeCompare(b.document_name)
-);
+// PERBAIKAN: Urutkan Checklist sesuai tanggal jadwal otomatis
+                const sorted = registers.sort((a, b) => {
+                    // Ambil tanggal riwayat, jika kosong gunakan tanggal otomatis dari Engine Jadwal
+                    const dateA = a.document_date || app.calculateDocumentMeta(this.pkg, a.document_name).date || "9999-12-31";
+                    const dateB = b.document_date || app.calculateDocumentMeta(this.pkg, b.document_name).date || "9999-12-31";
+                    
+                    // Urutkan dari tanggal paling awal ke akhir
+                    const timeA = new Date(dateA).getTime();
+                    const timeB = new Date(dateB).getTime();
+                    
+                    // Jika tanggalnya sama persis, baru urutkan berdasarkan abjad nama dokumen
+                    if (timeA === timeB) {
+                        return a.document_name.localeCompare(b.document_name);
+                    }
+                    return timeA - timeB;
+                });
+                
                 const row = master => {
                     const done = ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status || '').toUpperCase());
 
