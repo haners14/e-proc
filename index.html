@@ -997,11 +997,11 @@
                 if(this.activeTab === 'datapaket') bindAutoSave('form-datapaket', d => { 
     if(d.pagu) d.pagu = Number(String(d.pagu).replace(/\D/g, '')) || 0; 
     
-    // Cegah error integer dari Supabase jika kolom durasi kosong
-    if(d.durasi_kontrak === "") {
-        d.durasi_kontrak = null; 
-    } else {
-        d.durasi_kontrak = Number(d.durasi_kontrak);
+    // Solusi Sapu Jagat: Ubah semua string kosong ("") menjadi null
+    for (let key in d) {
+        if (d[key] === "") {
+            d[key] = null;
+        }
     }
     
     return d; 
