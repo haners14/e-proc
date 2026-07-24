@@ -514,12 +514,43 @@
                     // untuk mencegah error "cannot update primary key column"
                     delete cpy.id;
 
-                    if (payload.items !== undefined) {
-                        const items = payload.items.map((item, idx) => ({ ...item, package_id: id, urutan: idx }));
+                   if (payload.items !== undefined) {
+                        // PERBAIKAN: Bersihkan dan format data sebelum dikirim ke Supabase
+                        const itemsToInsert = payload.items.map((item, idx) => {
+                            const { id: localId, ...cleanItem } = item; // Buang ID dari frontend agar Supabase generate otomatis
+                            return { 
+                                ...cleanItem, 
+                                package_id: id, 
+                                urutan: idx,
+                                // Berikan fallback nilai 0 agar tidak ditolak Supabase (NOT NULL constraint)
+                                sat: item.sat || '',
+                                vol_hps: Number(item.vol_hps) || 0,
+                                harga_hps: Number(item.harga_hps) || 0,
+                                vol_pen: Number(item.vol_pen) || 0,
+                                harga_pen: Number(item.harga_pen) || 0,
+                                vol_neg: Number(item.vol_neg) || 0,
+                                harga_neg: Number(item.harga_neg) || 0,
+                                pajak: Number(item.pajak) || 0
+                            };
+                        });
+
                         (async () => {
                             try {
-                                await fetch(`${SUPABASE_URL}package_items?package_id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } });
-                                if(items.length > 0) await fetch(`${SUPABASE_URL}package_items`, { method: 'POST', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(items) });
+                                // Hapus data lama
+                                await fetch(`${SUPABASE_URL}package_items?package_id=eq.${id}`, { 
+                                    method: 'DELETE', 
+                                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } 
+                                });
+                                // Insert data baru yang sudah dibersihkan
+                                if(itemsToInsert.length > 0) {
+                                    const res = await fetch(`${SUPABASE_URL}package_items`, { 
+                                        method: 'POST', 
+                                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, 
+                                        body: JSON.stringify(itemsToInsert) 
+                                    });
+                                    // Bantuan debug jika masih error
+                                    if (!res.ok) console.error("Error insert Supabase:", await res.text());
+                                }
                             } catch (e) { console.error(e); }
                         })();
                         delete cpy.items;
