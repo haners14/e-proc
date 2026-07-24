@@ -1742,12 +1742,13 @@
     if (!reg) {
 
         reg = DB.insert("package_documents", {
-            package_id: this.packageId,
-            document_name: doc,
-            status: "DRAFT",
-            generated: false,
-            version: 1
-        });
+    package_id: this.packageId,
+    document_name: doc,
+    document_code: this.documentCode(doc),
+    status: "DRAFT",
+    generated: false,
+    version: 1
+});
 
     }
 
@@ -2668,33 +2669,7 @@ console.log(
                         return;
                     }
                     
-                    const docs = DB.get("package_documents")
-    .filter(d => d.package_id === pkgId);
-
-const referenceMap = {
-    RANCANGAN_KONTRAK: "SPK",
-    SSKK: "SPK",
-    SSUK: "SPK",
-    URAIAN_SINGKAT: "KAK"
-};
-
-const refCode = referenceMap[master.document_code];
-
-if (refCode) {
-
-    const ref = docs.find(
-        d => d.document_code === refCode
-    );
-
-    if (ref) {
-
-        master.document_number = ref.document_number;
-
-        master.document_date = ref.document_date;
-
-    }
-
-}
+                    
                     
                     if (!master.document_date) {
                         this.notify("Tanggal dokumen belum diisi.","error");
