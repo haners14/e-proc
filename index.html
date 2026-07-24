@@ -994,7 +994,18 @@
                     }
                 };
 
-                if(this.activeTab === 'datapaket') bindAutoSave('form-datapaket', d => { if(d.pagu) d.pagu = Number(String(d.pagu).replace(/\D/g, '')) || 0; return d; });
+                if(this.activeTab === 'datapaket') bindAutoSave('form-datapaket', d => { 
+    if(d.pagu) d.pagu = Number(String(d.pagu).replace(/\D/g, '')) || 0; 
+    
+    // Cegah error integer dari Supabase jika kolom durasi kosong
+    if(d.durasi_kontrak === "") {
+        d.durasi_kontrak = null; 
+    } else {
+        d.durasi_kontrak = Number(d.durasi_kontrak);
+    }
+    
+    return d; 
+});
                 if(this.activeTab === 'pejabat') bindAutoSave('form-pejabat');
                 if(this.activeTab === 'kak') bindAutoSave('form-kak');
                 if(this.activeTab === 'catatan') bindAutoSave('pkg-notes', () => ({ notes: document.getElementById('pkg-notes').value }));
