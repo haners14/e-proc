@@ -1598,43 +1598,33 @@
                 });
             }
 
-            renderJadwal() {
+           renderJadwal() {
                 const holidays = DB.get('libur').map(l => l.date); 
                 const rules = DB.get('waktu'); 
-                const overrides = this.pkg.jadwal_override || {};
                 
                 let calculated = [];
                 let dates = {};
                 
                 rules.forEach(r => { 
-                    let finalDate;
-                    if (overrides[`doc_${r.id}`]) {
-                        finalDate = overrides[`doc_${r.id}`];
-                    } else {
-                        // REVISI 4: Acuan default adalah tgl_awal (Tanggal Awal Persiapan)
-                        const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
-                        finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays);
-                    }
+                    const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
+                    const finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays);
+                    
                     dates[r.name] = finalDate;
-                    calculated.push({ ...r, calculatedDate: finalDate, isManual: !!overrides[`doc_${r.id}`] });
+                    calculated.push({ ...r, calculatedDate: finalDate });
                 });
 
-                // REVISI 7: Mengurutkan Jadwal berdasarkan tanggal dari awal hingga akhir
                 calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
                 
                 return `
                     <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Dokumen</h2><p class="text-sm text-muted">Dihitung otomatis atau di-override secara manual.</p></div>
-                            <div class="flex gap-2">
-                                <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'doc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
-                                <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
-                            </div>
+                            <div><h2 class="font-bold text-lg">Jadwal Dokumen (Otomatis)</h2><p class="text-sm text-muted">Jadwal dihitung otomatis berdasarkan master waktu dan dependensi hari kerja.</p></div>
+                            <button class="btn btn-outline btn-sm" onclick="app.navigate('master-waktu')">Atur Master Waktu</button>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Status</th><th>Tanggal Disimpan</th></tr></thead>
+                            <thead><tr><th>No</th><th>Jadwal / Dokumen</th><th>Acuan</th><th>Status</th><th>Tanggal Otomatis</th></tr></thead>
                             <tbody>
-                                ${calculated.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous || 'Tanggal Awal'}</td><td>${r.isManual ? '<span class="badge badge-warning">Manual Override</span>' : '<span class="badge badge-info">Otomatis</span>'}</td><td class="font-bold">${Utils.formatDate(r.calculatedDate)}</td></tr>`).join('')}
+                                ${calculated.map((r,i)=>`<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.previous || 'Tanggal Awal'}</td><td><span class="badge badge-info">Otomatis</span></td><td class="font-bold">${Utils.formatDate(r.calculatedDate)}</td></tr>`).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -1767,80 +1757,49 @@
 
             renderChecklist() {
                 const docs = [
-                    'Nota Dinas',
-                    'Undangan Reviu',
-                    'BA Reviu Dokumen Persiapan',
-                    'Uraian Singkat',
-                    'KAK',
-                    'HPS/RAB',
-                    'SDP',
-                    'Undangan Pengadaan Langsung',
-                    'BA Evaluasi',
-                    'Undangan Verifikasi',
-                    'BA Pembuktian Kualifikasi',
-                    'Undangan Negosiasi',
-                    'BA Negosiasi',
-                    'BA Hasil Pemilihan',
-                    'SPPBJ',
-                    'Undangan Penandatanganan Kontrak',
-                    'Rancangan Kontrak',
-                    'SPK',
-                    'SSUK',
-                    'SSKK',
-                    'SPMK',
-                    'BAST',
-                    'BAP'
+                    'Nota Dinas', 'Undangan Reviu', 'BA Reviu Dokumen Persiapan', 'Uraian Singkat',
+                    'KAK', 'HPS/RAB', 'SDP', 'Undangan Pengadaan Langsung', 'BA Evaluasi',
+                    'Undangan Verifikasi', 'BA Pembuktian Kualifikasi', 'Undangan Negosiasi',
+                    'BA Negosiasi', 'BA Hasil Pemilihan', 'SPPBJ', 'Undangan Penandatanganan Kontrak',
+                    'Rancangan Kontrak', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP'
                 ];
+
                 const registers = docs.map(doc => {
+                    let reg = DB.get("package_documents").find(r =>
+                        r.package_id === this.packageId &&
+                        (r.document_name || "").trim().toUpperCase() === doc.toUpperCase()
+                    );
 
-    let reg = DB.get("package_documents").find(r =>
-        r.package_id === this.packageId &&
-        (r.document_name || "").trim().toUpperCase() === doc.toUpperCase()
-    );
+                    if (!reg) {
+                        reg = DB.insert("package_documents", {
+                            package_id: this.packageId,
+                            document_name: doc,
+                            status: "DRAFT",
+                            generated: false,
+                            version: 1
+                        });
+                    }
+                    return reg;
+                });
 
-    if (!reg) {
-
-        reg = DB.insert("package_documents", {
-            package_id: this.packageId,
-            document_name: doc,
-            status: "DRAFT",
-            generated: false,
-            version: 1
-        });
-
-    }
-
-    return reg;
-
-});
-
-// PERBAIKAN: Urutkan Checklist sesuai tanggal jadwal otomatis
+                // Urutkan checklist kronologis
                 const sorted = registers.sort((a, b) => {
-                    // Ambil tanggal riwayat, jika kosong gunakan tanggal otomatis dari Engine Jadwal
                     const dateA = a.document_date || app.calculateDocumentMeta(this.pkg, a.document_name).date || "9999-12-31";
                     const dateB = b.document_date || app.calculateDocumentMeta(this.pkg, b.document_name).date || "9999-12-31";
-                    
-                    // Urutkan dari tanggal paling awal ke akhir
                     const timeA = new Date(dateA).getTime();
                     const timeB = new Date(dateB).getTime();
-                    
-                    // Jika tanggalnya sama persis, baru urutkan berdasarkan abjad nama dokumen
-                    if (timeA === timeB) {
-                        return a.document_name.localeCompare(b.document_name);
-                    }
+                    if (timeA === timeB) return a.document_name.localeCompare(b.document_name);
                     return timeA - timeB;
                 });
-                
-                const row = master => {
-                    const done = ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status || '').toUpperCase());
 
-                    // PERBAIKAN: Tarik nilai otomatis dari jadwal & master penomoran jika kosong
+                const rowsHtml = sorted.map(master => {
+                    const done = ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status || '').toUpperCase());
                     const autoMeta = app.calculateDocumentMeta(this.pkg, master.document_name);
-                    const displayNum = master.document_number || autoMeta.number || '';
-                    const displayDate = master.document_date || autoMeta.date || '';
+                    const displayNum = master.document_number !== undefined && master.document_number !== null ? master.document_number : (autoMeta.number || '');
+                    const displayDate = master.document_date !== undefined && master.document_date !== null ? master.document_date : (autoMeta.date || '');
 
                     return `
-                    <tr>
+                    <tr data-docid="${master.id}">
                         <td style="width:40px;text-align:center">
                             <input type="checkbox" class="w-4 h-4 accent-primary" ${done ? 'checked' : ''} onclick="app.toggleChecklist('${this.packageId}','${master.document_name}', this.checked)">
                         </td>
@@ -1849,22 +1808,40 @@
                             <div class="text-xs text-muted">${master.document_code || '-'}</div>
                         </td>
                         <td>
-                            <input type="text" class="form-control chk-master-input" data-id="${master.id}" data-field="document_number" value="${displayNum}" placeholder="Nomor dokumen">
+                            <input type="text" class="form-control chk-num-input" data-id="${master.id}" value="${displayNum}" placeholder="Nomor dokumen">
                         </td>
                         <td>
-                            <input type="date" class="form-control chk-master-input" data-id="${master.id}" data-field="document_date" value="${displayDate}">
+                            <input type="date" class="form-control chk-date-input" data-id="${master.id}" value="${displayDate}">
                         </td>
-                        <td>
-                            ${Utils.getBadge(master.status || 'DRAFT')}
-                        </td>
+                        <td>${Utils.getBadge(master.status || 'DRAFT')}</td>
                         <td>
                             <button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master.id}','${this.packageId}')">
                                 <i class="ph ph-magic-wand"></i> Generate
                             </button>
                         </td>
                     </tr>`;
-                };
-                return `<div class="mb-4"><p class="text-sm text-muted bg-info-50 p-3 rounded border border-info-200 text-info-700"><b>Master dokumen:</b> nomor dan tanggal di bawah disimpan per dokumen pada <code>package_documents</code>. Generator selalu memakai nilai ini, bukan data checklist lama.</p></div><div class="card p-0 mb-6" style="overflow:visible"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">Checklist Dokumen Pengadaan — urut tanggal</h3></div><div class="table-container" style="border:0;border-radius:0;overflow-x:auto"><table class="data-table"><thead><tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Status</th><th>Generate</th></tr></thead><tbody>${sorted.map(row).join('')}</tbody></table></div></div>`;
+                }).join('');
+
+                return `
+                    <div class="card p-6 max-w-6xl mx-auto">
+                        <div class="flex justify-between items-center mb-4 border-b pb-4">
+                            <div>
+                                <h2 class="font-bold text-lg">Checklist Dokumen & Penyesuaian Data</h2>
+                                <p class="text-sm text-muted">Nomor dan tanggal di bawah dapat disesuaikan manual, lalu klik Simpan untuk merekamnya ke database.</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="app.saveChecklistChanges('${this.packageId}')">
+                                <i class="ph ph-floppy-disk"></i> Simpan Perubahan Checklist
+                            </button>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Status</th><th>Generate</th></tr>
+                                </thead>
+                                <tbody>${rowsHtml}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
             }
 
             attachChecklistEvents() {
@@ -3285,6 +3262,24 @@ console.log(
         this.notify('Jadwal berhasil diperbarui', 'success');
         this.reRenderCurrentView();
     }
+            async saveChecklistChanges(pkgId) {
+                const rows = document.querySelectorAll('tr[data-docid]');
+                
+                for (let row of rows) {
+                    const docId = row.getAttribute('data-docid');
+                    const numInput = row.querySelector('.chk-num-input').value;
+                    const dateInput = row.querySelector('.chk-date-input').value;
+
+                    // Update langsung ke tabel package_documents di Supabase & cache lokal
+                    DB.update('package_documents', docId, {
+                        document_number: numInput,
+                        document_date: dateInput
+                    });
+                }
+
+                this.notify('Checklist, nomor, dan tanggal dokumen berhasil disimpan ke database!', 'success');
+                this.reRenderCurrentView();
+            }
         }
         
         document.addEventListener('DOMContentLoaded', () => { 
