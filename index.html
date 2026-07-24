@@ -1563,13 +1563,20 @@
                 // REVISI 7: Mengurutkan Jadwal berdasarkan tanggal dari awal hingga akhir
                 calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
                 
-                DB.update(
-                    "package_documents",
-                    reg.id,
-                    {
-                        document_date: tanggalBaru
-                    }
-                );
+                const packageDocs = DB.get("package_documents")
+    .filter(d => d.package_id === this.packageId);
+
+calculated.forEach(item => {
+    const doc = packageDocs.find(d =>
+        d.document_name === item.name
+    );
+
+    if (doc) {
+        DB.update("package_documents", doc.id, {
+            document_date: item.calculatedDate
+        });
+    }
+});
                 
                 return `
                     <div class="card p-6 max-w-5xl mx-auto">
