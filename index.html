@@ -2907,7 +2907,7 @@ renderSignPage(container, itemId) {
                 `;
             }
 
-          modalTambahSPJHeader() {
+         modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
@@ -2923,9 +2923,9 @@ renderSignPage(container, itemId) {
                     opts = `<option value="">-- Belum ada data pengajuan. Buat dulu di menu Pengajuan Pencairan --</option>`;
                 }
 
-                // Berikan style min-height pada wrapper form agar ada ruang kosong di bawah untuk dropdown TomSelect
+                // Beri ruang kosong (padding-bottom) agar saat dropdown terbuka ke bawah, tombol tidak tertutup
                 const body = `
-                    <form id="form-tambah-spj" class="flex flex-col gap-4" style="min-height: 220px;">
+                    <form id="form-tambah-spj" class="flex flex-col gap-4" style="padding-bottom: 180px;">
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan (Cari & Pilih)</label>
                             <select id="select-pencairan-spj" name="pencairan_id" class="form-control searchable-select" required>
@@ -2945,8 +2945,7 @@ renderSignPage(container, itemId) {
                             if (el.tomselect) el.tomselect.destroy();
                             new TomSelect(el, {
                                 create: false,
-                                sortField: { field: "text", direction: "asc" },
-                                dropdownParent: 'body' // Mengarahkan elemen dropdown agar merender langsung di body agar tidak terpotong kotak modal
+                                sortField: { field: "text", direction: "asc" }
                             });
                         }
                     }
