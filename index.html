@@ -2907,8 +2907,7 @@ renderSignPage(container, itemId) {
                 `;
             }
 
-           modalTambahSPJHeader() {
-                // Pastikan mengambil seluruh data pencairan terbaru dari cache database
+          modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
@@ -2924,8 +2923,9 @@ renderSignPage(container, itemId) {
                     opts = `<option value="">-- Belum ada data pengajuan. Buat dulu di menu Pengajuan Pencairan --</option>`;
                 }
 
+                // Berikan style min-height pada wrapper form agar ada ruang kosong di bawah untuk dropdown TomSelect
                 const body = `
-                    <form id="form-tambah-spj" class="flex flex-col gap-4">
+                    <form id="form-tambah-spj" class="flex flex-col gap-4" style="min-height: 220px;">
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan (Cari & Pilih)</label>
                             <select id="select-pencairan-spj" name="pencairan_id" class="form-control searchable-select" required>
@@ -2942,10 +2942,11 @@ renderSignPage(container, itemId) {
                     if (window.TomSelect) {
                         const el = document.getElementById('select-pencairan-spj');
                         if (el) {
-                            if (el.tomselect) el.tomselect.destroy(); // Hancurkan instance lama agar tidak bentrok
+                            if (el.tomselect) el.tomselect.destroy();
                             new TomSelect(el, {
                                 create: false,
-                                sortField: { field: "text", direction: "asc" }
+                                sortField: { field: "text", direction: "asc" },
+                                dropdownParent: 'body' // Mengarahkan elemen dropdown agar merender langsung di body agar tidak terpotong kotak modal
                             });
                         }
                     }
