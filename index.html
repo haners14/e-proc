@@ -3123,7 +3123,7 @@
                 `;
 
                 DOM.openModal(id ? 'Edit Header Pencairan' : '1. Buat Header Pengajuan Baru', body, footer);
-            },
+            }
 
             saveHeaderPencairan(id) {
                 const formData = DOM.getFormData('form-header-pencairan');
@@ -3152,7 +3152,7 @@
 
                 DOM.closeModal();
                 this.formDetailPencairan(headerId);
-            },
+            }
 
             formDetailPencairan(pencairanId) {
                 const header = DB.getById('pencairan', pencairanId);
@@ -3237,7 +3237,7 @@
                 `;
 
                 DOM.openModal(`2. Rincian Item Belanja — ${header.nomor}`, body, footer);
-            },
+            }
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
@@ -3295,7 +3295,7 @@
                     let val = String(e.target.value).replace(/\D/g, '');
                     e.target.value = Utils.formatNumber(val);
                 });
-            },
+            }
 
             autofillPenyediaDetail(selectEl) {
                 const opt = selectEl.options[selectEl.selectedIndex];
@@ -3305,7 +3305,7 @@
                 tr.querySelector('.item-nama-penerima').value = opt.getAttribute('data-nama') || '';
                 tr.querySelector('.item-bank').value = opt.getAttribute('data-bank') || '';
                 tr.querySelector('.item-norek').value = opt.getAttribute('data-norek') || '';
-            },
+            }
 
             hitungItemDetail(el) {
                 const tr = el.closest('tr');
@@ -3330,7 +3330,7 @@
 
                 tr.querySelector('.val-ppn').innerText = Utils.formatNumber(ppn);
                 tr.querySelector('.val-pph').innerText = Utils.formatNumber(pph);
-            },
+            }
 
             saveDetailPencairan(pencairanId) {
                 const existingItems = DB.get('pencairan_items') || [];
@@ -3398,7 +3398,7 @@
                 DOM.closeModal();
                 this.notify('Rincian item pencairan berhasil disimpan', 'success');
                 this.renderPengajuan(this.routerView);
-            },
+            }
 
             duplicatePencairan(id) {
                 const header = DB.getById('pencairan', id);
@@ -3426,7 +3426,7 @@
 
                 this.notify('Pengajuan dan seluruh rincian berhasil diduplikasi', 'success');
                 this.renderPengajuan(this.routerView);
-            },
+            }
 
             deletePencairan(id) {
                 if (confirm('Apakah Anda yakin ingin menghapus pengajuan ini beserta seluruh rincian itemnya?')) {
@@ -3434,7 +3434,7 @@
                     this.notify('Pengajuan berhasil dihapus', 'success');
                     this.renderPengajuan(this.routerView);
                 }
-            },
+            }
 
             printLampiranPencairan(pencairanId) {
                 const header = DB.getById('pencairan', pencairanId);
