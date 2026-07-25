@@ -2136,58 +2136,148 @@
 
         class PertanggungjawabanView {
             static renderPagu(container) {
+                // 1. Ambil Data
                 let rekenings = [...DB.get('master_rekening')].sort((a,b) => a.kode.localeCompare(b.kode));
-                let realisasiData = DB.get('pencairan_items');
+                let pencairanHead = DB.get('pencairan') || [];
+                let pencairanItems = DB.get('pencairan_items') || [];
                 
-                // Kalkulasi Hierarki
+                // 2. Siapkan wadah kalkulasi
                 let map = {};
+                
+                // Inisialisasi struktur map dengan nilai 0
                 rekenings.forEach(r => {
-                    let totalRealisasi = realisasiData.filter(i => i.rekening_kode === r.kode).reduce((sum, i) => sum + Number(i.jumlah), 0);
-                    map[r.kode] = { ...r, pagu_calculated: Number(r.pagu) || 0, realisasi: totalRealisasi };
+                    map[r.kode] = { 
+                        ...r, 
+                        pagu_calc: r.jenis === 'Detail' ? (Number(r.pagu) || 0) : 0, 
+                        realisasi_total: 0,
+                        realisasi_bulan: {} 
+                    };
+                    // Siapkan slot bulan 1-12 dan jenis pencairan
+                    for(let i = 1; i <= 12; i++) {
+                        map[r.kode].realisasi_bulan[i] = { LS: 0, GU: 0, TU: 0, TOTAL: 0 };
+                    }
                 });
 
-                // Roll up ke parent (Bottom up)
-                let codes = Object.keys(map).sort((a,b) => b.length - a.length);
-                codes.forEach(code => {
-                    if(map[code].jenis === 'Header') map[code].pagu_calculated = 0; // Reset header sblm diisi child
-                    codes.forEach(childCode => {
-                        if(childCode !== code && childCode.startsWith(code) && (childCode.split('.').length === code.split('.').length + 1)) {
-                            map[code].pagu_calculated += map[childCode].pagu_calculated;
-                            map[code].realisasi += map[childCode].realisasi;
+                // 3. Masukkan data realisasi pencairan ke Level 6 (Detail)
+                pencairanItems.forEach(item => {
+                    if (map[item.rekening_kode]) {
+                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
+                        if (head && (head.status === 'FINAL' || head.status === 'SELESAI')) {
+                            const date = new Date(head.tanggal);
+                            const month = date.getMonth() + 1; // 1 = Jan, 12 = Des
+                            const jenis = head.jenis_pencairan; // 'LS', 'GU', atau 'TU'
+                            const amount = Number(item.jumlah) || 0;
+
+                            if (map[item.rekening_kode].realisasi_bulan[month]) {
+                                map[item.rekening_kode].realisasi_bulan[month][jenis] += amount;
+                                map[item.rekening_kode].realisasi_bulan[month].TOTAL += amount;
+                                map[item.rekening_kode].realisasi_total += amount;
+                            }
                         }
-                    });
+                    }
                 });
 
-                let rows = Object.values(map).map((r, i) => {
-                    const indent = (r.kode.split('.').length - 1) * 15;
-                    const isHeader = r.jenis === 'Header';
-                    const sisa = r.pagu_calculated - r.realisasi;
-                    const bg = isHeader ? (r.kode.split('.').length <= 4 ? 'bg-warning-100' : 'bg-gray-100') : '';
+                // 4. Proses Roll-up (Ngelink dari Bawah ke Atas)
+                // Urutkan kode dari yang terpanjang ke yang terpendek
+                let codes = Object.keys(map).sort((a,b) => b.length - a.length);
+                
+                codes.forEach(code => {
+                    // Cari parent: potong string kode di titik terakhir. 
+                    // Misal: 5.02.03.2.01.0001.5.1.02 -> Parent-nya 5.02.03.2.01.0001.5.1
+                    let parentCode = code.substring(0, code.lastIndexOf('.'));
+                    
+                    if (parentCode && map[parentCode]) {
+                        // Tambahkan pagu
+                        map[parentCode].pagu_calc += map[code].pagu_calc;
+                        // Tambahkan total realisasi
+                        map[parentCode].realisasi_total += map[code].realisasi_total;
+                        
+                        // Tambahkan rincian per bulan
+                        for(let i = 1; i <= 12; i++) {
+                            map[parentCode].realisasi_bulan[i].LS += map[code].realisasi_bulan[i].LS;
+                            map[parentCode].realisasi_bulan[i].GU += map[code].realisasi_bulan[i].GU;
+                            map[parentCode].realisasi_bulan[i].TU += map[code].realisasi_bulan[i].TU;
+                            map[parentCode].realisasi_bulan[i].TOTAL += map[code].realisasi_bulan[i].TOTAL;
+                        }
+                    }
+                });
+
+                // 5. Render Styling Hierarki (Mirip Referensi Gambar)
+                const getStyleByLevel = (kode) => {
+                    const parts = kode.split('.');
+                    // Styling didasarkan pada kedalaman titik (jumlah parts)
+                    if (parts.length <= 3) return 'font-bold bg-white'; // Program
+                    if (parts.length === 5) return 'font-bold bg-warning-100'; // Kegiatan
+                    if (parts.length === 6) return 'font-bold bg-warning-200'; // Sub Kegiatan
+                    if (parts.length === 8) return 'font-bold bg-white'; // Rekening Level 1 & 2
+                    if (parts.length >= 12) return 'bg-info-50 text-gray-800'; // Rekening Level 6 (Sub Rincian)
+                    return 'bg-white'; // Default Level 3-5
+                };
+
+                let rows = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map((r) => {
+                    const sisa = r.pagu_calc - r.realisasi_total;
+                    const rowStyle = getStyleByLevel(r.kode);
+                    
+                    // Build kolom bulan secara dinamis
+                    let monthCols = '';
+                    for(let i = 1; i <= 12; i++) {
+                        monthCols += `
+                            <td class="text-right border-l border-gray-300">${r.realisasi_bulan[i].LS > 0 ? Utils.formatNumber(r.realisasi_bulan[i].LS) : '-'}</td>
+                            <td class="text-right">${r.realisasi_bulan[i].GU > 0 ? Utils.formatNumber(r.realisasi_bulan[i].GU) : '-'}</td>
+                            <td class="text-right">${r.realisasi_bulan[i].TU > 0 ? Utils.formatNumber(r.realisasi_bulan[i].TU) : '-'}</td>
+                            <td class="text-right font-semibold bg-gray-50 border-r border-gray-300">${r.realisasi_bulan[i].TOTAL > 0 ? Utils.formatNumber(r.realisasi_bulan[i].TOTAL) : '-'}</td>
+                        `;
+                    }
                     
                     return `
-                    <tr class="${bg} ${isHeader ? 'font-bold' : ''}" style="${isHeader ? 'border-top: 1px dashed var(--gray-400); border-bottom: 1px dashed var(--gray-400);' : ''}">
-                        <td>${r.kode}</td>
-                        <td style="padding-left: ${indent+8}px;">${r.uraian}</td>
-                        <td class="text-right">${Utils.formatCurrency(r.pagu_calculated)}</td>
-                        <td class="text-right text-success-600">${Utils.formatCurrency(r.realisasi)}</td>
-                        <td class="text-right">${Utils.formatCurrency(sisa)}</td>
-                        <td class="text-center">
-                            <button class="btn btn-ghost btn-sm text-primary" onclick="app.editRekening('${r.id}')"><i class="ph ph-pencil-simple"></i></button>
-                        </td>
+                    <tr class="${rowStyle} hover:bg-gray-100">
+                        <td class="sticky left-0 bg-inherit border-r border-gray-200 z-10 whitespace-nowrap px-4 py-2">${r.kode}</td>
+                        <td class="sticky left-[150px] bg-inherit border-r border-gray-300 z-10 min-w-[300px] px-4 py-2">${r.uraian}</td>
+                        <td class="text-right font-semibold whitespace-nowrap px-4 py-2">${Utils.formatNumber(r.pagu_calc)}</td>
+                        ${monthCols}
+                        <td class="text-right font-bold text-success-600 border-l-2 border-gray-400 whitespace-nowrap px-4 py-2">${Utils.formatNumber(r.realisasi_total)}</td>
+                        <td class="text-right font-bold ${sisa < 0 ? 'text-danger-500' : 'text-primary-600'} whitespace-nowrap px-4 py-2">${Utils.formatNumber(sisa)}</td>
                     </tr>`;
                 }).join('');
 
+                // Header Bulan
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                let monthHeaders1 = months.map(m => `<th colspan="4" class="text-center border-x border-gray-300 px-2 py-2">${m}</th>`).join('');
+                let monthHeaders2 = months.map(m => `
+                    <th class="text-right border-l border-gray-300 text-xs px-2 py-1">LS</th>
+                    <th class="text-right text-xs px-2 py-1">GU</th>
+                    <th class="text-right text-xs px-2 py-1">TU</th>
+                    <th class="text-right bg-gray-100 border-r border-gray-300 text-xs px-2 py-1">Total</th>
+                `).join('');
+
                 container.innerHTML = `
-                    <div class="p-6 h-full flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1><p class="text-muted text-sm mt-1">Hierarki otomatis terjumlah berdasarkan kode rekening.</p></div>
-                            <button class="btn btn-primary" onclick="app.editRekening()"><i class="ph ph-plus"></i> Tambah Rekening Baru</button>
+                    <div class="p-6 h-full flex flex-col w-full">
+                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                            <div>
+                                <h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1>
+                                <p class="text-muted text-sm mt-1">Matriks Realisasi LS/GU/TU tersinkronisasi dari Data Pencairan (Roll-up Otomatis).</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline" onclick="app.notify('Fitur export ke Excel sedang disiapkan', 'info')"><i class="ph ph-file-xls"></i> Export Excel</button>
+                                <button class="btn btn-primary" onclick="app.editRekening()"><i class="ph ph-plus"></i> Tambah Master Kode</button>
+                            </div>
                         </div>
-                        <div class="card flex-1 flex flex-col overflow-hidden">
-                            <div class="table-container flex-1 overflow-auto border-0 rounded-none">
-                                <table class="data-table" style="font-size: 0.75rem;">
-                                    <thead style="position: sticky; top:0; z-index:10;">
-                                        <tr><th style="width: 150px;">Kode Rekening</th><th>Uraian</th><th class="text-right" style="width: 150px;">Pagu Anggaran</th><th class="text-right" style="width: 150px;">Realisasi Pencairan</th><th class="text-right" style="width: 150px;">Sisa Anggaran</th><th style="width: 60px;"></th></tr>
+                        
+                        <div class="card flex-1 flex flex-col overflow-hidden relative">
+                            <div class="table-container flex-1 overflow-auto border-0 rounded-none w-full" style="max-height: calc(100vh - 180px);">
+                                <table class="data-table w-full" style="font-size: 0.75rem; border-collapse: separate; border-spacing: 0;">
+                                    <thead style="position: sticky; top:0; z-index:20;" class="bg-gray-100 shadow-sm">
+                                        <tr>
+                                            <th rowspan="2" class="sticky left-0 bg-gray-100 border-r border-gray-200 z-30 px-4 py-2" style="min-width: 150px; outline: 1px solid var(--gray-200);">Kode Rekening</th>
+                                            <th rowspan="2" class="sticky left-[150px] bg-gray-100 border-r border-gray-300 z-30 px-4 py-2" style="outline: 1px solid var(--gray-200);">Uraian Program / Kegiatan / Rincian Objek</th>
+                                            <th rowspan="2" class="text-right whitespace-nowrap px-4 py-2" style="min-width: 120px;">Pagu Anggaran</th>
+                                            ${monthHeaders1}
+                                            <th rowspan="2" class="text-right border-l-2 border-gray-400 whitespace-nowrap px-4 py-2" style="min-width: 120px;">Total Realisasi</th>
+                                            <th rowspan="2" class="text-right whitespace-nowrap px-4 py-2" style="min-width: 120px;">Sisa Anggaran</th>
+                                        </tr>
+                                        <tr>
+                                            ${monthHeaders2}
+                                        </tr>
                                     </thead>
                                     <tbody>${rows}</tbody>
                                 </table>
