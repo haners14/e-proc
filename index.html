@@ -2516,9 +2516,9 @@
                     `<option value="${p.id}" data-ppn="${p.ppn}" data-tarif="${p.tarif}" data-dasar="${p.dasar_hitung}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`
                 ).join('');
 
-                // Formatting Dropdown Paket
+                // Formatting Dropdown Paket (BAGIAN YANG DIPERBAIKI)
                 const optsPaket = packages.map(p => {
-                    const t = this.calculatePackageTotals(p);
+                    const t = DB.calculatePackageTotals(p); // <--- Perbaikan di sini (sebelumnya this.calculate...)
                     const nego = p.pembulatan_negosiasi || t.negosiasi || 0;
                     return `<option value="${p.id}" data-nilai="${nego}">${p.name}</option>`;
                 }).join('');
@@ -2605,7 +2605,7 @@
                 `;
                 DOM.openModal('Form Pengajuan Pencairan', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.savePencairan()">Buat Pengajuan</button>`);
                 
-                // Attach event listener for money formatter inside modal
+                // Event listener for money formatter
                 document.getElementById('input_tagihan').addEventListener('input', function(e) {
                     let val = String(e.target.value).replace(/\D/g, '');
                     e.target.value = Utils.formatNumber(val);
