@@ -4155,41 +4155,43 @@ renderSignPage(container, itemId) {
                     }
                 });
 
-                // Cari master rekening yang bertindak sebagai Sub Kegiatan yang cocok dengan header
-                const matchedSubKegiatanNodes = daftarRekening.filter(r => {
+                // Cari node sub kegiatan pada master rekening yang cocok dengan header
+                const subKegNodes = daftarRekening.filter(r => {
                     if (!subKegiatanHeader) return false;
-                    const uraianRek = (r.uraian || '').toLowerCase();
-                    return uraianRek === subKegiatanHeader || uraianRek.includes(subKegiatanHeader);
+                    const uraian = (r.uraian || '').toLowerCase();
+                    const kode = (r.kode || '').toLowerCase();
+                    return uraian.includes(subKegiatanHeader) || subKegiatanHeader.includes(uraian) || kode === subKegiatanHeader;
                 });
 
-                const matchedIds = new Set(matchedSubKegiatanNodes.map(r => r.id));
-                const matchedCodes = new Set(matchedSubKegiatanNodes.map(r => r.kode));
+                const subKegIds = new Set(subKegNodes.map(r => r.id));
+                const subKegCodes = subKegNodes.map(r => r.kode);
 
-                // Filter rekening DPA (jenis Detail) yang secara hierarki berada di bawah Sub Kegiatan header
+                // Filter rekening jenis Detail yang berada di bawah sub kegiatan tersebut
                 const optsRekening = daftarRekening.filter(r => {
                     if (r.jenis !== 'Detail') return false;
-                    if (!subKegiatanHeader) return true; // Tampilkan semua jika header kosong
+                    if (!subKegiatanHeader) return true;
 
-                    // Cek apakah parent_id atau jalur hierarki ke atas merujuk ke sub kegiatan header
+                    // Cek relasi hierarki (apakah dia anak/turunan dari sub kegiatan header)
                     let curr = r;
                     let safety = 0;
-                    while (curr && safety < 15) {
-                        if (matchedIds.has(curr.id) || matchedCodes.has(curr.kode)) {
-                            return true;
-                        }
-                        // Cek pencocokan teks langsung pada level di atasnya
-                        const currUraian = (curr.uraian || '').toLowerCase();
-                        if (currUraian === subKegiatanHeader || currUraian.includes(subKegiatanHeader)) {
-                            return true;
-                        }
-                        curr = daftarRekening.find(x => x.kode === curr.parent_id || x.id === curr.parent_id);
+                    while (curr && safety < 10) {
+                        if (subKegIds.has(curr.id) || subKegIds.has(curr.parent_id)) return true;
+                        if (subKegCodes.some(code => curr.kode.startsWith(code + '.'))) return true;
+                        
+                        curr = daftarRekening.find(x => x.id === curr.parent_id || x.kode === curr.parent_id);
                         safety++;
                     }
                     return false;
                 });
 
-                // Jika hasil filter strict kosong, gunakan seluruh rekening agar tidak error/blank total
-                const finalRekeningList = optsRekening.length > 0 ? optsRekening : [];
+                // Jika hasil filter kosong (untuk mencegah dropdown kosong melompong), gunakan pencocokan longgar berdasarkan kata kunci
+                const finalRekeningList = optsRekening.length > 0 ? optsRekening : daftarRekening.filter(r => {
+                    if (r.jenis !== 'Detail') return false;
+                    if (!subKegiatanHeader) return true;
+                    // Ambil kata pertama/utama dari sub kegiatan untuk dicocokkan
+                    const keyword = subKegiatanHeader.split(' ')[0];
+                    return (r.uraian || '').toLowerCase().includes(keyword) || (r.kode || '').toLowerCase().includes(keyword);
+                });
 
                 const optsRekeningHtml = finalRekeningList.map(r => {
                     const selected = existingItem && existingItem.rekening_id === r.id ? 'selected' : '';
@@ -4241,7 +4243,7 @@ renderSignPage(container, itemId) {
                             <label class="form-label font-bold text-gray-700">Rekening DPA (Sub Kegiatan: ${header.sub_kegiatan || '-'})</label>
                             <select id="detail_rekening_id" class="form-control searchable-select" required>
                                 <option value="">-- Pilih Rekening Belanja Sesuai Sub Kegiatan --</option>
-                                ${optsRekeningHtml || '<option value="">Tidak ada rekening detail untuk sub kegiatan ini</option>'}
+                                ${optsRekeningHtml}
                             </select>
                         </div>
 
