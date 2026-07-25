@@ -3247,12 +3247,275 @@
     }
     modalContainer.innerHTML = modalHTML;
 }
+            
 
-openFormInputItemPencairan(pencairanId) {
-    // Formulir input / modal turunan untuk Opsi 1 (Non-Paket) atau Opsi 2 (Dari Paket)
-    // Serta kalkulasi otomatis berdasarkan rumus DPP = Bruto / 1.11, PPN = Bruto - DPP, dan PPh = DPP * (tarif/100)
-    // ...
-}
+enFormInputItemPencairan(pencairanId) {
+                const daftarRekening = DB.get('master_rekening') || [];
+                const daftarPaket = DB.get('paket') || [];
+                const daftarPenyedia = DB.get('penyedia') || [];
+                const daftarMasterPajak = DB.get('master_pajak') || [];
+
+                const optsRekening = daftarRekening.filter(r => r.jenis === 'Detail').map(r => {
+                    const sisaPagu = (Number(r.pagu) || 0); // atau kalkulasi sisa pagu
+                    return `<option value="${r.id}" data-uraian="${r.uraian}">${r.kode} - ${r.uraian} (Pagu: Rp ${Utils.formatNumber(sisaPagu)})</option>`;
+                }).join('');
+
+                const optsPaket = daftarPaket.map(p => {
+                    const totals = DB.calculatePackageTotals(p);
+                    const nilaiNego = p.pembulatan_negosiasi || totals.negosiasi || 0;
+                    return `<option value="${p.id}" data-nama="${p.name}" data-nilai="${nilaiNego}">[Paket] ${p.name} (Nilai: Rp ${Utils.formatNumber(nilaiNego)})</option>`;
+                }).join('');
+
+                const optsPenyedia = daftarPenyedia.map(p => `
+                    <option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">
+                        ${p.name} (Bank: ${p.bank || '-'} - ${p.no_rekening || '-'})
+                    </option>
+                `).join('');
+
+                const optsPajak = daftarMasterPajak.map(p => `
+                    <option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph || ''}" data-ppn="${p.ppn}">
+                        ${p.profil} (${p.jenis_pph || 'Non-PPh'} ${p.tarif}%)
+                    </option>
+                `).join('');
+
+                const bodyHTML = `
+                    <form id="form-input-item-pencairan" class="flex flex-col gap-4">
+                        <!-- Pilihan Opsi Input -->
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Sumber Item Rincian</label>
+                            <select id="tipe-sumber-item" class="form-control" onchange="app.toggleSumberItem(this.value)">
+                                <option value="manual">1. Ngisi Sendiri (Non-Paket / Belanja Umum)</option>
+                                <option value="paket">2. Ambil dari Data Paket Pengadaan</option>
+                            </select>
+                        </div>
+
+                        <!-- Opsi Paket (Hidden by default) -->
+                        <div class="form-group mb-0" id="wrapper-pilih-paket" style="display: none;">
+                            <label class="form-label font-bold text-gray-700">Pilih Paket Pengadaan</label>
+                            <select id="input-paket-id" class="form-control" onchange="app.autofillDariPaket(this)">
+                                <option value="">-- Pilih Paket --</option>
+                                ${optsPaket}
+                            </select>
+                        </div>
+
+                        <!-- Rekening / Sub Kegiatan -->
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Rekening DPA & Sub Kegiatan</label>
+                            <select id="detail_rekening_id" class="form-control" required>
+                                <option value="">-- Pilih Rekening Belanja --</option>
+                                ${optsRekening}
+                            </select>
+                        </div>
+
+                        <!-- Uraian Keperluan -->
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Uraian Keperluan Belanja</label>
+                            <textarea id="detail_uraian" class="form-control" rows="2" placeholder="Cth: Pembayaran Belanja Jasa Konsultansi..." required></textarea>
+                        </div>
+
+                        <!-- Referensi Penyedia / Penerima -->
+                        <div class="border p-4 rounded-md bg-gray-50 space-y-3">
+                            <h4 class="font-bold text-xs text-gray-700 uppercase">Informasi Penerima (Linked Penyedia)</h4>
+                            <div class="form-group mb-0">
+                                <label class="form-label text-xs">Pilih dari Master Penyedia (Opsional)</label>
+                                <select id="detail_penyedia_ref" class="form-control" onchange="app.autofillPenyediaItem(this)">
+                                    <option value="">-- Cari Penyedia / Rekanan --</option>
+                                    ${optsPenyedia}
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs">Nama Penerima</label>
+                                    <input type="text" id="detail_nama_penerima" class="form-control text-xs" required>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs">Bank</label>
+                                    <input type="text" id="detail_bank" class="form-control text-xs" required>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label class="form-label text-xs">Nomor Rekening</label>
+                                    <input type="text" id="detail_norek" class="form-control text-xs font-mono" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nilai Tagihan & Pajak -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Nilai Tagihan / Bruto (Rp)</label>
+                                <input type="text" id="detail_bruto" class="form-control money-input font-bold" placeholder="0" oninput="app.hitungPajakDetailItem()" required>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Profil Master Pajak</label>
+                                <select id="detail_master_pajak" class="form-control" onchange="app.hitungPajakDetailItem()">
+                                    <option value="">-- Tanpa Pajak --</option>
+                                    ${optsPajak}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Hasil Kalkulasi Otomatis -->
+                        <div class="bg-primary-50 p-4 rounded-md border border-primary-200 text-xs space-y-1">
+                            <div class="font-bold text-primary-900 mb-2">Simulasi Kalkulasi Otomatis:</div>
+                            <div class="flex justify-between"><span>DPP (Tagihan ÷ 1.11):</span> <span id="sim_dpp" class="font-semibold">Rp 0</span></div>
+                            <div class="flex justify-between"><span>PPN (Tagihan − DPP):</span> <span id="sim_ppn" class="font-semibold">Rp 0</span></div>
+                            <div class="flex justify-between"><span>PPh (Tarif × DPP):</span> <span id="sim_pph" class="font-semibold">Rp 0</span></div>
+                            <div class="flex justify-between border-t border-primary-200 pt-1 text-sm font-bold text-primary-700">
+                                <span>Jumlah Dibayarkan (Bersih):</span> <span id="sim_total">Rp 0</span>
+                            </div>
+                        </div>
+                    </form>
+                `;
+
+                const footerHTML = `
+                    <button class="btn btn-outline" onclick="app.formDetailPencairan('${pencairanId}')">Kembali</button>
+                    <button class="btn btn-primary" onclick="app.simpanItemPencairanBaru('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Item Rincian</button>
+                `;
+
+                DOM.openModal('Tambah Item Belanja & Pajak', bodyHTML, footerHTML);
+
+                // Format money input handler
+                setTimeout(() => {
+                    const moneyInput = document.getElementById('detail_bruto');
+                    if (moneyInput) {
+                        moneyInput.addEventListener('input', e => {
+                            e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
+                        });
+                    }
+                }, 100);
+            },
+
+            toggleSumberItem(val) {
+                const wrapPaket = document.getElementById('wrapper-pilih-paket');
+                if (val === 'paket') {
+                    wrapPaket.style.display = 'block';
+                } else {
+                    wrapPaket.style.display = 'none';
+                    document.getElementById('detail_uraian').value = '';
+                    document.getElementById('detail_bruto').value = '';
+                    app.hitungPajakDetailItem();
+                }
+            },
+
+            autofillDariPaket(selectEl) {
+                const opt = selectEl.options[selectEl.selectedIndex];
+                if (!opt.value) return;
+
+                const namaPaket = opt.getAttribute('data-nama');
+                const nilaiNego = opt.getAttribute('data-nilai');
+
+                document.getElementById('detail_uraian').value = `Pembayaran Termin / Pelunasan Pekerjaan: ${namaPaket}`;
+                document.getElementById('detail_bruto').value = Utils.formatNumber(nilaiNego);
+                app.hitungPajakDetailItem();
+            },
+
+            autofillPenyediaItem(selectEl) {
+                const opt = selectEl.options[selectEl.selectedIndex];
+                if (!opt.value) return;
+
+                document.getElementById('detail_nama_penerima').value = opt.getAttribute('data-nama') || '';
+                document.getElementById('detail_bank').value = opt.getAttribute('data-bank') || '';
+                document.getElementById('detail_norek').value = opt.getAttribute('data-norek') || '';
+            },
+
+            hitungPajakDetailItem() {
+                const brutoVal = parseFloat(String(document.getElementById('detail_bruto')?.value || '0').replace(/\D/g, '')) || 0;
+                const pajakSelect = document.getElementById('detail_master_pajak');
+                const optPajak = pajakSelect?.options[pajakSelect.selectedIndex];
+
+                let dpp = 0;
+                let ppn = 0;
+                let pph = 0;
+
+                if (optPajak && optPajak.value) {
+                    const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
+                    const isPpn = optPajak.getAttribute('data-ppn') === 'true';
+
+                    if (isPpn) {
+                        dpp = Math.round(brutoVal / 1.11);
+                        ppn = brutoVal - dpp;
+                    } else {
+                        dpp = brutoVal; // Jika non-PPN, DPP adalah bruto atau sesuai ketentuan
+                    }
+
+                    pph = Math.round(dpp * (tarif / 100));
+                } else {
+                    dpp = brutoVal;
+                }
+
+                const totalBersih = brutoVal - pph; // Jumlah dibayarkan = Bruto - PPh
+
+                if (document.getElementById('sim_dpp')) document.getElementById('sim_dpp').innerText = `Rp ${Utils.formatNumber(dpp)}`;
+                if (document.getElementById('sim_ppn')) document.getElementById('sim_ppn').innerText = `Rp ${Utils.formatNumber(ppn)}`;
+                if (document.getElementById('sim_pph')) document.getElementById('sim_pph').innerText = `Rp ${Utils.formatNumber(pph)}`;
+                if (document.getElementById('sim_total')) document.getElementById('sim_total').innerText = `Rp ${Utils.formatNumber(totalBersih)}`;
+            },
+
+            simpanItemPencairanBaru(pencairanId) {
+                const rekeningId = document.getElementById('detail_rekening_id').value;
+                const uraian = document.getElementById('detail_uraian').value;
+                const namaPenerima = document.getElementById('detail_nama_penerima').value;
+                const bank = document.getElementById('detail_bank').value;
+                const noRekening = document.getElementById('detail_norek').value;
+                const bruto = parseFloat(String(document.getElementById('detail_bruto').value).replace(/\D/g, '')) || 0;
+                const pajakId = document.getElementById('detail_master_pajak').value;
+
+                if (!rekeningId || !uraian || !namaPenerima || bruto <= 0) {
+                    return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, dan nilai tagihan.', 'error');
+                }
+
+                // Kalkulasi akhir sebelum simpan
+                let dpp = bruto;
+                let ppn = 0;
+                let pph = 0;
+
+                const pajakSelect = document.getElementById('detail_master_pajak');
+                const optPajak = pajakSelect.options[pajactSelect = pajakSelect.selectedIndex];
+                if (pajakSelect.value) {
+                    const tarif = parseFloat(pajakSelect.options[pajakSelect.selectedIndex].getAttribute('data-tarif')) || 0;
+                    const isPpn = pajakSelect.options[pajakSelect.selectedIndex].getAttribute('data-ppn') === 'true';
+
+                    if (isPpn) {
+                        dpp = Math.round(bruto / 1.11);
+                        ppn = bruto - dpp;
+                    }
+                    pph = Math.round(dpp * (tarif / 100));
+                }
+
+                const jumlahDibayarkan = bruto - pph;
+
+                // Siapkan data item baru
+                const newItem = {
+                    id: Utils.generateId(),
+                    pencairan_id: pencairanId,
+                    rekening_id: rekeningId,
+                    uraian: uraian,
+                    nama_penerima: namaPenerima,
+                    bank: bank,
+                    no_rekening: noRekening,
+                    bruto: bruto,
+                    dpp: dpp,
+                    ppn: ppn,
+                    pph: pph,
+                    total: jumlahDibayarkan,
+                    pajak_id: pajakId || null,
+                    created_at: new Date().toISOString()
+                };
+
+                // Simpan ke cache & database Supabase
+                if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
+                DB.cache['pencairan_items'].unshift(newItem);
+
+                // Sinkron ke Supabase REST API
+                fetch(`${SUPABASE_URL}pencairan_items`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newItem)
+                }).catch(e => console.error(e));
+
+                this.notify('Item rincian berhasil ditambahkan', 'success');
+                this.formDetailPencairan(pencairanId); // Kembali ke halaman tabel detail
+            },
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
