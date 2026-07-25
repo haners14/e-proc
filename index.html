@@ -3036,9 +3036,10 @@
                             <td class="p-3 text-center">${Utils.getBadge(d.status || 'Draft')}</td>
                             <td class="p-3 text-center">
                                 <div class="flex justify-center gap-1">
-                                    <button class="btn btn-ghost btn-sm text-primary" title="Edit Header & Detail" onclick="app.formHeaderPencairan('${d.id}')"><i class="ph ph-pencil-simple"></i></button>
-                                    <button class="btn btn-ghost btn-sm text-warning" title="Duplikat Pengajuan & Rincian" onclick="app.duplicatePencairan('${d.id}')"><i class="ph ph-copy"></i></button>
-                                    <button class="btn btn-ghost btn-sm text-success" title="Cetak Lampiran Permintaan Pembayaran" onclick="app.printLampiranPencairan('${d.id}')"><i class="ph ph-printer"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-primary" title="Kelola Rincian Detail Item" onclick="app.formDetailPencairan('${d.id}')"><i class="ph ph-list-checks text-lg"></i> Detail</button>
+                                    <button class="btn btn-ghost btn-sm text-gray-600" title="Edit Header" onclick="app.formHeaderPencairan('${d.id}')"><i class="ph ph-pencil-simple"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-warning" title="Duplikat Pengajuan" onclick="app.duplicatePencairan('${d.id}')"><i class="ph ph-copy"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-success" title="Cetak Lampiran" onclick="app.printLampiranPencairan('${d.id}')"><i class="ph ph-printer"></i></button>
                                     <button class="btn btn-ghost btn-sm text-danger" title="Hapus Pengajuan" onclick="app.deletePencairan('${d.id}')"><i class="ph ph-trash"></i></button>
                                 </div>
                             </td>
@@ -3065,7 +3066,7 @@
                                         <th>Sub Kegiatan</th>
                                         <th class="text-right">Total Dibayarkan</th>
                                         <th class="text-center">Status</th>
-                                        <th class="text-center" style="width: 180px;">Aksi</th>
+                                        <th class="text-center" style="width: 250px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -3076,7 +3077,7 @@
                     </div>
                 `;
             }
-
+            
             formHeaderPencairan(id = null) {
                 const pencairanList = DB.get('pencairan') || [];
                 const nextNoStr = String(pencairanList.length + 1).padStart(3, '0') + '/SPP-LS/BKAD/2026';
