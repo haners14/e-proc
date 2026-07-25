@@ -3013,10 +3013,12 @@
             }
             
 // ==========================================
+           // ==========================================
+            // LOGIKA PENCAIRAN & LAMPIRAN PERMINTAAN PEMBAYARAN
+            // ==========================================
             renderPengajuan(container) {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
-                const rekenings = DB.get('master_rekening') || [];
 
                 let rows = pencairanList.map((d, i) => {
                     const items = pencairanItems.filter(item => item.pencairan_id === d.id);
@@ -3156,17 +3158,16 @@
                 const masterPajak = DB.get('master_pajak') || [];
                 const penyedias = DB.get('penyedia') || [];
 
-                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}">${r.kode} - ${r.uraian}</option>`).join('');
                 const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
                 const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
 
                 const rowsHtml = items.map((item, idx) => `
-                    <tr class="item-row border-b bg-white" data-index="${idx}" data-item-id="${item.id || ''}">
+                    <tr class="item-row border-b bg-white" data-index="${idx}">
                         <td class="p-2 text-center align-top">${idx + 1}</td>
                         <td class="p-2">
                             <select class="form-control item-rekening mb-1" style="font-size: 0.8rem;">
                                 <option value="">-- Pilih Rekening --</option>
-                                ${rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}" ${r.rekening_id === r.id ? 'selected' : ''}>${r.kode}</option>`).join('')}
+                                ${rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}" ${item.rekening_id === r.id ? 'selected' : ''}>${r.kode}</option>`).join('')}
                             </select>
                             <textarea class="form-control item-uraian" rows="2" placeholder="Keperluan / Uraian">${item.uraian || ''}</textarea>
                         </td>
@@ -3195,7 +3196,7 @@
                             </div>
                         </td>
                         <td class="p-2 text-center align-middle">
-                            <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove(); app.hitungTotalSemuaItem();"><i class="ph ph-trash"></i></button>
+                            <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove();"><i class="ph ph-trash"></i></button>
                         </td>
                     </tr>
                 `).join('');
@@ -3329,12 +3330,10 @@
             },
 
             saveDetailPencairan(pencairanId) {
-                // Hapus item lama, lalu masukkan item baru dari baris tabel
                 const existingItems = DB.get('pencairan_items') || [];
                 const filtered = existingItems.filter(i => i.pencairan_id !== pencairanId);
                 DB.cache['pencairan_items'] = filtered;
 
-                // Hapus di database remote (Supabase) via fetch DELETE
                 fetch(`${SUPABASE_URL}pencairan_items?pencairan_id=eq.${pencairanId}`, {
                     method: 'DELETE',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -3391,7 +3390,6 @@
                     DB.insert('pencairan_items', itemPayload);
                 });
 
-                // Update total di header pencairan
                 DB.update('pencairan', pencairanId, { total: totalHeader, status: 'Final' });
 
                 DOM.closeModal();
@@ -3429,7 +3427,6 @@
 
             deletePencairan(id) {
                 if (confirm('Apakah Anda yakin ingin menghapus pengajuan ini beserta seluruh rincian itemnya?')) {
-                    // Hapus items terkait di supabase via CASCADE atau manual delete
                     DB.delete('pencairan', id);
                     this.notify('Pengajuan berhasil dihapus', 'success');
                     this.renderPengajuan(this.routerView);
@@ -3460,9 +3457,7 @@
                         <tr>
                             <td class="c">${idx + 1}</td>
                             <td>${rek.kode}</td>
-                            <td>
-                                <b>${item.uraian || '-'}</b>
-                            </td>
+                            <td><b>${item.uraian || '-'}</b></td>
                             <td>${item.nama_penerima || '-'}</td>
                             <td class="c">${item.bank || '-'}</td>
                             <td>${item.no_rekening || '-'}</td>
