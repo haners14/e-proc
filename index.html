@@ -589,26 +589,21 @@
             paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'mak', label: 'MAK', type: 'text' }, { key: 'kode_rup', label: 'Kode RUP', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
         };
 
-        const DOM = {
-            openModal(title, bodyHTML, footerHTML = '') {
+       const DOM = {
+            openModal(title, bodyHTML, footerHTML = '', maxWidth = '500px') {
                 document.getElementById('modal-title').innerText = title; 
                 document.getElementById('modal-body').innerHTML = bodyHTML; 
                 document.getElementById('modal-footer').innerHTML = footerHTML; 
                 document.getElementById('global-modal').classList.add('active');
                 
-                // Jika footer kosong, sembunyikan border footer
                 if(footerHTML === '') {
                     document.getElementById('modal-footer').style.display = 'none';
                 } else {
                     document.getElementById('modal-footer').style.display = 'flex';
                 }
                 
-                // Tambahkan max-width lebih besar untuk form tertentu
-                if(title.includes('Pengajuan Pencairan')) {
-                    document.getElementById('modal-content-box').style.maxWidth = '800px';
-                } else {
-                    document.getElementById('modal-content-box').style.maxWidth = '500px';
-                }
+                // Terapkan lebar maksimum modal (bisa diatur lebar banget, cth: 1000px atau 90vw)
+                document.getElementById('modal-content-box').style.maxWidth = maxWidth;
             },
             closeModal() { document.getElementById('global-modal').classList.remove('active'); },
             getFormData(formId) { 
@@ -2980,10 +2975,9 @@ renderSignPage(container, itemId) {
                             <p><strong>Nomor Pengajuan:</strong> ${pencairan.nomor || '-'}</p>
                             <p><strong>Sub Kegiatan:</strong> ${pencairan.sub_kegiatan || '-'}</p>
                         </div>
-                        <div class="border rounded-lg overflow-hidden">
-                           <div class="table-container">
+                        <div class="table-container" style="max-height: 55vh;">
                             <table class="data-table w-full text-sm">
-                                <thead class="bg-gray-100">
+                                <thead class="bg-gray-100 sticky top-0">
                                     <tr>
                                         <th class="p-3 text-center" style="width:40px;">No</th>
                                         <th class="p-3">Uraian / Rekening</th>
@@ -2997,11 +2991,11 @@ renderSignPage(container, itemId) {
                                 </tbody>
                             </table>
                         </div>
-                        </div>
                     </div>
                 `;
 
-                DOM.openModal(`Detail Rekening & Penyedia (${pencairan.nomor || ''})`, body, `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup</button>`);
+                // Buka modal dengan lebar besar (1000px)
+                DOM.openModal(`Detail Rekening & Penyedia (${pencairan.nomor || ''})`, body, `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup</button>`, '1000px');
             }
 
             // ==========================================
