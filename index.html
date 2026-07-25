@@ -2907,7 +2907,7 @@ renderSignPage(container, itemId) {
                 `;
             }
 
-         modalTambahSPJHeader() {
+       modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
@@ -3564,7 +3564,7 @@ renderSignPage(container, itemId) {
                 `;
             }
             
-            formHeaderPencairan(id = null) {
+           formHeaderPencairan(id = null) {
                 const pencairanList = DB.get('pencairan') || [];
                 const nextNoStr = String(pencairanList.length + 1).padStart(3, '0') + '/SPP-LS/BKAD/2026';
                 const todayStr = new Date().toISOString().split('T')[0];
@@ -3603,13 +3603,13 @@ renderSignPage(container, itemId) {
                     </form>
                 `;
 
-                const btnText = id ? 'Simpan Perubahan & Atur Detail' : 'Lanjut ke Rincian Detail';
+                // Footer modal sekarang bersih, hanya tombol Batal dan Simpan saja
                 const footer = `
                     <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
-                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-arrow-right"></i> ${btnText}</button>
+                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-floppy-disk"></i> Simpan</button>
                 `;
 
-                DOM.openModal(id ? 'Edit Header Pencairan' : '1. Buat Header Pengajuan Baru', body, footer);
+                DOM.openModal(id ? 'Edit Header Pencairan' : 'Buat Header Pengajuan Baru', body, footer);
             }
 
             saveHeaderPencairan(id) {
@@ -3632,13 +3632,14 @@ renderSignPage(container, itemId) {
 
                 if (id) {
                     DB.update('pencairan', id, payload);
+                    this.notify('Header pencairan berhasil diperbarui', 'success');
                 } else {
-                    const newHeader = DB.insert('pencairan', payload);
-                    headerId = newHeader.id;
+                    DB.insert('pencairan', payload);
+                    this.notify('Pengajuan pencairan baru berhasil dibuat', 'success');
                 }
 
                 DOM.closeModal();
-                this.formDetailPencairan(headerId);
+                this.renderPengajuan(this.routerView);
             }
 
           formDetailPencairan(pencairanId) {
