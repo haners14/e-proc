@@ -2508,33 +2508,84 @@
                 this.loadFormPenerimaSign(spjId, itemId);
             }
 
-           downloadPresensiExcel(spjId) {
+           printPresensiPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
 
+                const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
                 const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                const listPenyedia = DB.get('penyedia') || [];
 
-                const data = items.map((item, idx) => ({
-                    "No": idx + 1,
-                    "Nama Lengkap": item.nama_penerima || '-',
-                    "Uraian / Keperluan": item.uraian || '-',
-                    "Bank": item.bank || '-',
-                    "Nomor Rekening": item.no_rekening || '-',
-                    "Jumlah Bruto (Rp)": Number(item.harga || item.subtotal || 0),
-                    "Pajak (PPh/PPN)": Number(item.pph || item.nilai_pajak || 0),
-                    "Jumlah Bersih (Rp)": Number(item.total || 0),
-                    "Status Tanda Tangan": item.status_ttd === 'SIGNED' ? 'Sudah TTD Digital' : 'Belum TTD'
-                }));
+                let rowsHtml = items.map((item, idx) => {
+                    const matchedPenyedia = listPenyedia.find(p => p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
+                    const nama = item.nama_penerima || '-';
+                    const jabatan = matchedPenyedia?.jabatan_direktur || '-';
+                    const instansi = matchedPenyedia?.name || '-';
+                    
+                    const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
+                        : `<span style="color: #94a3b8; font-size: 10px;">${idx + 1}. ....................</span>`;
 
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Presensi TTD");
-                XLSX.writeFile(wb, `Presensi_${(spj.judul || 'SPJ').replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
-                this.notify('File Presensi berhasil diunduh', 'success');
+                    return `
+                        <tr>
+                            <td style="text-align: center; vertical-align: middle;">${idx + 1}</td>
+                            <td style="vertical-align: middle;">${nama}</td>
+                            <td style="vertical-align: middle;">${jabatan}</td>
+                            <td style="vertical-align: middle;">${instansi}</td>
+                            <td style="text-align: center; vertical-align: middle; height: 45px;">${ttdContent}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Jika baris kurang dari 10, tambahkan baris kosong agar format tabel rapi seperti contoh
+                const totalRows = Math.max(items.length, 10);
+                for (let i = items.length; i < totalRows; i++) {
+                    rowsHtml += `
+                        <tr>
+                            <td style="text-align: center; vertical-align: middle;">${i + 1}</td>
+                            <td></td><td></td><td></td><td></td>
+                        </tr>
+                    `;
+                }
+
+                const content = `
+                    <div class="header" style="text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 20px; font-family: Arial, sans-serif;">
+                        DAFTAR PRESENSI KEGIATAN
+                    </div>
+                    
+                    <table style="width: 100%; border: none; margin-bottom: 15px; font-size: 10pt; font-family: Arial, sans-serif;">
+                        <tr><td style="width: 110px; border:none;">Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${pencairan.kegiatan || 'Pengelolaan Barang Milik Daerah'}</td></tr>
+                        <tr><td style="border:none;">Sub Kegiatan</td><td style="border:none;">:</td><td style="border:none;">${pencairan.sub_kegiatan || '-'}</td></tr>
+                        <tr><td style="border:none;">Judul</td><td style="border:none;">:</td><td style="border:none;">${spj.judul || '-'}</td></tr>
+                    </table>
+
+                    <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 10pt; font-family: Arial, sans-serif;">
+                        <thead>
+                            <tr style="background-color: #1e3a8a; color: white;">
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 45px;">NO.</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">NAMA</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">JABATAN</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">INSTANSI</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 140px;">TANDA TANGAN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                `;
+
+                const customStyle = `
+                    @page { size: portrait; margin: 15mm; }
+                    body { font-family: Arial, sans-serif; color: #000; }
+                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
+                `;
+
+                this.printDocument('Daftar Presensi Kegiatan', content, customStyle);
             }
 
-            downloadTandaTerimaExcel(spjId) {
+            printTandaTerimaPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
@@ -2545,7 +2596,7 @@
 
                 let totalBruto = 0, totalPajak = 0, totalBersih = 0;
 
-                const rows = items.map((item, idx) => {
+                let rowsHtml = items.map((item, idx) => {
                     const bruto = Number(item.harga || item.subtotal || 0);
                     const pajak = Number(item.pph || item.nilai_pajak || 0);
                     const bersih = Number(item.total || 0);
@@ -2560,49 +2611,89 @@
                         jabatanInfo = matchedPenyedia.jabatan_direktur;
                     }
 
-                    return {
-                        "NO.": idx + 1,
-                        "NAMA": item.nama_penerima || '-',
-                        "JABATAN": jabatanInfo,
-                        "SATUAN": 1,
-                        "HARGA SATUAN": bruto,
-                        "JUMLAH": bruto,
-                        "PAJAK": pajak,
-                        "JUMLAH SETELAH DIKURANGI PAJAK": bersih,
-                        "TANDA TANGAN": item.status_ttd === 'SIGNED' ? '(Tertanda Tangan Digital)' : `${idx + 1}. ....................`
-                    };
-                });
+                    const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
+                        : `<span style="color: #94a3b8; font-size: 10px;">${idx + 1}. ....................</span>`;
 
-                const wsData = [
-                    ["PEMERINTAH KOTA BOGOR", "", "", "", "", "", "", "", `Kode Rekening : 5.1.02.02.001.00080`],
-                    ["BADAN KEUANGAN DAN ASET DAERAH", "", "", "", "", "", "", "", `Belanja Honorarium Penanggungjawaban Pengelola Keuangan`],
-                    ["", "", "", "", "", "", "", "", ""],
-                    ["", "", "", `${(spj.judul || 'HONORARIUM PPTK').toUpperCase()}`, "", "", "", "", ""],
-                    ["", "", "", `SUB KEGIATAN ${(pencairan.sub_kegiatan || 'PENGAMANAN BARANG MILIK DAERAH').toUpperCase()}`, "", "", "", "", ""],
-                    ["", "", "", `BULAN ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026`, "", "", "", "", ""],
-                    ["", "", "", "", "", "", "", "", ""],
-                    ["NO.", "NAMA", "JABATAN", "SATUAN", "HARGA SATUAN", "JUMLAH", "PAJAK", "JUMLAH SETELAH DIKURANGI PAJAK", "TANDA TANGAN"],
-                ];
+                    return `
+                        <tr>
+                            <td style="text-align: center; vertical-align: middle;">${idx + 1}</td>
+                            <td style="vertical-align: middle;">${item.nama_penerima || '-'}</td>
+                            <td style="vertical-align: middle;">${jabatanInfo}</td>
+                            <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(bruto)}</td>
+                            <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(pajak)}</td>
+                            <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(bersih)}</td>
+                            <td style="text-align: center; vertical-align: middle; height: 45px;">${ttdContent}</td>
+                        </tr>
+                    `;
+                }).join('');
 
-                rows.forEach(r => {
-                    wsData.push([r["NO."], r["NAMA"], r["JABATAN"], r["SATUAN"], r["HARGA SATUAN"], r["JUMLAH"], r["PAJAK"], r["JUMLAH SETELAH DIKURANGI PAJAK"], r["TANDA TANGAN"]]);
-                });
+                const content = `
+                    <div class="header" style="text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 20px; font-family: Arial, sans-serif;">
+                        TANDA TERIMA PEMBAYARAN
+                    </div>
+                    
+                    <table style="width: 100%; border: none; margin-bottom: 15px; font-size: 10pt; font-family: Arial, sans-serif;">
+                        <tr><td style="width: 110px; border:none;">Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${pencairan.kegiatan || 'Pengelolaan Barang Milik Daerah'}</td></tr>
+                        <tr><td style="border:none;">Sub Kegiatan</td><td style="border:none;">:</td><td style="border:none;">${pencairan.sub_kegiatan || '-'}</td></tr>
+                        <tr><td style="border:none;">Judul</td><td style="border:none;">:</td><td style="border:none;">${spj.judul || '-'}</td></tr>
+                    </table>
 
-                wsData.push(["", "JUMLAH", "", "", "", totalBruto, totalPajak, totalBersih, ""]);
-                wsData.push(["Terbilang : " + Utils.toWords(totalBersih) + " rupiah", "", "", "", "", "", "", "", ""]);
-                wsData.push(["", "", "", "", "", "", "", "", ""]);
-                wsData.push(["LUNAS BAYAR,", "", "", "", "", "", "", `BOGOR,      ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026`, ""]);
-                wsData.push(["BENDAHARA PENGELUARAN", "", "", "", "", "", "", `PEJABAT PELAKSANA TEKNIS KEGIATAN`, ""]);
-                wsData.push(["", "", "", "", "", "", "", "", ""]);
-                wsData.push(["", "", "", "", "", "", "", "", ""]);
-                wsData.push(["RIKKA FENDRIANI", "", "", "", "", "", "", `AGIH PRIBADI KUSUMAH, S.E., M.Si`, ""]);
-                wsData.push(["NIP. 197102131997032001", "", "", "", "", "", "", `NIP. 198503292011011001`, ""]);
+                    <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 9.5pt; font-family: Arial, sans-serif;">
+                        <thead>
+                            <tr style="background-color: #dbeafe;">
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 40px;">No.</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">Nama</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">Jabatan</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 95px;">Jumlah (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 85px;">Pajak (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Jumlah Diterima<br>Stlh Pajak (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 110px;">TTD</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background-color: #dbeafe; font-weight: bold;">
+                                <td colspan="3" style="border: 1px solid #000; padding: 8px; text-align: center;">JUMLAH</td>
+                                <td style="border: 1px solid #000; padding: 8px; text-align: right;">${Utils.formatNumber(totalBruto)}</td>
+                                <td style="border: 1px solid #000; padding: 8px; text-align: right;">${Utils.formatNumber(totalPajak)}</td>
+                                <td style="border: 1px solid #000; padding: 8px; text-align: right;">${Utils.formatNumber(totalBersih)}</td>
+                                <td style="border: 1px solid #000; padding: 8px;"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
 
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Tanda Terima");
-                XLSX.writeFile(wb, `Tanda_Terima_${(spj.judul || 'SPJ').replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
-                this.notify('File Tanda Terima berhasil diunduh', 'success');
+                    <div style="border: 1px solid #000; border-top: none; padding: 6px 10px; font-size: 9.5pt; font-family: Arial, sans-serif; font-style: italic;">
+                        Terbilang : <b>${Utils.toWords(totalBersih)} rupiah</b>
+                    </div>
+
+                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 10pt; font-family: Arial, sans-serif;">
+                        <div style="text-align: center; width: 250px;">
+                            <p>LUNAS BAYAR,</p>
+                            <p><b>BENDAHARA PENGELUARAN</b></p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold;">RIKKA FENDRIANI</p>
+                            <p>NIP. 197102131997032001</p>
+                        </div>
+                        <div style="text-align: center; width: 280px;">
+                            <p>BOGOR, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026</p>
+                            <p><b>PEJABAT PELAKSANA TEKNIS KEGIATAN</b></p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold;">AGIH PRIBADI KUSUMAH, S.E., M.Si</p>
+                            <p>NIP. 198503292011011001</p>
+                        </div>
+                    </div>
+                `;
+
+                const customStyle = `
+                    @page { size: portrait; margin: 15mm; }
+                    body { font-family: Arial, sans-serif; color: #000; }
+                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
+                `;
+
+                this.printDocument('Tanda Terima Pembayaran', content, customStyle);
             }
 
             bindNav() {
@@ -4402,6 +4493,8 @@ renderSignPage(container, itemId) {
                     this.renderPengajuan(this.routerView);
                 }
             }
+
+            
 
             printLampiranPencairan(pencairanId) {
                 const header = DB.getById('pencairan', pencairanId);
