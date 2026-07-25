@@ -3481,10 +3481,10 @@ openFormInputItemPencairan(pencairanId) {
                 let pph = 0;
 
                 const pajakSelect = document.getElementById('detail_master_pajak');
-                const optPajak = pajakSelect.options[pajactSelect = pajakSelect.selectedIndex];
-                if (pajakSelect.value) {
-                    const tarif = parseFloat(pajakSelect.options[pajakSelect.selectedIndex].getAttribute('data-tarif')) || 0;
-                    const isPpn = pajakSelect.options[pajakSelect.selectedIndex].getAttribute('data-ppn') === 'true';
+                if (pajakSelect && pajakSelect.value) {
+                    const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
+                    const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
+                    const isPpn = optPajak.getAttribute('data-ppn') === 'true';
 
                     if (isPpn) {
                         dpp = Math.round(bruto / 1.11);
@@ -3526,7 +3526,7 @@ openFormInputItemPencairan(pencairanId) {
 
                 this.notify('Item rincian berhasil ditambahkan', 'success');
                 this.formDetailPencairan(pencairanId); // Kembali ke halaman tabel detail
-            }
+            },
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
