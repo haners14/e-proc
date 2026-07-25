@@ -3162,94 +3162,62 @@
 
                 const pencairanItems = DB.get('pencairan_items') || [];
                 const items = pencairanItems.filter(item => item.pencairan_id === pencairanId);
-                
-                // Ambil data referensi pendukung
-                const daftarPaket = DB.get('paket') || [];
-                const daftarPenyedia = DB.get('penyedia') || [];
-                const daftarMasterPajak = DB.get('master_pajak') || [];
-                const daftarRekening = DB.get('rekening') || []; 
 
-                // Render Modal / Halaman Workspace Detail
-                let modalHTML = `
-                    <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-                        <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
-                            <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                                <div>
-                                    <h2 class="text-xl font-bold text-main">Kelola Rincian Item Pengajuan</h2>
-                                    <p class="text-xs text-muted mt-1">No. Pengajuan: <b>${header.nomor || '-'}</b> | Sub Kegiatan: <b>${header.sub_kegiatan || '-'}</b></p>
-                                </div>
-                                <button class="btn btn-ghost btn-sm" onclick="DOM.closeModal()"><i class="ph ph-x text-xl"></i></button>
-                            </div>
-                            
-                            <div class="p-6 flex-1 overflow-y-auto space-y-6">
-                                <!-- Tombol Tambah Item -->
-                                <div class="flex justify-between items-center">
-                                    <h3 class="font-semibold text-main">Daftar Belanja & Pajak</h3>
-                                    <button class="btn btn-primary btn-sm" onclick="app.openFormInputItemPencairan('${pencairanId}')"><i class="ph ph-plus"></i> Tambah Item Rincian</button>
-                                </div>
+                const bodyHTML = `
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-semibold text-main">Daftar Belanja & Pajak</h3>
+                            <button class="btn btn-primary btn-sm" onclick="app.openFormInputItemPencairan('${pencairanId}')"><i class="ph ph-plus"></i> Tambah Item Rincian</button>
+                        </div>
 
-                                <!-- Tabel Item -->
-                                <div class="border rounded-lg overflow-hidden">
-                                    <table class="data-table w-full text-sm">
-                                        <thead class="bg-gray-100 text-left">
-                                            <tr>
-                                                <th class="p-3 text-center" style="width: 40px;">No</th>
-                                                <th class="p-3">Uraian / Sumber</th>
-                                                <th class="p-3">Penerima (Penyedia)</th>
-                                                <th class="p-3 text-right">Nilai Tagihan (Bruto)</th>
-                                                <th class="p-3 text-right">DPP</th>
-                                                <th class="p-3 text-right">PPN</th>
-                                                <th class="p-3 text-right">PPh</th>
-                                                <th class="p-3 text-right">Jumlah Dibayarkan</th>
-                                                <th class="p-3 text-center" style="width: 80px;">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${items.length ? items.map((item, idx) => `
-                                                <tr class="border-b hover:bg-gray-50">
-                                                    <td class="p-3 text-center">${idx + 1}</td>
-                                                    <td class="p-3">
-                                                        <div class="font-semibold">${item.uraian || '-'}</div>
-                                                        <div class="text-xs text-muted">${item.rekening_info || '-'}</div>
-                                                    </td>
-                                                    <td class="p-3">
-                                                        <div>${item.nama_penerima || '-'}</div>
-                                                        <div class="text-xs text-muted">${item.bank || '-'} - ${item.no_rekening || '-'}</div>
-                                                    </td>
-                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga)}</td>
-                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga - (item.ppn || 0))}</td>
-                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.ppn)}</td>
-                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph)}</td>
-                                                    <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
-                                                    <td class="p-3 text-center">
-                                                        <button class="btn btn-ghost btn-sm text-danger" onclick="app.deleteItemPencairan('${item.id}', '${pencairanId}')"><i class="ph ph-trash"></i></button>
-                                                    </td>
-                                                </tr>
-                                            `).join('') : '<tr><td colspan="9" class="text-center text-muted py-6">Belum ada rincian item. Silakan tambahkan item baru.</td></tr>'}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <div class="p-4 border-t bg-gray-50 flex justify-end">
-                                <button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup & Selesai</button>
-                            </div>
+                        <div class="border rounded-lg overflow-hidden">
+                            <table class="data-table w-full text-sm">
+                                <thead class="bg-gray-100 text-left">
+                                    <tr>
+                                        <th class="p-3 text-center" style="width: 40px;">No</th>
+                                        <th class="p-3">Uraian / Sumber</th>
+                                        <th class="p-3">Penerima (Penyedia)</th>
+                                        <th class="p-3 text-right">Nilai Tagihan (Bruto)</th>
+                                        <th class="p-3 text-right">DPP</th>
+                                        <th class="p-3 text-right">PPN</th>
+                                        <th class="p-3 text-right">PPh</th>
+                                        <th class="p-3 text-right">Jumlah Dibayarkan</th>
+                                        <th class="p-3 text-center" style="width: 80px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${items.length ? items.map((item, idx) => `
+                                        <tr class="border-b hover:bg-gray-50">
+                                            <td class="p-3 text-center">${idx + 1}</td>
+                                            <td class="p-3">
+                                                <div class="font-semibold">${item.uraian || '-'}</div>
+                                            </td>
+                                            <td class="p-3">
+                                                <div>${item.nama_penerima || '-'}</div>
+                                                <div class="text-xs text-muted">${item.bank || '-'} - ${item.no_rekening || '-'}</div>
+                                            </td>
+                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga)}</td>
+                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga - (item.ppn || 0))}</td>
+                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.ppn)}</td>
+                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph)}</td>
+                                            <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
+                                            <td class="p-3 text-center">
+                                                <button class="btn btn-ghost btn-sm text-danger" onclick="app.deleteItemPencairan('${item.id}', '${pencairanId}')"><i class="ph ph-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    `).join('') : '<tr><td colspan="9" class="text-center text-muted py-6">Belum ada rincian item. Silakan tambahkan item baru.</td></tr>'}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 `;
 
-                // Lampirkan ke container modal global aplikasi Anda
-                let modalContainer = document.getElementById('modal-container');
-                if (!modalContainer) {
-                    modalContainer = document.createElement('div');
-                    modalContainer.id = 'modal-container';
-                    document.body.appendChild(modalContainer);
-                }
-                modalContainer.innerHTML = modalHTML;
+                const footerHTML = `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup & Selesai</button>`;
+                
+                DOM.openModal(`Kelola Rincian Item: ${header.nomor || '-'}`, bodyHTML, footerHTML);
             }
-            
 
-openFormInputItemPencairan(pencairanId) {
+            openFormInputItemPencairan(pencairanId) {
                 const daftarRekening = DB.get('master_rekening') || [];
                 const daftarPaket = DB.get('paket') || [];
                 const daftarPenyedia = DB.get('penyedia') || [];
@@ -3360,9 +3328,9 @@ openFormInputItemPencairan(pencairanId) {
                     </form>
                 `;
 
-                // Hapus kontainer modal lama jika ada agar tidak menumpuk, lalu render ulang form detail
+                // Tombol Kembali sekarang memanggil kembali modal detail utama dengan mulus
                 const footerHTML = `
-                    <button class="btn btn-outline" onclick="const mc=document.getElementById('modal-container'); if(mc) mc.innerHTML=''; app.formDetailPencairan('${pencairanId}')">Kembali</button>
+                    <button class="btn btn-outline" onclick="app.formDetailPencairan('${pencairanId}')">Kembali</button>
                     <button class="btn btn-primary" onclick="app.simpanItemPencairanBaru('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Item Rincian</button>
                 `;
 
