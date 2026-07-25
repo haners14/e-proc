@@ -3004,18 +3004,40 @@ renderSignPage(container, itemId) {
                 }, 100);
             }
 
-            simpanSPJHeader() {
+            async simpanSPJHeader() {
                 const data = DOM.getFormData('form-tambah-spj');
                 if (!data.pencairan_id) return this.notify('Pilih pengajuan pencairan terlebih dahulu', 'error');
 
+                const newHeader = {
+                    id: Utils.generateId(),
+                    pencairan_id: data.pencairan_id,
+                    created_at: new Date().toISOString()
+                };
+
+                // Simpan ke cache lokal
                 if (!DB.cache['spj_headers']) DB.cache['spj_headers'] = [];
-                DB.cache['spj_headers'].unshift({ id: Utils.generateId(), pencairan_id: data.pencairan_id });
+                DB.cache['spj_headers'].unshift(newHeader);
+
+                // Kirim dan simpan secara permanen ke Supabase
+                try {
+                    await fetch(`${SUPABASE_URL}spj_headers`, {
+                        method: 'POST',
+                        headers: { 
+                            'apikey': SUPABASE_KEY, 
+                            'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal' 
+                        },
+                        body: JSON.stringify(newHeader)
+                    });
+                } catch (e) {
+                    console.error("Gagal menyimpan ke Supabase:", e);
+                }
 
                 DOM.closeModal();
-                this.notify('Header SPJ berhasil ditambahkan', 'success');
+                this.notify('Header SPJ berhasil disimpan secara permanen', 'success');
                 this.renderSPJ(this.routerView);
             }
-
             hapusSPJHeader(id) {
                 if (confirm('Hapus header SPJ ini dari daftar?')) {
                     DB.cache['spj_headers'] = (DB.cache['spj_headers'] || []).filter(s => s.id !== id);
