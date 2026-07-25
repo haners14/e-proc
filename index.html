@@ -4147,12 +4147,20 @@ renderSignPage(container, itemId) {
 
                 const existingItem = itemId ? pencairanItems.find(i => i.id === itemId) : null;
 
-                // Filter rekening DPA (jenis Detail) yang cocok atau terkait dengan sub kegiatan header
+                // Hitung realisasi per rekening untuk informasi sisa pagu
+                let realisasiMap = {};
+                pencairanItems.forEach(item => {
+                    if (item.rekening_id) {
+                        realisasiMap[item.rekening_id] = (realisasiMap[item.rekening_id] || 0) + (Number(item.subtotal) || Number(item.total) || 0);
+                    }
+                });
+
+                // Filter rekening DPA (jenis Detail) yang sesuai dengan Sub Kegiatan pada header
                 const optsRekening = daftarRekening.filter(r => {
                     if (r.jenis !== 'Detail') return false;
                     if (!subKegiatanHeader) return true;
 
-                    // Cek kecocokan teks sub kegiatan pada uraian rekening atau induknya
+                    // Telusuri hierarki ke atas untuk mencocokkan sub kegiatan header
                     let curr = r;
                     let matched = false;
                     let safety = 0;
@@ -4165,17 +4173,19 @@ renderSignPage(container, itemId) {
                         curr = daftarRekening.find(x => x.kode === curr.parent_id);
                         safety++;
                     }
-                    
-                    // Fallback inklusif jika masih belum tersaring tapi mengandung kata kunci umum
                     return matched;
                 });
 
-                // Jika hasil filter kosong (untuk pencegahan agar tidak blank), tampilkan semua rekening detail
+                // Fallback jika hasil filter kosong, tampilkan seluruh rekening detail agar form tidak blank
                 const finalRekeningList = optsRekening.length > 0 ? optsRekening : daftarRekening.filter(r => r.jenis === 'Detail');
 
                 const optsRekeningHtml = finalRekeningList.map(r => {
                     const selected = existingItem && existingItem.rekening_id === r.id ? 'selected' : '';
-                    return `<option value="${r.id}" ${selected}>${r.kode} - ${r.uraian}</option>`;
+                    const paguVal = Number(r.pagu) || 0;
+                    const realisasiVal = realisasiMap[r.id] || 0;
+                    const sisaVal = paguVal - realisasiVal;
+
+                    return `<option value="${r.id}" ${selected}>${r.kode} - ${r.uraian} (Pagu: Rp ${Utils.formatNumber(paguVal)} | Sisa: Rp ${Utils.formatNumber(sisaVal)})</option>`;
                 }).join('');
 
                 const optsPaket = daftarPaket.map(p => {
@@ -4218,7 +4228,7 @@ renderSignPage(container, itemId) {
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Rekening DPA (Sub Kegiatan: ${header.sub_kegiatan || '-'})</label>
                             <select id="detail_rekening_id" class="form-control searchable-select" required>
-                                <option value="">-- Pilih Rekening Belanja --</option>
+                                <option value="">-- Pilih Rekening Belanja Sesuai Sub Kegiatan --</option>
                                 ${optsRekeningHtml}
                             </select>
                         </div>
