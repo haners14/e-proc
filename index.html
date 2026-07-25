@@ -2340,10 +2340,8 @@
                 `).join('');
 
                 container.innerHTML = `
-                    <div style="min-height: 100vh; background: #f1f5f9; padding: 40px 20px; font-family: 'Inter', sans-serif;">
-                        <div style="max-width: 850px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden;">
-                            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px;">
-                                <h1 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 4px;">Presensi Kegiatan & Tanda Tangan SPJ</h1>
+                    <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px;">
+                                <h1 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 4px;">${spj.judul || 'Presensi Kegiatan & Tanda Tangan SPJ'}</h1>
                                 <p style="font-size: 0.85rem; opacity: 0.9;">Sub Kegiatan: ${pencairan.sub_kegiatan || '-'}</p>
                                 <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px;">Bulan: ${pencairan.bulan || '-'} 2026 | BKAD Kota Bogor</p>
                             </div>
@@ -2509,6 +2507,110 @@
 
                 alert('Tanda tangan berhasil direset. Silakan buat ulang tanda tangan Anda.');
                 this.loadFormPenerimaSign(spjId, itemId);
+            }
+
+            downloadPresensiExcel(spjId) {
+                const spjHeaders = DB.cache['spj_headers'] || [];
+                const spj = spjHeaders.find(s => s.id === spjId);
+                if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
+
+                const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
+                const items = (DB.get('pencairan_items'] || []).filter(i => i.pencairan_id === spj.pencairan_id);
+
+                const data = items.map((item, idx) => ({
+                    "No": idx + 1,
+                    "Nama Lengkap": item.nama_penerima || '-',
+                    "Uraian / Keperluan": item.uraian || '-',
+                    "Bank": item.bank || '-',
+                    "Nomor Rekening": item.no_rekening || '-',
+                    "Jumlah Bruto (Rp)": Number(item.harga || item.subtotal || 0),
+                    "Pajak (PPh/PPN)": Number(item.pph || item.nilai_pajak || 0),
+                    "Jumlah Bersih (Rp)": Number(item.total || 0),
+                    "Status Tanda Tangan": item.status_ttd === 'SIGNED' ? 'Sudah TTD Digital' : 'Belum TTD'
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Presensi & Tanda Tangan");
+                XLSX.writeFile(wb, `Presensi_${spj.judul || 'SPJ'}.xlsx`);
+                this.notify('File Presensi berhasil diunduh', 'success');
+            }
+
+            downloadTandaTerimaExcel(spjId) {
+                const spjHeaders = DB.cache['spj_headers'] || [];
+                const spj = spjHeaders.find(s => s.id === spjId);
+                if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
+
+                const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
+                const items = (DB.get('pencairan_items'] || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                const listPejabat = DB.get('pejabat') || [];
+                const listPenyedia = DB.get('penyedia') || [];
+
+                let totalBruto = 0;
+                let totalPajak = 0;
+                let totalBersih = 0;
+
+                const rows = items.map((item, idx) => {
+                    const bruto = Number(item.harga || item.subtotal || 0);
+                    const pajak = Number(item.pph || item.nilai_pajak || 0);
+                    const bersih = Number(item.total || 0);
+
+                    totalBruto += bruto;
+                    totalPajak += pajak;
+                    totalBersih += bersih;
+
+                    // Mencari jabatan dari referensi penyedia (jabatan_direktur) atau fallback ke role/uraian
+                    let jabatanInfo = item.uraian || 'Pembina - IV/a';
+                    const matchedPenyedia = listPenyedia.find(p => p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
+                    if (matchedPenyedia && matchedPenyedia.jabatan_direktur) {
+                        jabatanInfo = matchedPenyedia.jabatan_direktur;
+                    }
+
+                    return {
+                        "NO.": idx + 1,
+                        "NAMA": item.nama_penerima || '-',
+                        "JABATAN": jabatanInfo,
+                        "SATUAN": 1,
+                        "HARGA SATUAN": bruto,
+                        "JUMLAH": bruto,
+                        "PAJAK": pajak,
+                        "JUMLAH SETELAH DIKURANGI PAJAK": bersih,
+                        "TANDA TANGAN": item.status_ttd === 'SIGNED' ? '(Tertanda Tangan Digital)' : `${idx + 1}. ....................`
+                    };
+                });
+
+                // Menyusun format persis seperti struktur gambar tabel Excel
+                const wsData = [
+                    ["PEMERINTAH KOTA BOGOR", "", "", "", "", "", "", "", `Kode Rekening : 5.1.02.02.001.00080`],
+                    ["BADAN KEUANGAN DAN ASET DAERAH", "", "", "", "", "", "", "", `Belanja Honorarium Penanggungjawaban Pengelola Keuangan`],
+                    ["", "", "", "", "", "", "", "", ""],
+                    ["", "", "", `HONORARIUM PPTK`, "", "", "", "", ""],
+                    ["", "", "", `SUB KEGIATAN PENGAMANAN BARANG MILIK DAERAH`, "", "", "", "", ""],
+                    ["", "", "", `BULAN ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026`, "", "", "", "", ""],
+                    ["", "", "", "", "", "", "", "", ""],
+                    ["NO.", "NAMA", "JABATAN", "SATUAN", "HARGA SATUAN", "JUMLAH", "PAJAK", "JUMLAH SETELAH DIKURANGI PAJAK", "TANDA TANGAN"],
+                ];
+
+                rows.forEach(r => {
+                    wsData.push([r["NO."], r["NAMA"], r["JABATAN"], r["SATUAN"], r["HARGA SATUAN"], r["JUMLAH"], r["PAJAK"], r["JUMLAH SETELAH DIKURANGI PAJAK"], r["TANDA TANGAN"]]);
+                });
+
+                // Baris Jumlah Total
+                wsData.push(["", "JUMLAH", "", "", "", totalBruto, totalPajak, totalBersih, ""]);
+                wsData.push(["Terbilang : " + Utils.toWords(totalBersih) + " rupiah", "", "", "", "", "", "", "", ""]);
+                wsData.push(["", "", "", "", "", "", "", "", ""]);
+                wsData.push(["LUNAS BAYAR,", "", "", "", "", "", "", `BOGOR,      ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026`, ""]);
+                wsData.push(["BENDAHARA PENGELUARAN", "", "", "", "", "", "", `PEJABAT PELAKSANA TEKNIS KEGIATAN`, ""]);
+                wsData.push(["", "", "", "", "", "", "", "", ""]);
+                wsData.push(["", "", "", "", "", "", "", "", ""]);
+                wsData.push(["RIKKA FENDRIANI", "", "", "", "", "", "", `AGIH PRIBADI KUSUMAH, S.E., M.Si`, ""]);
+                wsData.push(["NIP. 197102131997032001", "", "", "", "", "", "", `NIP. 198503292011011001`, ""]);
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Tanda Terima Honorarium");
+                XLSX.writeFile(wb, `Tanda_Terima_${spj.judul || 'SPJ'}.xlsx`);
+                this.notify('File Tanda Terima berhasil diunduh', 'success');
             }
 
             bindNav() {
@@ -2918,7 +3020,7 @@ renderSignPage(container, itemId) {
                 const pencairanItems = DB.get('pencairan_items') || [];
                 const spjHeaders = DB.cache['spj_headers'] || []; // Penyimpanan lokal header SPJ yang ditambahkan manual
 
-                let rowsHeader = '';
+               let rowsHeader = '';
                 spjHeaders.forEach((spj, idx) => {
                     const pencairan = pencairanList.find(p => p.id === spj.pencairan_id) || {};
                     const items = pencairanItems.filter(item => item.pencairan_id === spj.pencairan_id);
@@ -2929,18 +3031,18 @@ renderSignPage(container, itemId) {
                     rowsHeader += `
                         <tr class="hover:bg-gray-50 border-b">
                             <td class="p-3 text-center">${idx + 1}</td>
-                            <td class="p-3 font-bold text-primary-600">${pencairan.nomor || 'SPJ-' + spj.id}</td>
+                            <td class="p-3 font-bold text-primary-600">${spj.judul || 'Tanpa Judul'}</td>
                             <td class="p-3">
                                 <div class="font-semibold">${pencairan.sub_kegiatan || '-'}</div>
-                                <div class="text-xs text-muted">Periode: ${pencairan.bulan || '-'} 2026 • ${items.length} Penerima</div>
+                                <div class="text-xs text-muted">No: ${pencairan.nomor || '-'} • ${items.length} Penerima</div>
                             </td>
                             <td class="p-3 text-right font-bold">Rp ${Utils.formatNumber(totalNominal)}</td>
                             <td class="p-3 text-center">
                                 <div class="flex justify-center gap-1">
-                                    <button class="btn btn-outline btn-sm text-primary" onclick="app.bukaDetailSPJ('${spj.id}')" title="Buka Detail Rekening & Penyedia">
+                                    <button class="btn btn-outline btn-sm text-primary" onclick="app.bukaDetailSPJ('${spj.id}')" title="Buka Detail">
                                         <i class="ph ph-list-dashes"></i> Buka Detail
                                     </button>
-                                    <button class="btn btn-outline btn-sm text-success" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link Header TTD berhasil disalin!', 'success'))" title="Salin Link Tanda Tangan Header">
+                                    <button class="btn btn-outline btn-sm text-success" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link berhasil disalin!', 'success'))" title="Salin Link">
                                         <i class="ph ph-link"></i> Salin Link
                                     </button>
                                     <button class="btn btn-ghost btn-sm text-danger" onclick="app.hapusSPJHeader('${spj.id}')" title="Hapus">
@@ -2983,7 +3085,7 @@ renderSignPage(container, itemId) {
                 `;
             }
 
-       modalTambahSPJHeader() {
+      modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
@@ -2999,9 +3101,13 @@ renderSignPage(container, itemId) {
                     opts = `<option value="">-- Belum ada data pengajuan. Buat dulu di menu Pengajuan Pencairan --</option>`;
                 }
 
-                // Beri ruang kosong (padding-bottom) agar saat dropdown terbuka ke bawah, tombol tidak tertutup
                 const body = `
                     <form id="form-tambah-spj" class="flex flex-col gap-4" style="padding-bottom: 180px;">
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Judul Absen / SPJ</label>
+                            <input type="text" name="judul" class="form-control" placeholder="Contoh: Honorarium Narasumber & Peserta Sosialisasi Bulan Juni" required>
+                        </div>
+
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan (Cari & Pilih)</label>
                             <select id="select-pencairan-spj" name="pencairan_id" class="form-control searchable-select" required>
@@ -3027,18 +3133,20 @@ renderSignPage(container, itemId) {
                     }
                 }, 100);
             }
-
+            
             simpanSPJHeader() {
                 const data = DOM.getFormData('form-tambah-spj');
+                if (!data.judul) return this.notify('Judul absen/SPJ wajib diisi', 'error');
                 if (!data.pencairan_id) return this.notify('Pilih pengajuan pencairan terlebih dahulu', 'error');
 
-                // Menggunakan DB.insert agar otomatis tersimpan permanen ke Supabase & Cache
+                // Menggunakan DB.insert agar otomatis tersimpan permanen ke Supabase & Cache dengan menyertakan judul
                 DB.insert('spj_headers', {
+                    judul: data.judul,
                     pencairan_id: data.pencairan_id
                 });
 
                 DOM.closeModal();
-                this.notify('Header SPJ berhasil disimpan secara permanen ke database', 'success');
+                this.notify('Header SPJ dan Judul berhasil disimpan secara permanen', 'success');
                 this.renderSPJ(this.routerView);
             }
             hapusSPJHeader(id) {
@@ -3097,13 +3205,21 @@ renderSignPage(container, itemId) {
                                 <div class="flex"><span class="w-32 font-semibold text-gray-600">Bendahara</span><span class="flex-1">: Rikka Fendriani</span></div>
                             </div>
 
-                            <div class="pt-2 flex items-center gap-2">
+                           <div class="pt-2 flex items-center gap-2 flex-wrap">
                                 <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link Presensi Berhasil Disalin!', 'success'))">
                                     <i class="ph ph-link"></i> Salin Link Presensi untuk Dibagikan
                                 </button>
                                 <a href="${signUrl}" target="_blank" class="btn btn-outline btn-sm">
                                     <i class="ph ph-arrow-square-out"></i> Pratinjau Halaman TTD
                                 </a>
+                                
+                                <!-- Tambahan Tombol Download 2 File -->
+                                <button class="btn btn-outline btn-sm text-success" onclick="app.downloadPresensiExcel('${spjId}')">
+                                    <i class="ph ph-file-xls"></i> Download File Presensi
+                                </button>
+                                <button class="btn btn-outline btn-sm text-primary" onclick="app.downloadTandaTerimaExcel('${spjId}')">
+                                    <i class="ph ph-file-arrow-down"></i> Download Tanda Terima (Format Gambar)
+                                </button>
                             </div>
                         </div>
 
