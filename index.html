@@ -3280,7 +3280,6 @@ openFormInputItemPencairan(pencairanId) {
 
                 const bodyHTML = `
                     <form id="form-input-item-pencairan" class="flex flex-col gap-4">
-                        <!-- Pilihan Opsi Input -->
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Sumber Item Rincian</label>
                             <select id="tipe-sumber-item" class="form-control" onchange="app.toggleSumberItem(this.value)">
@@ -3289,7 +3288,6 @@ openFormInputItemPencairan(pencairanId) {
                             </select>
                         </div>
 
-                        <!-- Opsi Paket (Searchable Select) -->
                         <div class="form-group mb-0" id="wrapper-pilih-paket" style="display: none;">
                             <label class="form-label font-bold text-gray-700">Pilih Paket Pengadaan</label>
                             <select id="input-paket-id" class="form-control searchable-select" onchange="app.autofillDariPaket(this)">
@@ -3298,7 +3296,6 @@ openFormInputItemPencairan(pencairanId) {
                             </select>
                         </div>
 
-                        <!-- Rekening / Sub Kegiatan (Searchable Select) -->
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Rekening DPA & Sub Kegiatan</label>
                             <select id="detail_rekening_id" class="form-control searchable-select" required>
@@ -3307,13 +3304,11 @@ openFormInputItemPencairan(pencairanId) {
                             </select>
                         </div>
 
-                        <!-- Uraian Keperluan -->
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Uraian Keperluan Belanja</label>
                             <textarea id="detail_uraian" class="form-control" rows="2" placeholder="Cth: Pembayaran Belanja Jasa Konsultansi..." required></textarea>
                         </div>
 
-                        <!-- Referensi Penyedia / Penerima (Searchable Select) -->
                         <div class="border p-4 rounded-md bg-gray-50 space-y-3">
                             <h4 class="font-bold text-xs text-gray-700 uppercase">Informasi Penerima (Linked Penyedia)</h4>
                             <div class="form-group mb-0">
@@ -3339,7 +3334,6 @@ openFormInputItemPencairan(pencairanId) {
                             </div>
                         </div>
 
-                        <!-- Nilai Tagihan & Pajak -->
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group mb-0">
                                 <label class="form-label font-bold text-gray-700">Nilai Tagihan / Bruto (Rp)</label>
@@ -3354,7 +3348,6 @@ openFormInputItemPencairan(pencairanId) {
                             </div>
                         </div>
 
-                        <!-- Hasil Kalkulasi Otomatis -->
                         <div class="bg-primary-50 p-4 rounded-md border border-primary-200 text-xs space-y-1">
                             <div class="font-bold text-primary-900 mb-2">Simulasi Kalkulasi Otomatis:</div>
                             <div class="flex justify-between"><span>DPP (Tagihan ÷ 1.11):</span> <span id="sim_dpp" class="font-semibold">Rp 0</span></div>
@@ -3367,9 +3360,9 @@ openFormInputItemPencairan(pencairanId) {
                     </form>
                 `;
 
-                // Tombol Kembali diperbarui dengan event onclick yang membawa parameter pencairanId
+                // Hapus kontainer modal lama jika ada agar tidak menumpuk, lalu render ulang form detail
                 const footerHTML = `
-                    <button class="btn btn-outline" onclick="app.formDetailPencairan('${pencairanId}')">Kembali</button>
+                    <button class="btn btn-outline" onclick="const mc=document.getElementById('modal-container'); if(mc) mc.innerHTML=''; app.formDetailPencairan('${pencairanId}')">Kembali</button>
                     <button class="btn btn-primary" onclick="app.simpanItemPencairanBaru('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Item Rincian</button>
                 `;
 
