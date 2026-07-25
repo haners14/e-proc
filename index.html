@@ -3256,7 +3256,7 @@ openFormInputItemPencairan(pencairanId) {
                 const daftarMasterPajak = DB.get('master_pajak') || [];
 
                 const optsRekening = daftarRekening.filter(r => r.jenis === 'Detail').map(r => {
-                    const sisaPagu = (Number(r.pagu) || 0); // atau kalkulasi sisa pagu
+                    const sisaPagu = (Number(r.pagu) || 0);
                     return `<option value="${r.id}" data-uraian="${r.uraian}">${r.kode} - ${r.uraian} (Pagu: Rp ${Utils.formatNumber(sisaPagu)})</option>`;
                 }).join('');
 
@@ -3289,20 +3289,20 @@ openFormInputItemPencairan(pencairanId) {
                             </select>
                         </div>
 
-                        <!-- Opsi Paket (Hidden by default) -->
+                        <!-- Opsi Paket (Searchable Select) -->
                         <div class="form-group mb-0" id="wrapper-pilih-paket" style="display: none;">
                             <label class="form-label font-bold text-gray-700">Pilih Paket Pengadaan</label>
-                            <select id="input-paket-id" class="form-control" onchange="app.autofillDariPaket(this)">
-                                <option value="">-- Pilih Paket --</option>
+                            <select id="input-paket-id" class="form-control searchable-select" onchange="app.autofillDariPaket(this)">
+                                <option value="">-- Cari & Pilih Paket --</option>
                                 ${optsPaket}
                             </select>
                         </div>
 
-                        <!-- Rekening / Sub Kegiatan -->
+                        <!-- Rekening / Sub Kegiatan (Searchable Select) -->
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Rekening DPA & Sub Kegiatan</label>
-                            <select id="detail_rekening_id" class="form-control" required>
-                                <option value="">-- Pilih Rekening Belanja --</option>
+                            <select id="detail_rekening_id" class="form-control searchable-select" required>
+                                <option value="">-- Cari & Pilih Rekening Belanja --</option>
                                 ${optsRekening}
                             </select>
                         </div>
@@ -3313,17 +3313,17 @@ openFormInputItemPencairan(pencairanId) {
                             <textarea id="detail_uraian" class="form-control" rows="2" placeholder="Cth: Pembayaran Belanja Jasa Konsultansi..." required></textarea>
                         </div>
 
-                        <!-- Referensi Penyedia / Penerima -->
+                        <!-- Referensi Penyedia / Penerima (Searchable Select) -->
                         <div class="border p-4 rounded-md bg-gray-50 space-y-3">
                             <h4 class="font-bold text-xs text-gray-700 uppercase">Informasi Penerima (Linked Penyedia)</h4>
                             <div class="form-group mb-0">
-                                <label class="form-label text-xs">Pilih dari Master Penyedia (Opsional)</label>
-                                <select id="detail_penyedia_ref" class="form-control" onchange="app.autofillPenyediaItem(this)">
-                                    <option value="">-- Cari Penyedia / Rekanan --</option>
+                                <label class="form-label text-xs">Pilih dari Master Penyedia</label>
+                                <select id="detail_penyedia_ref" class="form-control searchable-select" onchange="app.autofillPenyediaItem(this)">
+                                    <option value="">-- Cari Nama Penyedia / Rekanan --</option>
                                     ${optsPenyedia}
                                 </select>
                             </div>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-3 gap-2 mt-3">
                                 <div class="form-group mb-0">
                                     <label class="form-label text-xs">Nama Penerima</label>
                                     <input type="text" id="detail_nama_penerima" class="form-control text-xs" required>
@@ -3374,8 +3374,19 @@ openFormInputItemPencairan(pencairanId) {
 
                 DOM.openModal('Tambah Item Belanja & Pajak', bodyHTML, footerHTML);
 
-                // Format money input handler
+                // Inisialisasi TomSelect agar elemen select bisa dicari (Searchable)
                 setTimeout(() => {
+                    if (window.TomSelect) {
+                        document.querySelectorAll('.searchable-select').forEach(el => {
+                            if (!el.tomselect) {
+                                new TomSelect(el, {
+                                    create: false,
+                                    sortField: { field: "text", direction: "asc" }
+                                });
+                            }
+                        });
+                    }
+
                     const moneyInput = document.getElementById('detail_bruto');
                     if (moneyInput) {
                         moneyInput.addEventListener('input', e => {
