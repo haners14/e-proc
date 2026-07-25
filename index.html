@@ -2514,35 +2514,7 @@
                 `;
             }
             
-            renderPengajuan(container) {
-                const data = DB.get('pencairan');
-                let rows = data.map((d, i) => {
-                    // Coba tarik nama paket jika paket_id ada
-                    let itemName = d.sub_kegiatan || '-';
-                    if (d.package_id) {
-                        const pkg = DB.getById('paket', d.package_id);
-                        if (pkg) itemName += `<br><small class="text-primary-600">Paket: ${pkg.name}</small>`;
-                    }
-                    
-                    return `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis || d.jenis_pencairan}</td><td>${itemName}</td><td class="text-right">Rp ${Utils.formatNumber(d.total)}</td><td>${Utils.getBadge(d.status)}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.printSI('${d.id}')"><i class="ph ph-printer"></i> Cetak Lampiran</button></td></tr>`;
-                }).join('');
-                if(!rows) rows = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada data pengajuan.</td></tr>';
-
-                container.innerHTML = `
-                    <div class="p-6 h-full flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pengajuan Pencairan (SI)</h1><p class="text-muted text-sm mt-1">Buat Lampiran Permintaan Pembayaran dengan hitungan pajak cerdas.</p></div>
-                            <button class="btn btn-primary" onclick="app.formPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
-                        </div>
-                        <div class="card flex-1 overflow-auto">
-                            <table class="data-table">
-                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Tujuan / Sub Kegiatan</th><th class="text-right">Total Dibayar</th><th>Status</th><th>Aksi</th></tr></thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
+            
 
             renderSPJ(container) {
                 const data = DB.get('pencairan');
@@ -2571,80 +2543,7 @@
             // ==========================================
             
 
-            savePencairan() {
-                const isPaket = document.querySelector('input[name="jenis_input"]:checked').value === 'paket';
-                const paketId = document.getElementById('pilih_paket').value;
-                const rekeningId = document.getElementById('input_rekening').value;
-                const penyediaId = document.getElementById('input_penerima').value;
-                const tagihan = parseFloat(String(document.getElementById('input_tagihan').value).replace(/\D/g, '')) || 0;
-                const pajakId = document.getElementById('input_pajak').value;
-
-                // Ambil Nilai dari Input Nomor dan Tanggal
-                const nomorInput = document.getElementById('input_nomor').value;
-                const tanggalInput = document.getElementById('input_tanggal').value;
-
-                if (!rekeningId || !penyediaId || tagihan <= 0 || !tanggalInput) {
-                    return this.notify('Harap lengkapi Tanggal, Rekening, Penerima, dan Nilai Tagihan', 'error');
-                }
-
-                const ppn = parseFloat(document.getElementById('calc_ppn').innerText.replace(/\D/g, '')) || 0;
-                const pph = parseFloat(document.getElementById('calc_pph').innerText.replace(/\D/g, '')) || 0;
-                const totalPotongan = parseFloat(document.getElementById('calc_potongan').innerText.replace(/\D/g, '')) || 0;
-                const jumlahDibayarkan = parseFloat(document.getElementById('calc_dibayarkan').innerText.replace(/\D/g, '')) || 0;
-
-                const selRek = document.getElementById('input_rekening');
-                const namaSubKeg = selRek.options[selRek.selectedIndex].text.split('-')[0].trim();
-                
-                // Konversi tanggal ke nama bulan untuk kebutuhan metadata laporan
-                const dateObj = new Date(tanggalInput);
-                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                const namaBulan = months[dateObj.getMonth()];
-
-                const head = { 
-                    nomor: nomorInput, 
-                    tanggal: tanggalInput, 
-                    bulan: namaBulan, 
-                    kegiatan: 'Pengelolaan Barang Milik Daerah', 
-                    sub_kegiatan: namaSubKeg, 
-                    jenis: 'LS', 
-                    status: 'DRAFT',
-                    package_id: isPaket ? paketId : null,
-                    total: tagihan
-                };
-                const res = DB.insert('pencairan', head);
-                
-                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
-                if (pajakId) {
-                    const selPajakText = document.getElementById('input_pajak').options[document.getElementById('input_pajak').selectedIndex].text.toUpperCase();
-                    if (selPajakText.includes('21')) pph21 = pph;
-                    else if (selPajakText.includes('22')) pph22 = pph;
-                    else if (selPajakText.includes('23')) pph23 = pph;
-                    else if (selPajakText.includes('4 AYAT')) pph42 = pph;
-                }
-
-                const item = { 
-                    pencairan_id: res.id, 
-                    rekening_id: rekeningId, 
-                    uraian: 'Pembayaran Tagihan Pihak Ketiga',
-                    qty: 1,
-                    harga: tagihan,
-                    subtotal: tagihan,
-                    pajak_id: pajakId || null,
-                    nilai_pajak: totalPotongan,
-                    pajak_ppn: ppn, 
-                    pajak_pph21: pph21,
-                    pajak_pph22: pph22,
-                    pajak_pph23: pph23,
-                    pajak_pph42: pph42,
-                    total: jumlahDibayarkan
-                };
-                DB.insert('pencairan_items', item);
-                
-                DOM.closeModal(); 
-                this.notify('Pengajuan Pencairan berhasil dibuat', 'success'); 
-                this.reRenderCurrentView();
-            }
-
+           
 
             printKendali() {
                 const subKode = document.getElementById('kendali-sub').value;
@@ -3114,329 +3013,551 @@
             }
             
 // ==========================================
-            // LOGIKA FORM PENCAIRAN CERDAS (VERSI FINAL)
-            // ==========================================
-            formPencairan() {
-                const rekenings = DB.get('master_rekening') || [];
-                const packages = DB.get('paket') || [];
-                const penyedias = DB.get('penyedia') || [];
-                const masterPajak = DB.get('master_pajak') || [];
-
-                // Kalkulasi Sisa Pagu Dinamis
-                const pencairanHead = DB.get('pencairan') || [];
+            renderPengajuan(container) {
+                const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
-                let realisasiMap = {};
-                pencairanItems.forEach(item => {
-                    const head = pencairanHead.find(h => h.id === item.pencairan_id);
-                    if (head && ['FINAL', 'SELESAI', 'DRAFT'].includes(String(head.status).toUpperCase())) {
-                        realisasiMap[item.rekening_id] = (realisasiMap[item.rekening_id] || 0) + (Number(item.subtotal) || Number(item.total) || 0);
-                    }
-                });
+                const rekenings = DB.get('master_rekening') || [];
 
-                // Dropdown Rekening dengan TomSelect atau diperlebar tampilannya
-                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => {
-                    const subKode = r.kode.split('.').slice(0, 6).join('.');
-                    const subRecord = rekenings.find(sub => sub.kode === subKode);
-                    const namaSub = subRecord ? subRecord.uraian : 'Tanpa Sub Kegiatan';
-                    const sisaPagu = (Number(r.pagu) || 0) - (realisasiMap[r.id] || 0);
-                    return `<option value="${r.id}" data-sisa="${sisaPagu}">${namaSub} — ${r.uraian} [Sisa: Rp ${Utils.formatNumber(sisaPagu)}]</option>`;
+                let rows = pencairanList.map((d, i) => {
+                    const items = pencairanItems.filter(item => item.pencairan_id === d.id);
+                    const totalPencairan = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+
+                    return `
+                        <tr class="hover:bg-gray-50 border-b">
+                            <td class="p-3 text-center">${i + 1}</td>
+                            <td class="p-3 font-bold text-primary-600">${d.nomor || '-'}</td>
+                            <td class="p-3">${Utils.formatDate(d.tanggal)}</td>
+                            <td class="p-3">
+                                <div class="font-semibold">${d.sub_kegiatan || 'Sub Kegiatan belum dipilih'}</div>
+                                <div class="text-xs text-muted">${items.length} rincian item belanja</div>
+                            </td>
+                            <td class="p-3 text-right font-bold">Rp ${Utils.formatNumber(totalPencairan)}</td>
+                            <td class="p-3 text-center">${Utils.getBadge(d.status || 'Draft')}</td>
+                            <td class="p-3 text-center">
+                                <div class="flex justify-center gap-1">
+                                    <button class="btn btn-ghost btn-sm text-primary" title="Edit Header & Detail" onclick="app.formHeaderPencairan('${d.id}')"><i class="ph ph-pencil-simple"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-warning" title="Duplikat Pengajuan & Rincian" onclick="app.duplicatePencairan('${d.id}')"><i class="ph ph-copy"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-success" title="Cetak Lampiran Permintaan Pembayaran" onclick="app.printLampiranPencairan('${d.id}')"><i class="ph ph-printer"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-danger" title="Hapus Pengajuan" onclick="app.deletePencairan('${d.id}')"><i class="ph ph-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                 }).join('');
 
-                // Dropdown Penyedia (Menampilkan Nama, Bank, dan No Rekening agar tidak kepotong)
-                const optsPenyedia = penyedias.map(p => 
-                    `<option value="${p.id}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} — ${p.direktur} (Bank: ${p.bank || '-'} | No. Rek: ${p.no_rekening || '-'})</option>`
-                ).join('');
-
-                const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-ppn="${p.ppn}" data-tarif="${p.tarif}" data-dasar="${p.dasar_hitung}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
-                
-                const optsPaket = packages.map(p => {
-                    const t = DB.calculatePackageTotals(p);
-                    const nego = p.pembulatan_negosiasi || t.negosiasi || 0;
-                    return `<option value="${p.id}" data-nilai="${nego}">${p.name}</option>`;
-                }).join('');
-
-                const nextNo = String(pencairanHead.length + 1).padStart(3, '0');
-
-                const body = `
-                    <div class="card p-4 mb-4 border border-primary-200">
-                        <h3 class="font-bold mb-3">1. Informasi & Jenis Pengajuan</h3>
-                        
-                        <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
-                            <div class="form-group mb-0">
-                                <label class="form-label font-bold text-gray-700">Nomor Pengajuan</label>
-                                <input type="text" id="input_nomor" class="form-control" value="${nextNo}/SPP-LS/BKAD/2026">
+                container.innerHTML = `
+                    <div class="p-6 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h1 class="text-2xl font-bold text-main">Pengajuan Pencairan & Lampiran</h1>
+                                <p class="text-muted text-sm mt-1">Manajemen Header SPP dan Rincian Item Belanja serta Pajak Terintegrasi DPA.</p>
                             </div>
-                            <div class="form-group mb-0">
-                                <label class="form-label font-bold text-gray-700">Tanggal Pengajuan</label>
-                                <input type="date" id="input_tanggal" class="form-control" value="${new Date().toISOString().split('T')[0]}">
-                            </div>
+                            <button class="btn btn-primary" onclick="app.formHeaderPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
                         </div>
-
-                        <div class="flex gap-4 mb-4">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="jenis_input" value="non_paket" checked onchange="app.toggleJenisInput()"> Non-Paket (Input Mandiri)
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name="jenis_input" value="paket" onchange="app.toggleJenisInput()"> Paket Pekerjaan
-                            </label>
-                        </div>
-                        
-                        <div id="wrapper-paket" class="hidden form-group mb-0">
-                            <label class="form-label">Pilih Paket Pekerjaan</label>
-                            <select id="pilih_paket" class="form-control" onchange="app.autofillDariPaket()">
-                                <option value="">-- Pilih Paket --</option>
-                                ${optsPaket}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="card p-4">
-                        <h3 class="font-bold mb-3">2. Rincian Tagihan & Pajak</h3>
-                        <div class="grid grid-cols-1 gap-4 mb-4">
-                            <div class="form-group">
-                                <label class="form-label">Rekening Belanja</label>
-                                <select id="input_rekening" class="form-control searchable-select" onchange="app.hitungPajakPencairan()">
-                                    <option value="">-- Pilih Rekening --</option>
-                                    ${optsRekening}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Penerima / Penyedia (Bisa Ketik untuk Cari Nama / Rekening)</label>
-                                <select id="input_penerima" class="form-control searchable-select" onchange="app.updateInfoPenerima()">
-                                    <option value="">-- Ketik nama perusahaan atau nomor rekening --</option>
-                                    ${optsPenyedia}
-                                </select>
-                                <div id="info_bank" class="text-xs font-semibold text-primary-700 bg-primary-50 p-2 rounded mt-2 border border-primary-100"></div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="form-group">
-                                <label class="form-label">Nilai Tagihan (Termasuk PPN jika ada)</label>
-                                <input type="text" inputmode="numeric" id="input_tagihan" class="form-control money-input font-bold" placeholder="0" oninput="app.hitungPajakPencairan()">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Profil Pajak</label>
-                                <select id="input_pajak" class="form-control" onchange="app.hitungPajakPencairan()">
-                                    <option value="">-- Pilih Profil Pajak --</option>
-                                    ${optsPajak}
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Hasil Kalkulator Otomatis -->
-                        <div class="bg-gray-50 border p-4 rounded mt-4">
-                            <h4 class="font-bold text-sm mb-3 text-center text-primary-700 uppercase tracking-wider">Ringkasan Perhitungan Pembayaran</h4>
-                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                                <div class="bg-white p-2 rounded border">
-                                    <span class="block text-muted text-xs">DPP</span>
-                                    <span id="calc_dpp" class="font-bold">0</span>
-                                </div>
-                                <div class="bg-white p-2 rounded border">
-                                    <span class="block text-muted text-xs">PPN (11%)</span>
-                                    <span id="calc_ppn" class="font-bold text-blue-600">0</span>
-                                </div>
-                                <div class="bg-white p-2 rounded border">
-                                    <span class="block text-muted text-xs">PPh (Potongan)</span>
-                                    <span id="calc_pph" class="font-bold text-danger">0</span>
-                                </div>
-                                <div class="bg-white p-2 rounded border bg-danger-50 border-danger-200">
-                                    <span class="block text-muted text-xs">Total Potongan</span>
-                                    <span id="calc_potongan" class="font-bold text-danger">0</span>
-                                </div>
-                                <div class="bg-white p-2 rounded border bg-success-50 border-success-200">
-                                    <span class="block text-muted text-xs">Jumlah Dibayarkan</span>
-                                    <span id="calc_dibayarkan" class="font-bold text-success text-lg">0</span>
-                                </div>
-                            </div>
+                        <div class="card flex-1 overflow-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" style="width: 50px;">No</th>
+                                        <th>Nomor Pengajuan</th>
+                                        <th>Tanggal</th>
+                                        <th>Sub Kegiatan</th>
+                                        <th class="text-right">Total Dibayarkan</th>
+                                        <th class="text-center">Status</th>
+                                        <th class="text-center" style="width: 180px;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rows.length ? rows : '<tr><td colspan="7" class="text-center text-muted py-8">Belum ada data pengajuan pencairan.</td></tr>'}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 `;
-                
-                DOM.openModal('Form Pengajuan Pencairan', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.savePencairan()">Buat Pengajuan</button>`);
-                
-                // Inisialisasi TomSelect agar kotak pilihan pencairan bisa dicari (searchable)
-                setTimeout(() => {
-                    if(window.TomSelect) {
-                        new TomSelect("#input_rekening", { create: false, sortField: { field: "text", direction: "asc" } });
-                        new TomSelect("#input_penerima", { create: false, sortField: { field: "text", direction: "asc" } });
-                        if(document.getElementById('pilih_paket')) {
-                            new TomSelect("#pilih_paket", { create: false, sortField: { field: "text", direction: "asc" } });
-                        }
-                    }
-                }, 100);
+            },
 
-                document.getElementById('input_tagihan').addEventListener('input', function(e) {
-                    let val = String(e.target.value).replace(/\D/g, '');
-                    e.target.value = Utils.formatNumber(val);
-                });
-            }
+            formHeaderPencairan(id = null) {
+                const pencairanList = DB.get('pencairan') || [];
+                const header = id ? pencairanList.find(h => h.id === id) : {
+                    nomor: `${String(pencairanList.length + 1).padStart(3, '0')}/SPP-LS/BKAD/2026`,
+                    tanggal: new Date().toISOString().split('T')[0],
+                    sub_kegiatan: '',
+                    kegiatan: 'Pengelolaan Barang Milik Daerah',
+                    bulan: 'Juni'
+                };
 
-            toggleJenisInput() {
-                const isPaket = document.querySelector('input[name="jenis_input"]:checked').value === 'paket';
-                const wrapperPaket = document.getElementById('wrapper-paket');
-                const inputTagihan = document.getElementById('input_tagihan');
-                
-                if (isPaket) {
-                    wrapperPaket.classList.remove('hidden');
-                    inputTagihan.setAttribute('readonly', true);
-                    inputTagihan.classList.add('bg-gray-100');
-                } else {
-                    wrapperPaket.classList.add('hidden');
-                    document.getElementById('pilih_paket').value = '';
-                    inputTagihan.removeAttribute('readonly');
-                    inputTagihan.classList.remove('bg-gray-100');
-                    inputTagihan.value = '';
-                    this.hitungPajakPencairan();
-                }
-            }
+                const rekenings = DB.get('master_rekening') || [];
+                const subKegiatans = rekenings.filter(r => r.kode.split('.').length === 6);
+                const optsSub = subKegiatans.map(r => `<option value="${r.uraian}" ${header.sub_kegiatan === r.uraian ? 'selected' : ''}>${r.kode} - ${r.uraian}</option>`).join('');
 
-            autofillDariPaket() {
-                const selectPaket = document.getElementById('pilih_paket');
-                if (!selectPaket.value) return;
-                
-                const nilaiNegosiasi = selectPaket.options[selectPaket.selectedIndex].getAttribute('data-nilai');
-                document.getElementById('input_tagihan').value = Utils.formatNumber(nilaiNegosiasi);
-                
-                const pkg = DB.getById('paket', selectPaket.value);
-                if (pkg && pkg.supplier_id) {
-                    document.getElementById('input_penerima').value = pkg.supplier_id;
-                    this.updateInfoPenerima();
-                }
-                
-                this.hitungPajakPencairan();
-            }
+                const body = `
+                    <form id="form-header-pencairan" class="flex flex-col gap-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Nomor Pengajuan</label>
+                                <input type="text" name="nomor" class="form-control" value="${header.nomor || ''}" required>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Tanggal Pengajuan</label>
+                                <input type="date" name="tanggal" class="form-control" value="${header.tanggal || ''}" required>
+                            </div>
+                        </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Sub Kegiatan (Sesuai DPA)</label>
+                            <select name="sub_kegiatan" class="form-control" required>
+                                <option value="">-- Pilih Sub Kegiatan --</option>
+                                ${optsSub}
+                            </select>
+                        </div>
+                    </form>
+                `;
 
-            updateInfoPenerima() {
-                const selectPenerima = document.getElementById('input_penerima');
-                const infoBank = document.getElementById('info_bank');
-                if (selectPenerima.value) {
-                    const bank = selectPenerima.options[selectPenerima.selectedIndex].getAttribute('data-bank') || '-';
-                    const norek = selectPenerima.options[selectPenerima.selectedIndex].getAttribute('data-norek') || '-';
-                    infoBank.innerHTML = `<i class="ph ph-bank"></i> ${bank} - ${norek}`;
-                } else {
-                    infoBank.innerHTML = '';
-                }
-            }
+                const footer = `
+                    <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
+                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-arrow-right"> ${id ? 'Simpan Perubahan & Atur Detail' : 'Lanjut ke Rincian Detail'}</i></button>
+                `;
 
-            hitungPajakPencairan() {
-                const rekSelect = document.getElementById('input_rekening');
-                const tagihanInput = document.getElementById('input_tagihan');
-                const pajakSelect = document.getElementById('input_pajak');
-                
-                let nilaiTagihan = parseFloat(String(tagihanInput.value).replace(/\D/g, '')) || 0;
-                
-                if (rekSelect.value && nilaiTagihan > 0) {
-                    const sisaPagu = parseFloat(rekSelect.options[rekSelect.selectedIndex].getAttribute('data-sisa'));
-                    if (nilaiTagihan > sisaPagu) {
-                        alert(`Peringatan: Nilai tagihan (Rp ${Utils.formatNumber(nilaiTagihan)}) melebihi Sisa Pagu (Rp ${Utils.formatNumber(sisaPagu)}). Sistem membatasi ke maksimal sisa pagu.`);
-                        tagihanInput.value = Utils.formatNumber(sisaPagu);
-                        nilaiTagihan = sisaPagu;
-                    }
+                DOM.openModal(id ? 'Edit Header Pencairan' : '1. Buat Header Pengajuan Baru', body, footer);
+            },
+
+            saveHeaderPencairan(id) {
+                const formData = DOM.getFormData('form-header-pencairan');
+                if (!formData.nomor || !formData.tanggal || !formData.sub_kegiatan) {
+                    return this.notify('Harap lengkapi semua kolom pada header', 'error');
                 }
 
-                let dpp = 0;
-                let ppn = 0;
-                let pph = 0;
-
-                if (pajakSelect.value && nilaiTagihan > 0) {
-                    const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
-                    const isPPN = optPajak.getAttribute('data-ppn') === 'true';
-                    const tarifPPh = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
-                    const dasarHitung = optPajak.getAttribute('data-dasar'); 
-
-                    if (isPPN) {
-                        dpp = Math.round(nilaiTagihan / 1.11);
-                        ppn = nilaiTagihan - dpp;
-                    } else {
-                        dpp = nilaiTagihan;
-                        ppn = 0;
-                    }
-
-                    const basisPPh = (dasarHitung === 'DPP') ? dpp : nilaiTagihan; 
-                    pph = Math.round(basisPPh * (tarifPPh / 100));
-                }
-
-                const totalPotongan = pph; 
-                const jumlahDibayarkan = nilaiTagihan - totalPotongan;
-
-                document.getElementById('calc_dpp').innerText = Utils.formatNumber(dpp);
-                document.getElementById('calc_ppn').innerText = Utils.formatNumber(ppn);
-                document.getElementById('calc_pph').innerText = Utils.formatNumber(pph);
-                document.getElementById('calc_potongan').innerText = Utils.formatNumber(totalPotongan);
-                document.getElementById('calc_dibayarkan').innerText = Utils.formatNumber(jumlahDibayarkan);
-            }
-
-            savePencairan() {
-                const isPaket = document.querySelector('input[name="jenis_input"]:checked').value === 'paket';
-                const paketId = document.getElementById('pilih_paket').value;
-                const rekeningId = document.getElementById('input_rekening').value;
-                const penyediaId = document.getElementById('input_penerima').value;
-                const tagihan = parseFloat(String(document.getElementById('input_tagihan').value).replace(/\D/g, '')) || 0;
-                const pajakId = document.getElementById('input_pajak').value;
-
-                const nomorInput = document.getElementById('input_nomor').value;
-                const tanggalInput = document.getElementById('input_tanggal').value;
-
-                if (!rekeningId || !penyediaId || tagihan <= 0 || !tanggalInput) {
-                    return this.notify('Harap lengkapi Tanggal, Rekening, Penerima, dan Nilai Tagihan', 'error');
-                }
-
-                const ppn = parseFloat(document.getElementById('calc_ppn').innerText.replace(/\D/g, '')) || 0;
-                const pph = parseFloat(document.getElementById('calc_pph').innerText.replace(/\D/g, '')) || 0;
-                const totalPotongan = parseFloat(document.getElementById('calc_potongan').innerText.replace(/\D/g, '')) || 0;
-                const jumlahDibayarkan = parseFloat(document.getElementById('calc_dibayarkan').innerText.replace(/\D/g, '')) || 0;
-
-                const selRek = document.getElementById('input_rekening');
-                const namaSubKeg = selRek.options[selRek.selectedIndex].text.split('-')[0].trim();
-                
-                const dateObj = new Date(tanggalInput);
+                let headerId = id;
+                const dateObj = new Date(formData.tanggal);
                 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                 const namaBulan = months[dateObj.getMonth()];
 
-                const head = { 
-                    nomor: nomorInput, 
-                    tanggal: tanggalInput, 
-                    bulan: namaBulan, 
-                    kegiatan: 'Pengelolaan Barang Milik Daerah', 
-                    sub_kegiatan: namaSubKeg, 
-                    jenis: 'LS', 
-                    status: 'DRAFT',
-                    package_id: isPaket ? paketId : null,
-                    total: tagihan
+                const payload = {
+                    ...formData,
+                    bulan: namaBulan,
+                    kegiatan: 'Pengelolaan Barang Milik Daerah',
+                    status: 'Draft'
                 };
-                const res = DB.insert('pencairan', head);
-                
-                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
-                if (pajakId) {
-                    const selPajakText = document.getElementById('input_pajak').options[document.getElementById('input_pajak').selectedIndex].text.toUpperCase();
-                    if (selPajakText.includes('21')) pph21 = pph;
-                    else if (selPajakText.includes('22')) pph22 = pph;
-                    else if (selPajakText.includes('23')) pph23 = pph;
-                    else if (selPajakText.includes('4 AYAT')) pph42 = pph;
+
+                if (id) {
+                    DB.update('pencairan', id, payload);
+                } else {
+                    const newHeader = DB.insert('pencairan', payload);
+                    headerId = newHeader.id;
                 }
 
-                const item = { 
-                    pencairan_id: res.id, 
-                    rekening_id: rekeningId, 
-                    uraian: 'Pembayaran Tagihan Pihak Ketiga',
-                    qty: 1,
-                    harga: tagihan,
-                    subtotal: tagihan,
-                    pajak_id: pajakId || null,
-                    nilai_pajak: totalPotongan,
-                    pajak_ppn: ppn, 
-                    pajak_pph21: pph21,
-                    pajak_pph22: pph22,
-                    pajak_pph23: pph23,
-                    pajak_pph42: pph42,
-                    total: jumlahDibayarkan
+                DOM.closeModal();
+                this.formDetailPencairan(headerId);
+            },
+
+            formDetailPencairan(pencairanId) {
+                const header = DB.getById('pencairan', pencairanId);
+                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
+                const rekenings = DB.get('master_rekening') || [];
+                const masterPajak = DB.get('master_pajak') || [];
+                const penyedias = DB.get('penyedia') || [];
+
+                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}">${r.kode} - ${r.uraian}</option>`).join('');
+                const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
+                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
+
+                const rowsHtml = items.map((item, idx) => `
+                    <tr class="item-row border-b bg-white" data-index="${idx}" data-item-id="${item.id || ''}">
+                        <td class="p-2 text-center align-top">${idx + 1}</td>
+                        <td class="p-2">
+                            <select class="form-control item-rekening mb-1" style="font-size: 0.8rem;">
+                                <option value="">-- Pilih Rekening --</option>
+                                ${rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}" ${r.rekening_id === r.id ? 'selected' : ''}>${r.kode}</option>`).join('')}
+                            </select>
+                            <textarea class="form-control item-uraian" rows="2" placeholder="Keperluan / Uraian">${item.uraian || ''}</textarea>
+                        </td>
+                        <td class="p-2">
+                            <select class="form-control item-penyedia" onchange="app.autofillPenyediaDetail(this)">
+                                <option value="">-- Pilih Penyedia --</option>
+                                ${optsPenyedia}
+                            </select>
+                            <input type="text" class="form-control item-nama-penerima mt-1" value="${item.nama_penerima || ''}" placeholder="Nama Penerima">
+                        </td>
+                        <td class="p-2">
+                            <input type="text" class="form-control item-bank mb-1" value="${item.bank || ''}" placeholder="Bank">
+                            <input type="text" class="form-control item-norek" value="${item.no_rekening || ''}" placeholder="No Rekening">
+                        </td>
+                        <td class="p-2">
+                            <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right" value="${Utils.formatNumber(item.subtotal || item.harga || 0)}" oninput="app.hitungItemDetail(this)">
+                        </td>
+                        <td class="p-2">
+                            <select class="form-control item-pajak-profil" onchange="app.hitungItemDetail(this)">
+                                <option value="">-- Tanpa Pajak --</option>
+                                ${optsPajak}
+                            </select>
+                            <div class="text-xs text-muted mt-1">
+                                PPN: <span class="val-ppn">0</span><br>
+                                PPh: <span class="val-pph">0</span>
+                            </div>
+                        </td>
+                        <td class="p-2 text-center align-middle">
+                            <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove(); app.hitungTotalSemuaItem();"><i class="ph ph-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                const body = `
+                    <div class="mb-3 p-3 bg-gray-50 rounded border">
+                        <div class="font-bold text-primary-700">Nomor: ${header.nomor} | Sub Kegiatan: ${header.sub_kegiatan}</div>
+                        <div class="text-xs text-muted">Tambahkan rincian item belanja, penerima, bank, rekening, dan potongan pajak di bawah ini.</div>
+                    </div>
+
+                    <div class="table-container mb-4" style="max-height: 400px; overflow-y: auto;">
+                        <table class="w-full text-left border-collapse" id="table-detail-items">
+                            <thead class="bg-gray-100 sticky top-0 z-10 text-xs">
+                                <tr>
+                                    <th class="p-2 text-center" style="width: 40px;">No</th>
+                                    <th class="p-2" style="width: 220px;">Kode Rekening & Keperluan</th>
+                                    <th class="p-2" style="width: 180px;">Penyedia / Penerima</th>
+                                    <th class="p-2" style="width: 140px;">Bank & No Rekening</th>
+                                    <th class="p-2 text-right" style="width: 130px;">Jumlah (Bruto)</th>
+                                    <th class="p-2" style="width: 160px;">Pajak (PPN/PPh)</th>
+                                    <th class="p-2 text-center" style="width: 50px;">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm w-full" onclick="app.tambahBarisDetailItem()"><i class="ph ph-plus"></i> Tambah Baris Rincian</button>
+                `;
+
+                const footer = `
+                    <button class="btn btn-outline" onclick="app.renderPengajuan(app.routerView); DOM.closeModal();">Kembali / Selesai</button>
+                    <button class="btn btn-primary" onclick="app.saveDetailPencairan('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Semua Rincian</button>
+                `;
+
+                DOM.openModal(`2. Rincian Item Belanja — ${header.nomor}`, body, footer);
+            },
+
+            tambahBarisDetailItem() {
+                const tbody = document.querySelector('#table-detail-items tbody');
+                const count = tbody.querySelectorAll('tr').length + 1;
+                const rekenings = DB.get('master_rekening') || [];
+                const masterPajak = DB.get('master_pajak') || [];
+                const penyedias = DB.get('penyedia') || [];
+
+                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}">${r.kode}</option>`).join('');
+                const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
+                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
+
+                const tr = document.createElement('tr');
+                tr.className = 'item-row border-b bg-white';
+                tr.innerHTML = `
+                    <td class="p-2 text-center align-top">${count}</td>
+                    <td class="p-2">
+                        <select class="form-control item-rekening mb-1" style="font-size: 0.8rem;">
+                            <option value="">-- Pilih Rekening --</option>
+                            ${optsRekening}
+                        </select>
+                        <textarea class="form-control item-uraian" rows="2" placeholder="Keperluan / Uraian"></textarea>
+                    </td>
+                    <td class="p-2">
+                        <select class="form-control item-penyedia" onchange="app.autofillPenyediaDetail(this)">
+                            <option value="">-- Pilih Penyedia --</option>
+                            ${optsPenyedia}
+                        </select>
+                        <input type="text" class="form-control item-nama-penerima mt-1" placeholder="Nama Penerima">
+                    </td>
+                    <td class="p-2">
+                        <input type="text" class="form-control item-bank mb-1" placeholder="Bank">
+                        <input type="text" class="form-control item-norek" placeholder="No Rekening">
+                    </td>
+                    <td class="p-2">
+                        <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right" value="0" oninput="app.hitungItemDetail(this)">
+                    </td>
+                    <td class="p-2">
+                        <select class="form-control item-pajak-profil" onchange="app.hitungItemDetail(this)">
+                            <option value="">-- Tanpa Pajak --</option>
+                            ${optsPajak}
+                        </select>
+                        <div class="text-xs text-muted mt-1">
+                            PPN: <span class="val-ppn">0</span><br>
+                            PPh: <span class="val-pph">0</span>
+                        </div>
+                    </td>
+                    <td class="p-2 text-center align-middle">
+                        <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove();"><i class="ph ph-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                tr.querySelector('.money-input').addEventListener('input', function(e) {
+                    let val = String(e.target.value).replace(/\D/g, '');
+                    e.target.value = Utils.formatNumber(val);
+                });
+            },
+
+            autofillPenyediaDetail(selectEl) {
+                const opt = selectEl.options[selectEl.selectedIndex];
+                const tr = selectEl.closest('tr');
+                if (!opt.value) return;
+
+                tr.querySelector('.item-nama-penerima').value = opt.getAttribute('data-nama') || '';
+                tr.querySelector('.item-bank').value = opt.getAttribute('data-bank') || '';
+                tr.querySelector('.item-norek').value = opt.getAttribute('data-norek') || '';
+            },
+
+            hitungItemDetail(el) {
+                const tr = el.closest('tr');
+                const bruto = parseFloat(String(tr.querySelector('.item-jumlah').value).replace(/\D/g, '')) || 0;
+                const pajakSelect = tr.querySelector('.item-pajak-profil');
+                const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
+
+                let ppn = 0;
+                let pph = 0;
+
+                if (optPajak.value) {
+                    const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
+                    const jenis = (optPajak.getAttribute('data-jenis') || '').toUpperCase();
+
+                    if (jenis.includes('PPN')) {
+                        const dpp = Math.round(bruto / 1.11);
+                        ppn = bruto - dpp;
+                    } else if (jenis.includes('PPH')) {
+                        pph = Math.round(bruto * (tarif / 100));
+                    }
+                }
+
+                tr.querySelector('.val-ppn').innerText = Utils.formatNumber(ppn);
+                tr.querySelector('.val-pph').innerText = Utils.formatNumber(pph);
+            },
+
+            saveDetailPencairan(pencairanId) {
+                // Hapus item lama, lalu masukkan item baru dari baris tabel
+                const existingItems = DB.get('pencairan_items') || [];
+                const filtered = existingItems.filter(i => i.pencairan_id !== pencairanId);
+                DB.cache['pencairan_items'] = filtered;
+
+                // Hapus di database remote (Supabase) via fetch DELETE
+                fetch(`${SUPABASE_URL}pencairan_items?pencairan_id=eq.${pencairanId}`, {
+                    method: 'DELETE',
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                }).catch(e => console.error(e));
+
+                const rows = document.querySelectorAll('.item-row');
+                let totalHeader = 0;
+
+                rows.forEach(row => {
+                    const rekeningId = row.querySelector('.item-rekening').value;
+                    const uraian = row.querySelector('.item-uraian').value;
+                    const namaPenerima = row.querySelector('.item-nama-penerima').value;
+                    const bank = row.querySelector('.item-bank').value;
+                    const noRekening = row.querySelector('.item-norek').value;
+                    const bruto = parseFloat(String(row.querySelector('.item-jumlah').value).replace(/\D/g, '')) || 0;
+                    const pajakId = row.querySelector('.item-pajak-profil').value;
+                    
+                    const ppn = parseFloat(row.querySelector('.val-ppn').innerText.replace(/\D/g, '')) || 0;
+                    const pph = parseFloat(row.querySelector('.val-pph').innerText.replace(/\D/g, '')) || 0;
+                    const totalPotongan = pph;
+                    const jumlahDibayarkan = bruto - totalPotongan;
+
+                    totalHeader += jumlahDibayarkan;
+
+                    let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
+                    if (pajakId) {
+                        const optText = row.querySelector('.item-pajak-profil').options[row.querySelector('.item-pajak-profil').selectedIndex].text.toUpperCase();
+                        if (optText.includes('21')) pph21 = pph;
+                        else if (optText.includes('22')) pph22 = pph;
+                        else if (optText.includes('23')) pph23 = pph;
+                        else if (optText.includes('4 AYAT') || optText.includes('4(2)')) pph42 = pph;
+                    }
+
+                    const itemPayload = {
+                        pencairan_id: pencairanId,
+                        rekening_id: rekeningId || null,
+                        uraian: uraian,
+                        nama_penerima: namaPenerima,
+                        bank: bank,
+                        no_rekening: noRekening,
+                        qty: 1,
+                        harga: bruto,
+                        subtotal: bruto,
+                        pajak_id: pajakId || null,
+                        nilai_pajak: totalPotongan,
+                        pajak_ppn: ppn,
+                        pajak_pph21: pph21,
+                        pajak_pph22: pph22,
+                        pajak_pph23: pph23,
+                        pajak_pph42: pph42,
+                        total: jumlahDibayarkan
+                    };
+
+                    DB.insert('pencairan_items', itemPayload);
+                });
+
+                // Update total di header pencairan
+                DB.update('pencairan', pencairanId, { total: totalHeader, status: 'Final' });
+
+                DOM.closeModal();
+                this.notify('Rincian item pencairan berhasil disimpan', 'success');
+                this.renderPengajuan(this.routerView);
+            },
+
+            duplicatePencairan(id) {
+                const header = DB.getById('pencairan', id);
+                if (!header) return;
+
+                const newHeaderId = Utils.generateId();
+                const newHeader = {
+                    ...header,
+                    id: newHeaderId,
+                    nomor: `${header.nomor} (COPY)`,
+                    created_at: new Date().toISOString()
                 };
-                DB.insert('pencairan_items', item);
-                
-                DOM.closeModal(); 
-                this.notify('Pengajuan Pencairan berhasil dibuat', 'success'); 
-                this.reRenderCurrentView();
+                DB.insert('pencairan', newHeader);
+
+                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === id);
+                items.forEach(item => {
+                    const newItem = {
+                        ...item,
+                        id: Utils.generateId(),
+                        pencairan_id: newHeaderId,
+                        created_at: new Date().toISOString()
+                    };
+                    DB.insert('pencairan_items', newItem);
+                });
+
+                this.notify('Pengajuan dan seluruh rincian berhasil diduplikasi', 'success');
+                this.renderPengajuan(this.routerView);
+            },
+
+            deletePencairan(id) {
+                if (confirm('Apakah Anda yakin ingin menghapus pengajuan ini beserta seluruh rincian itemnya?')) {
+                    // Hapus items terkait di supabase via CASCADE atau manual delete
+                    DB.delete('pencairan', id);
+                    this.notify('Pengajuan berhasil dihapus', 'success');
+                    this.renderPengajuan(this.routerView);
+                }
+            },
+
+            printLampiranPencairan(pencairanId) {
+                const header = DB.getById('pencairan', pencairanId);
+                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
+                const rekenings = DB.get('master_rekening') || [];
+
+                let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
+
+                const rowsHtml = items.map((item, idx) => {
+                    const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-' };
+                    const bruto = Number(item.subtotal || item.harga || 0);
+                    const ppn = Number(item.pajak_ppn || 0);
+                    const pph21 = Number(item.pajak_pph21 || 0);
+                    const pph22 = Number(item.pajak_pph22 || 0);
+                    const pph23 = Number(item.pajak_pph23 || 0);
+                    const pph42 = Number(item.pajak_pph42 || 0);
+                    const pot = pph21 + pph22 + pph23 + pph42;
+                    const dibayar = Number(item.total || 0);
+
+                    totBruto += bruto; totPPN += ppn; totPPh21 += pph21; totPPh22 += pph22; totPPh23 += pph23; totPPh42 += pph42; totPotongan += pot; totDibayar += dibayar;
+
+                    return `
+                        <tr>
+                            <td class="c">${idx + 1}</td>
+                            <td>${rek.kode}</td>
+                            <td>
+                                <b>${item.uraian || '-'}</b>
+                            </td>
+                            <td>${item.nama_penerima || '-'}</td>
+                            <td class="c">${item.bank || '-'}</td>
+                            <td>${item.no_rekening || '-'}</td>
+                            <td class="r">${Utils.formatNumber(bruto)}</td>
+                            <td class="r">${ppn ? Utils.formatNumber(ppn) : '-'}</td>
+                            <td class="r">${pph21 ? Utils.formatNumber(pph21) : '-'}</td>
+                            <td class="r">${pph22 ? Utils.formatNumber(pph22) : '-'}</td>
+                            <td class="r">${pph23 ? Utils.formatNumber(pph23) : '-'}</td>
+                            <td class="r">${pph42 ? Utils.formatNumber(pph42) : '-'}</td>
+                            <td class="r">${pot ? Utils.formatNumber(pot) : '-'}</td>
+                            <td class="r font-bold">${Utils.formatNumber(dibayar)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const content = `
+                    <div class="header" style="text-align: center; font-weight: bold; font-size: 11pt; margin-bottom: 15px;">
+                        LAMPIRAN PERMINTAAN PEMBAYARAN
+                    </div>
+
+                    <table class="meta-info" style="width: 100%; border: none; margin-bottom: 10px; font-size: 9pt;">
+                        <tr><td style="width: 160px; border:none;">Nama Sub Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${header.sub_kegiatan || '-'}</td></tr>
+                        <tr><td style="border:none;">Kode Kegiatan</td><td style="border:none;">:</td><td style="border:none;">5.02.03.2.01.0010</td></tr>
+                        <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juni'} 2026</td></tr>
+                    </table>
+
+                    <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 8pt;">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">No</th>
+                                <th rowspan="2">Kode Rekening</th>
+                                <th rowspan="2">Keperluan</th>
+                                <th rowspan="2">Nama Penerima</th>
+                                <th rowspan="2">Nama Bank</th>
+                                <th rowspan="2">Kode Rekening (Bank)</th>
+                                <th rowspan="2">Jumlah</th>
+                                <th colspan="5">Potongan</th>
+                                <th rowspan="2">Jumlah Potongan</th>
+                                <th rowspan="2">Jumlah yang dibayarkan</th>
+                            </tr>
+                            <tr>
+                                <th>PPN</th>
+                                <th>PPh Psl 21</th>
+                                <th>PPh Psl 22</th>
+                                <th>PPh Psl 23</th>
+                                <th>PPh Psl 4 Ayat 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-bold">
+                                <td colspan="6" class="r">Jumlah Total</td>
+                                <td class="r">${Utils.formatNumber(totBruto)}</td>
+                                <td class="r">${totPPN ? Utils.formatNumber(totPPN) : '-'}</td>
+                                <td class="r">${totPPh21 ? Utils.formatNumber(totPPh21) : '-'}</td>
+                                <td class="r">${totPPh22 ? Utils.formatNumber(totPPh22) : '-'}</td>
+                                <td class="r">${totPPh23 ? Utils.formatNumber(totPPh23) : '-'}</td>
+                                <td class="r">${totPPh42 ? Utils.formatNumber(totPPh42) : '-'}</td>
+                                <td class="r">${totPotongan ? Utils.formatNumber(totPotongan) : '-'}</td>
+                                <td class="r">${Utils.formatNumber(totDibayar)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 9pt;">
+                        <div class="ttd-left" style="text-align: center; width: 250px;">
+                            <p>Mengetahui</p>
+                            <p><b>PPTK</b></p>
+                            <br><br><br>
+                            <p><u><b>AGIH PRIBADI KUSUMAH, S.E., M.Si</b></u></p>
+                            <p>NIP. 198503292011011001</p>
+                        </div>
+                        <div class="ttd-right" style="text-align: center; width: 250px;">
+                            <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${header.bulan || 'Juni'} 2026</p>
+                            <p><b>Bendahara</b></p>
+                            <br><br><br>
+                            <p><u><b>RIKKA FENDRIANI</b></u></p>
+                            <p>NIP. 197102131997032001</p>
+                        </div>
+                    </div>
+                `;
+
+                const customStyle = `
+                    @page { size: landscape; margin: 10mm; }
+                    body { font-family: 'Times New Roman', Times, serif; color: #000; }
+                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px; }
+                    .tbl-main th { text-align: center; background: #f3f4f6; }
+                    .c { text-align: center; }
+                    .r { text-align: right; }
+                    .font-bold { font-weight: bold; }
+                `;
+
+                this.printDocument('Lampiran Permintaan Pembayaran', content, customStyle);
             }
             
 
