@@ -3281,11 +3281,11 @@ renderSignPage(container, itemId) {
                                 <a href="${signUrl}" target="_blank" class="btn btn-outline btn-sm">
                                     <i class="ph ph-arrow-square-out"></i> Pratinjau TTD
                                 </a>
-                                <button class="btn btn-outline btn-sm text-success" onclick="app.downloadPresensiExcel('${spjId}')">
-                                    <i class="ph ph-file-xls"></i> Download Presensi
+                                <button class="btn btn-outline btn-sm text-success" onclick="app.printPresensiPDF('${spjId}')">
+                                    <i class="ph ph-file-pdf"></i> Cetak PDF Presensi
                                 </button>
-                                <button class="btn btn-outline btn-sm text-primary" onclick="app.downloadTandaTerimaExcel('${spjId}')">
-                                    <i class="ph ph-file-arrow-down"></i> Download Tanda Terima (Format Excel)
+                                <button class="btn btn-outline btn-sm text-primary" onclick="app.printTandaTerimaPDF('${spjId}')">
+                                    <i class="ph ph-file-pdf"></i> Cetak PDF Tanda Terima
                                 </button>
                             </div>
                         </div>
