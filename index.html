@@ -3075,13 +3075,16 @@
                         </div>
                     </div>
                 `;
-            }
+            },
 
             formHeaderPencairan(id = null) {
                 const pencairanList = DB.get('pencairan') || [];
+                const nextNoStr = String(pencairanList.length + 1).padStart(3, '0') + '/SPP-LS/BKAD/2026';
+                const todayStr = new Date().toISOString().split('T')[0];
+
                 const header = id ? pencairanList.find(h => h.id === id) : {
-                    nomor: `${String(pencairanList.length + 1).padStart(3, '0')}/SPP-LS/BKAD/2026`,
-                    tanggal: new Date().toISOString().split('T')[0],
+                    nomor: nextNoStr,
+                    tanggal: todayStr,
                     sub_kegiatan: '',
                     kegiatan: 'Pengelolaan Barang Milik Daerah',
                     bulan: 'Juni'
@@ -3115,7 +3118,7 @@
 
                 const footer = `
                     <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
-                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-arrow-right"> ${id ? 'Simpan Perubahan & Atur Detail' : 'Lanjut ke Rincian Detail'}</i></button>
+                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-arrow-right"></i> ${id ? 'Simpan Perubahan & Atur Detail' : 'Lanjut ke Rincian Detail'}</button>
                 `;
 
                 DOM.openModal(id ? 'Edit Header Pencairan' : '1. Buat Header Pengajuan Baru', body, footer);
@@ -3553,7 +3556,6 @@
 
                 this.printDocument('Lampiran Permintaan Pembayaran', content, customStyle);
             }
-            
 
             
 
