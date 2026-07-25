@@ -3166,61 +3166,69 @@
 
                 const rowsHtml = items.map((item, idx) => `
                     <tr class="item-row border-b bg-white" data-index="${idx}">
-                        <td class="p-2 text-center align-top">${idx + 1}</td>
-                        <td class="p-2">
-                            <select class="form-control item-rekening mb-1" style="font-size: 0.8rem;">
-                                <option value="">-- Pilih Rekening --</option>
-                                ${rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}" ${item.rekening_id === r.id ? 'selected' : ''}>${r.kode}</option>`).join('')}
-                            </select>
-                            <textarea class="form-control item-uraian" rows="2" placeholder="Keperluan / Uraian">${item.uraian || ''}</textarea>
-                        </td>
-                        <td class="p-2">
-                            <select class="form-control item-penyedia" onchange="app.autofillPenyediaDetail(this)">
-                                <option value="">-- Pilih Penyedia --</option>
-                                ${optsPenyedia}
-                            </select>
-                            <input type="text" class="form-control item-nama-penerima mt-1" value="${item.nama_penerima || ''}" placeholder="Nama Penerima">
-                        </td>
-                        <td class="p-2">
-                            <input type="text" class="form-control item-bank mb-1" value="${item.bank || ''}" placeholder="Bank">
-                            <input type="text" class="form-control item-norek" value="${item.no_rekening || ''}" placeholder="No Rekening">
-                        </td>
-                        <td class="p-2">
-                            <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right" value="${Utils.formatNumber(item.subtotal || item.harga || 0)}" oninput="app.hitungItemDetail(this)">
-                        </td>
-                        <td class="p-2">
-                            <select class="form-control item-pajak-profil" onchange="app.hitungItemDetail(this)">
-                                <option value="">-- Tanpa Pajak --</option>
-                                ${optsPajak}
-                            </select>
-                            <div class="text-xs text-muted mt-1">
-                                PPN: <span class="val-ppn">0</span><br>
-                                PPh: <span class="val-pph">0</span>
+                        <td class="p-3 text-center align-middle font-bold">${idx + 1}</td>
+                        <td class="p-3">
+                            <div class="space-y-2">
+                                <select class="form-control item-rekening text-xs font-semibold" required>
+                                    <option value="">-- Pilih Kode Rekening DPA --</option>
+                                    ${rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}" ${item.rekening_id === r.id ? 'selected' : ''}>${r.kode} - ${r.uraian}</option>`).join('')}
+                                </select>
+                                <textarea class="form-control item-uraian text-xs" rows="2" placeholder="Uraian / Keperluan Pembayaran">${item.uraian || ''}</textarea>
                             </div>
                         </td>
-                        <td class="p-2 text-center align-middle">
-                            <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove();"><i class="ph ph-trash"></i></button>
+                        <td class="p-3">
+                            <div class="space-y-2">
+                                <select class="form-control item-penyedia text-xs" onchange="app.autofillPenyediaDetail(this)">
+                                    <option value="">-- Pilih dari Master Penyedia --</option>
+                                    ${optsPenyedia}
+                                </select>
+                                <input type="text" class="form-control item-nama-penerima text-xs" value="${item.nama_penerima || ''}" placeholder="Nama Penerima / Rekanan">
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <div class="space-y-2">
+                                <input type="text" class="form-control item-bank text-xs" value="${item.bank || ''}" placeholder="Nama Bank (Cth: BJB)">
+                                <input type="text" class="form-control item-norek text-xs font-mono" value="${item.no_rekening || ''}" placeholder="Nomor Rekening">
+                            </div>
+                        </td>
+                        <td class="p-3">
+                            <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right text-sm" value="${Utils.formatNumber(item.subtotal || item.harga || 0)}" oninput="app.hitungItemDetail(this)">
+                        </td>
+                        <td class="p-3">
+                            <div class="space-y-2">
+                                <select class="form-control item-pajak-profil text-xs" onchange="app.hitungItemDetail(this)">
+                                    <option value="">-- Tanpa Pajak --</option>
+                                    ${optsPajak}
+                                </select>
+                                <div class="text-[11px] bg-gray-50 p-1.5 rounded border text-gray-600">
+                                    PPN: <span class="val-ppn font-semibold text-gray-900">0</span><br>
+                                    PPh: <span class="val-pph font-semibold text-gray-900">0</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center align-middle">
+                            <button type="button" class="btn btn-ghost btn-sm text-danger hover:bg-red-50 p-2" onclick="this.closest('tr').remove(); app.hitungTotalSemuaItem();"><i class="ph ph-trash text-lg"></i></button>
                         </td>
                     </tr>
                 `).join('');
 
                 const body = `
-                    <div class="mb-3 p-3 bg-gray-50 rounded border">
-                        <div class="font-bold text-primary-700">Nomor: ${header.nomor} | Sub Kegiatan: ${header.sub_kegiatan}</div>
-                        <div class="text-xs text-muted">Tambahkan rincian item belanja, penerima, bank, rekening, dan potongan pajak di bawah ini.</div>
+                    <div class="mb-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
+                        <div class="font-bold text-primary-900 text-sm">Nomor: ${header.nomor}</div>
+                        <div class="text-xs text-primary-700 mt-0.5">Sub Kegiatan: <b>${header.sub_kegiatan}</b></div>
                     </div>
 
-                    <div class="table-container mb-4" style="max-height: 400px; overflow-y: auto;">
+                    <div class="table-container mb-4 overflow-x-auto" style="max-height: 50vh;">
                         <table class="w-full text-left border-collapse" id="table-detail-items">
-                            <thead class="bg-gray-100 sticky top-0 z-10 text-xs">
+                            <thead class="bg-gray-100 sticky top-0 z-10 text-xs text-gray-700 uppercase">
                                 <tr>
-                                    <th class="p-2 text-center" style="width: 40px;">No</th>
-                                    <th class="p-2" style="width: 220px;">Kode Rekening & Keperluan</th>
-                                    <th class="p-2" style="width: 180px;">Penyedia / Penerima</th>
-                                    <th class="p-2" style="width: 140px;">Bank & No Rekening</th>
-                                    <th class="p-2 text-right" style="width: 130px;">Jumlah (Bruto)</th>
-                                    <th class="p-2" style="width: 160px;">Pajak (PPN/PPh)</th>
-                                    <th class="p-2 text-center" style="width: 50px;">Aksi</th>
+                                    <th class="p-3 text-center" style="width: 45px;">No</th>
+                                    <th class="p-3" style="min-width: 260px;">Rekening & Keperluan</th>
+                                    <th class="p-3" style="min-width: 200px;">Penyedia / Penerima</th>
+                                    <th class="p-3" style="min-width: 170px;">Bank & No Rekening</th>
+                                    <th class="p-3 text-right" style="min-width: 140px;">Jumlah Bruto (Rp)</th>
+                                    <th class="p-3" style="min-width: 180px;">Potongan Pajak</th>
+                                    <th class="p-3 text-center" style="width: 60px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -3228,16 +3236,18 @@
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-outline btn-sm w-full" onclick="app.tambahBarisDetailItem()"><i class="ph ph-plus"></i> Tambah Baris Rincian</button>
+                    <button type="button" class="btn btn-outline w-full py-2.5 border-dashed border-2 text-primary-600 hover:bg-primary-50" onclick="app.tambahBarisDetailItem()"><i class="ph ph-plus-circle text-lg"></i> Tambah Baris Rincian Belanja</button>
                 `;
 
                 const footer = `
                     <button class="btn btn-outline" onclick="app.renderPengajuan(app.routerView); DOM.closeModal();">Kembali / Selesai</button>
-                    <button class="btn btn-primary" onclick="app.saveDetailPencairan('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Semua Rincian</button>
+                    <button class="btn btn-primary px-6" onclick="app.saveDetailPencairan('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Semua Rincian</button>
                 `;
 
+                // Memperlebar modal secara khusus agar tabel rincian sangat leluasa di-input
                 DOM.openModal(`2. Rincian Item Belanja — ${header.nomor}`, body, footer);
-            }
+                document.getElementById('modal-content-box').style.maxWidth = '1150px';
+            },
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
@@ -3246,47 +3256,55 @@
                 const masterPajak = DB.get('master_pajak') || [];
                 const penyedias = DB.get('penyedia') || [];
 
-                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}">${r.kode}</option>`).join('');
+                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}">${r.kode} - ${r.uraian}</option>`).join('');
                 const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
                 const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
 
                 const tr = document.createElement('tr');
                 tr.className = 'item-row border-b bg-white';
                 tr.innerHTML = `
-                    <td class="p-2 text-center align-top">${count}</td>
-                    <td class="p-2">
-                        <select class="form-control item-rekening mb-1" style="font-size: 0.8rem;">
-                            <option value="">-- Pilih Rekening --</option>
-                            ${optsRekening}
-                        </select>
-                        <textarea class="form-control item-uraian" rows="2" placeholder="Keperluan / Uraian"></textarea>
-                    </td>
-                    <td class="p-2">
-                        <select class="form-control item-penyedia" onchange="app.autofillPenyediaDetail(this)">
-                            <option value="">-- Pilih Penyedia --</option>
-                            ${optsPenyedia}
-                        </select>
-                        <input type="text" class="form-control item-nama-penerima mt-1" placeholder="Nama Penerima">
-                    </td>
-                    <td class="p-2">
-                        <input type="text" class="form-control item-bank mb-1" placeholder="Bank">
-                        <input type="text" class="form-control item-norek" placeholder="No Rekening">
-                    </td>
-                    <td class="p-2">
-                        <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right" value="0" oninput="app.hitungItemDetail(this)">
-                    </td>
-                    <td class="p-2">
-                        <select class="form-control item-pajak-profil" onchange="app.hitungItemDetail(this)">
-                            <option value="">-- Tanpa Pajak --</option>
-                            ${optsPajak}
-                        </select>
-                        <div class="text-xs text-muted mt-1">
-                            PPN: <span class="val-ppn">0</span><br>
-                            PPh: <span class="val-pph">0</span>
+                    <td class="p-3 text-center align-middle font-bold">${count}</td>
+                    <td class="p-3">
+                        <div class="space-y-2">
+                            <select class="form-control item-rekening text-xs font-semibold" required>
+                                <option value="">-- Pilih Kode Rekening DPA --</option>
+                                ${optsRekening}
+                            </select>
+                            <textarea class="form-control item-uraian text-xs" rows="2" placeholder="Uraian / Keperluan Pembayaran"></textarea>
                         </div>
                     </td>
-                    <td class="p-2 text-center align-middle">
-                        <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove();"><i class="ph ph-trash"></i></button>
+                    <td class="p-3">
+                        <div class="space-y-2">
+                            <select class="form-control item-penyedia text-xs" onchange="app.autofillPenyediaDetail(this)">
+                                <option value="">-- Pilih dari Master Penyedia --</option>
+                                ${optsPenyedia}
+                            </select>
+                            <input type="text" class="form-control item-nama-penerima text-xs" placeholder="Nama Penerima / Rekanan">
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <div class="space-y-2">
+                            <input type="text" class="form-control item-bank text-xs" placeholder="Nama Bank (Cth: BJB)">
+                            <input type="text" class="form-control item-norek text-xs font-mono" placeholder="Nomor Rekening">
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right text-sm" value="0" oninput="app.hitungItemDetail(this)">
+                    </td>
+                    <td class="p-3">
+                        <div class="space-y-2">
+                            <select class="form-control item-pajak-profil text-xs" onchange="app.hitungItemDetail(this)">
+                                <option value="">-- Tanpa Pajak --</option>
+                                ${optsPajak}
+                            </select>
+                            <div class="text-[11px] bg-gray-50 p-1.5 rounded border text-gray-600">
+                                PPN: <span class="val-ppn font-semibold text-gray-900">0</span><br>
+                                PPh: <span class="val-pph font-semibold text-gray-900">0</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-3 text-center align-middle">
+                        <button type="button" class="btn btn-ghost btn-sm text-danger hover:bg-red-50 p-2" onclick="this.closest('tr').remove();"><i class="ph ph-trash text-lg"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -3295,7 +3313,7 @@
                     let val = String(e.target.value).replace(/\D/g, '');
                     e.target.value = Utils.formatNumber(val);
                 });
-            }
+            },
 
             autofillPenyediaDetail(selectEl) {
                 const opt = selectEl.options[selectEl.selectedIndex];
