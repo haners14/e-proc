@@ -3247,7 +3247,7 @@
                 // Memperlebar modal secara khusus agar tabel rincian sangat leluasa di-input
                 DOM.openModal(`2. Rincian Item Belanja — ${header.nomor}`, body, footer);
                 document.getElementById('modal-content-box').style.maxWidth = '1150px';
-            },
+            }
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
@@ -3313,7 +3313,7 @@
                     let val = String(e.target.value).replace(/\D/g, '');
                     e.target.value = Utils.formatNumber(val);
                 });
-            },
+            }
 
             autofillPenyediaDetail(selectEl) {
                 const opt = selectEl.options[selectEl.selectedIndex];
