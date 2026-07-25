@@ -5557,6 +5557,7 @@ renderSignPage(container, itemId) {
                     this.reRenderCurrentView();
                 }
             }
+        } // <--- Penutup class App yang sebelumnya kurang
         
         document.addEventListener('DOMContentLoaded', () => { 
             try { DB.cache['pinned_packages'] = JSON.parse(localStorage.getItem('pf_pinned')) || []; } catch(e) {}
