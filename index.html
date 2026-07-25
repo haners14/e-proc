@@ -2289,7 +2289,7 @@
                 let spjHeaders = DB.cache['spj_headers'] || [];
                 let spj = spjHeaders.find(s => s.id === spjId);
                 
-                // 2. Jika tidak ada di cache (misal dibuka di tab baru), fetch langsung ke Supabase
+                // 2. Jika tidak ada di cache (dibuka di tab/browser baru), fetch langsung ke Supabase
                 if (!spj) {
                     try {
                         const res = await fetch(`${SUPABASE_URL}spj_headers?id=eq.${spjId}`, {
@@ -2310,7 +2310,7 @@
                     return;
                 }
 
-                // Pastikan data pendukung seperti pencairan dan items juga ter-fetch jika belum ada di cache
+                // Ambil data pencairan terkait
                 let pencairan = DB.getById('pencairan', spj.pencairan_id);
                 if (!pencairan) {
                     try {
@@ -2322,6 +2322,7 @@
                     } catch (e) { pencairan = {}; }
                 }
 
+                // Ambil item penerima terkait
                 let items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
                 if (items.length === 0) {
                     try {
