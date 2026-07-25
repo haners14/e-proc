@@ -2907,32 +2907,36 @@ renderSignPage(container, itemId) {
                 `;
             }
 
-            modalTambahSPJHeader() {
+           modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
-                const opts = pencairanList.map(p => {
-                    const items = pencairanItems.filter(i => i.pencairan_id === p.id);
-                    const total = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
-                    return `<option value="${p.id}">[No: ${p.nomor || '-'}] — Sub Kegiatan: ${p.sub_kegiatan || '-'} (${p.bulan || '-'} 2026) | Total: Rp ${Utils.formatNumber(total)} (${items.length} Penerima)</option>`;
-                }).join('');
+                let opts = '<option value="">-- Pilih Pengajuan Pencairan --</option>';
+                
+                if (pencairanList.length > 0) {
+                    opts += pencairanList.map(p => {
+                        const items = pencairanItems.filter(i => i.pencairan_id === p.id);
+                        const total = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+                        return `<option value="${p.id}">[No: ${p.nomor || '-'}] — Sub Kegiatan: ${p.sub_kegiatan || '-'} (${p.bulan || '-'} 2026) | Total: Rp ${Utils.formatNumber(total)} (${items.length} Penerima)</option>`;
+                    }).join('');
+                } else {
+                    opts = `<option value="">-- Belum ada data pengajuan. Buat dulu di menu Pengajuan Pencairan --</option>`;
+                }
 
                 const body = `
                     <form id="form-tambah-spj" class="flex flex-col gap-4">
                         <div class="form-group mb-0">
                             <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan (Cari & Pilih)</label>
                             <select id="select-pencairan-spj" name="pencairan_id" class="form-control searchable-select" required>
-                                <option value="">-- Ketik nomor, sub kegiatan, atau bulan untuk mencari --</option>
                                 ${opts}
                             </select>
-                            <small class="text-muted text-xs mt-1">Menampilkan informasi lengkap rincian anggaran dan jumlah penerima agar tidak salah pilih.</small>
+                            <small class="text-muted text-xs mt-1">Pastikan Anda sudah membuat pengajuan di menu <b>Pengajuan Pencairan</b> agar datanya muncul di sini.</small>
                         </div>
                     </form>
                 `;
 
                 DOM.openModal('Tambah Header SPJ & Absen', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.simpanSPJHeader()">Simpan</button>`, '700px');
 
-                // Inisialisasi TomSelect agar kolom pilihan bisa dicari (searching)
                 setTimeout(() => {
                     if (window.TomSelect) {
                         const el = document.getElementById('select-pencairan-spj');
