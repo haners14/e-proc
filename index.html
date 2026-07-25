@@ -2275,8 +2275,9 @@
                                 <h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1>
                                 <p class="text-muted text-sm mt-1">Matriks Berjenjang DPA. Terhubung dengan form pengajuan pencairan.</p>
                             </div>
-                            <div class="flex gap-2">
+                           <div class="flex gap-2">
                                 <input type="file" id="import-rekening-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importRekening(event)">
+                                <button class="btn btn-outline btn-sm text-danger" onclick="app.printPaguReport()"><i class="ph ph-file-pdf"></i> Cetak PDF</button>
                                 <button class="btn btn-outline btn-sm" onclick="app.downloadTemplateRekening()"><i class="ph ph-download"></i> Template</button>
                                 <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-rekening-excel').click()"><i class="ph ph-upload"></i> Import</button>
                                 <button class="btn btn-outline btn-sm" onclick="app.exportRekening()"><i class="ph ph-export"></i> Export</button>
@@ -3193,6 +3194,130 @@ exportRekening() {
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Master Rekening");
                 XLSX.writeFile(wb, "Export_Master_Rekening_DPA.xlsx");
+            }
+            printPaguReport() {
+                // 1. Ambil & Hitung Data (Sama seperti renderPagu)
+                let rekenings = [...DB.get('master_rekening')].sort((a,b) => a.kode.localeCompare(b.kode));
+                let pencairanHead = DB.get('pencairan') || [];
+                let pencairanItems = DB.get('pencairan_items') || [];
+                let map = {};
+                
+                rekenings.forEach(r => {
+                    map[r.kode] = { ...r, pagu_calc: r.jenis === 'Detail' ? (Number(r.pagu) || 0) : 0, realisasi_total: 0, realisasi_bulan: {} };
+                    for(let i = 1; i <= 12; i++) map[r.kode].realisasi_bulan[i] = { LS: 0, GU: 0, TU: 0, TOTAL: 0 };
+                });
+
+                pencairanItems.forEach(item => {
+                    if (map[item.rekening_kode]) {
+                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
+                        if (head && (head.status === 'FINAL' || head.status === 'SELESAI' || head.status === 'DRAFT')) {
+                            const date = new Date(head.tanggal);
+                            const month = date.getMonth() + 1;
+                            const jenis = head.jenis_pencairan;
+                            const amount = Number(item.jumlah) || 0;
+                            if (map[item.rekening_kode].realisasi_bulan[month]) {
+                                map[item.rekening_kode].realisasi_bulan[month][jenis] += amount;
+                                map[item.rekening_kode].realisasi_bulan[month].TOTAL += amount;
+                                map[item.rekening_kode].realisasi_total += amount;
+                            }
+                        }
+                    }
+                });
+
+                let codes = Object.keys(map).sort((a,b) => b.length - a.length);
+                codes.forEach(code => {
+                    let parentCode = null; let maxLen = 0;
+                    for (let possibleParent of codes) {
+                        if (possibleParent.length < code.length && code.startsWith(possibleParent + '.')) {
+                            if (possibleParent.length > maxLen) { maxLen = possibleParent.length; parentCode = possibleParent; }
+                        }
+                    }
+                    if (parentCode && map[parentCode]) {
+                        map[parentCode].pagu_calc += map[code].pagu_calc;
+                        map[parentCode].realisasi_total += map[code].realisasi_total;
+                        for(let i = 1; i <= 12; i++) {
+                            map[parentCode].realisasi_bulan[i].LS += map[code].realisasi_bulan[i].LS;
+                            map[parentCode].realisasi_bulan[i].GU += map[code].realisasi_bulan[i].GU;
+                            map[parentCode].realisasi_bulan[i].TU += map[code].realisasi_bulan[i].TU;
+                            map[parentCode].realisasi_bulan[i].TOTAL += map[code].realisasi_bulan[i].TOTAL;
+                        }
+                    }
+                });
+
+                const getStyleByLevel = (kode) => {
+                    const parts = kode.split('.');
+                    if (parts.length <= 5) return 'font-weight: bold; background-color: #fef08a;'; 
+                    if (parts.length === 6) return 'font-weight: bold; background-color: #facc15;'; 
+                    if (parts.length === 8) return 'font-weight: bold; background-color: #ffffff;'; 
+                    if (parts.length >= 12) return 'background-color: #e0f2fe;'; 
+                    return 'background-color: #ffffff;'; 
+                };
+
+                // 2. Bentuk Baris HTML Khusus Cetak
+                let rows = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map((r) => {
+                    const sisa = r.pagu_calc - r.realisasi_total;
+                    const style = getStyleByLevel(r.kode);
+                    let monthCols = '';
+                    for(let i = 1; i <= 12; i++) {
+                        monthCols += `
+                            <td style="text-align: right;">${r.realisasi_bulan[i].LS > 0 ? Utils.formatNumber(r.realisasi_bulan[i].LS) : ''}</td>
+                            <td style="text-align: right;">${r.realisasi_bulan[i].GU > 0 ? Utils.formatNumber(r.realisasi_bulan[i].GU) : ''}</td>
+                            <td style="text-align: right;">${r.realisasi_bulan[i].TU > 0 ? Utils.formatNumber(r.realisasi_bulan[i].TU) : ''}</td>
+                            <td style="text-align: right; background-color: rgba(0,0,0,0.04); font-weight: bold;">${r.realisasi_bulan[i].TOTAL > 0 ? Utils.formatNumber(r.realisasi_bulan[i].TOTAL) : ''}</td>
+                        `;
+                    }
+                    return `
+                    <tr style="${style}">
+                        <td style="white-space: nowrap;">${r.kode}</td>
+                        <td style="min-width: 250px;">${r.uraian}</td>
+                        <td style="text-align: right; font-weight: bold; white-space: nowrap;">${Utils.formatNumber(r.pagu_calc)}</td>
+                        ${monthCols}
+                        <td style="text-align: right; font-weight: bold; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
+                        <td style="text-align: right; font-weight: bold; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
+                    </tr>`;
+                }).join('');
+
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                let monthHeaders1 = months.map(m => `<th colspan="4" style="text-align: center;">${m}</th>`).join('');
+                let monthHeaders2 = months.map(m => `
+                    <th style="text-align: right; font-size: 8px;">LS</th>
+                    <th style="text-align: right; font-size: 8px;">GU</th>
+                    <th style="text-align: right; font-size: 8px;">TU</th>
+                    <th style="text-align: right; font-size: 8px; background-color: rgba(0,0,0,0.04);">Tot</th>
+                `).join('');
+
+                // 3. Cetak Menggunakan printDocument
+                const content = `
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h1 style="margin:0; font-size: 18px;">LAPORAN PAGU DAN REALISASI ANGGARAN (DPA)</h1>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">Tahun Anggaran Berjalan</p>
+                    </div>
+                    <table class="print-table">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" style="width: 120px;">Kode Rekening</th>
+                                <th rowspan="2">Uraian</th>
+                                <th rowspan="2" style="text-align: right;">Pagu Anggaran</th>
+                                ${monthHeaders1}
+                                <th rowspan="2" style="text-align: right;">Total Realisasi</th>
+                                <th rowspan="2" style="text-align: right;">Sisa Anggaran</th>
+                            </tr>
+                            <tr>${monthHeaders2}</tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `;
+
+                // Custom Style untuk memaksa margin kecil, landscape, dan font kecil agar muat
+                const customStyle = `
+                    @page { size: landscape; margin: 10mm; }
+                    body { font-family: 'Times New Roman', Times, serif; font-size: 9px; }
+                    .print-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    .print-table th, .print-table td { border: 1px dashed #000; padding: 4px; }
+                    .print-table th { background-color: #f3f4f6; font-weight: bold; }
+                `;
+
+                this.printDocument('Laporan Matriks DPA', content, customStyle);
             }
 
             downloadTemplateRekening() {
