@@ -5538,7 +5538,7 @@ renderSignPage(container, itemId) {
                 this.reRenderCurrentView();
             }
 
-            togglePinPackage(pkgId) {
+           togglePinPackage(pkgId) {
                 if (!DB.cache['pinned_packages']) DB.cache['pinned_packages'] = [];
                 const index = DB.cache['pinned_packages'].indexOf(pkgId);
                 if (index > -1) {
@@ -5549,9 +5549,14 @@ renderSignPage(container, itemId) {
                     this.notify('Paket berhasil disematkan', 'success');
                 }
                 try { localStorage.setItem('pf_pinned', JSON.stringify(DB.cache['pinned_packages'])); } catch(e) {}
-                this.reRenderCurrentView();
+                
+                // Jika sedang berada di halaman daftar paket, render ulang tabelnya agar perubahan ikon langsung terlihat
+                if (this.crudEngine && this.currentRoute === 'pengadaan-daftar') {
+                    this.crudEngine.render(this.routerView);
+                } else {
+                    this.reRenderCurrentView();
+                }
             }
-        }
         
         document.addEventListener('DOMContentLoaded', () => { 
             try { DB.cache['pinned_packages'] = JSON.parse(localStorage.getItem('pf_pinned')) || []; } catch(e) {}
