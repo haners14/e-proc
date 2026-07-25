@@ -2268,8 +2268,11 @@
                                 <p class="text-muted text-sm mt-1">Matriks Berjenjang DPA. Terhubung dengan form pengajuan pencairan.</p>
                             </div>
                             <div class="flex gap-2">
-                                <button class="btn btn-outline" onclick="app.notify('Mengekspor matriks ke Excel...', 'info')"><i class="ph ph-file-xls"></i> Export Excel</button>
-                                <button class="btn btn-primary" onclick="app.editRekening()"><i class="ph ph-plus"></i> Tambah Master Kode</button>
+                                <input type="file" id="import-rekening-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importRekening(event)">
+                                <button class="btn btn-outline btn-sm" onclick="app.downloadTemplateRekening()"><i class="ph ph-download"></i> Template</button>
+                                <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-rekening-excel').click()"><i class="ph ph-upload"></i> Import</button>
+                                <button class="btn btn-outline btn-sm" onclick="app.exportRekening()"><i class="ph ph-export"></i> Export</button>
+                                <button class="btn btn-primary btn-sm" onclick="app.editRekening()"><i class="ph ph-plus"></i> Tambah Rekening</button>
                             </div>
                         </div>
                         
@@ -3155,7 +3158,101 @@ console.log(
                 this.notify('Data Master Rekening berhasil disimpan', 'success'); 
                 this.reRenderCurrentView();
             }
+exportRekening() {
+                const rekenings = DB.get('master_rekening').sort((a,b) => a.kode.localeCompare(b.kode));
+                const data = rekenings.map(r => ({
+                    "Kode Rekening": r.kode || '',
+                    "Uraian": r.uraian || '',
+                    "Jenis": r.jenis || 'Detail',
+                    "Pagu": Number(r.pagu) || 0
+                }));
+                
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Master Rekening");
+                XLSX.writeFile(wb, "Export_Master_Rekening_DPA.xlsx");
+            }
 
+            downloadTemplateRekening() {
+                const ws = XLSX.utils.aoa_to_sheet([
+                    ["Kode Rekening", "Uraian", "Jenis", "Pagu"],
+                    ["5.02.03.2.01.0001", "Penyusunan Standar Harga", "Header", 0],
+                    ["5.02.03.2.01.0001.5.1", "BELANJA OPERASI", "Header", 0],
+                    ["5.02.03.2.01.0001.5.1.02.02.009.00006", "Belanja Jasa Konsultansi Berorientasi Bidang-Keuangan", "Detail", 15000000]
+                ]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template DPA");
+                XLSX.writeFile(wb, "Template_Import_Rekening.xlsx");
+            }
+
+            importRekening(event) {
+                const file = event.target.files[0];
+                if(!file) return;
+                
+                // Menampilkan loader jika dirasa prosesnya agak lama
+                this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Mengimpor & Menyinkronkan data dengan Supabase...</p></div>`;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        const existingData = DB.get('master_rekening');
+                        
+                        rows.forEach(r => {
+                            if(!r["Kode Rekening"] || !r["Uraian"]) return; // Skip baris kosong
+                            
+                            const kodeStr = String(r["Kode Rekening"]).trim();
+                            const paguVal = Number(r["Pagu"]) || 0;
+                            
+                            // Deteksi cerdas: Jika user tidak mengisi "Jenis", kita tebak dari panjang/pagu
+                            let jenisVal = r["Jenis"] ? String(r["Jenis"]).trim() : '';
+                            if (!jenisVal) {
+                                jenisVal = paguVal > 0 ? 'Detail' : 'Header';
+                            }
+                            
+                            // Kalkulasi otomatis parent_id
+                            const kodeParts = kodeStr.split('.');
+                            let parentId = null;
+                            if (kodeParts.length > 1) {
+                                kodeParts.pop();
+                                parentId = kodeParts.join('.');
+                            }
+
+                            const payload = {
+                                kode: kodeStr,
+                                uraian: String(r["Uraian"]).trim(),
+                                pagu: jenisVal === 'Header' ? 0 : paguVal, // Keamanan ekstra
+                                jenis: jenisVal,
+                                parent_id: parentId
+                            };
+                            
+                            // Cek apakah kode rekening sudah ada di database lokal
+                            const existing = existingData.find(ex => ex.kode === kodeStr);
+                            
+                            if (existing) {
+                                // Jika ada, UPDATE
+                                DB.update('master_rekening', existing.id, payload);
+                            } else {
+                                // Jika belum ada, INSERT
+                                DB.insert('master_rekening', payload);
+                            }
+                        });
+
+                        this.notify('Data Master Rekening berhasil diimpor & disinkron ke Supabase', 'success');
+                    } catch (error) {
+                        console.error("Error import:", error);
+                        this.notify('Terjadi kesalahan saat memproses file Excel', 'error');
+                    } finally {
+                        this.reRenderCurrentView();
+                        event.target.value = ''; // Reset input agar bisa dipakai unggah file yang sama lagi
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
             formPencairan() {
                 const rek = DB.get('master_rekening').filter(r => r.jenis === 'Detail');
                 const opts = rek.map(r => `<option value="${r.kode}">${r.kode} - ${r.uraian}</option>`).join('');
