@@ -2311,19 +2311,40 @@
             }
 
             static renderKendali(container) {
+                // Ambil daftar Sub Kegiatan (Level kode dengan 6 titik/segmen) dari master_rekening
+                const subKegiatans = DB.get('master_rekening').filter(r => r.kode.split('.').length === 6);
+                const optsSub = subKegiatans.map(r => `<option value="${r.kode}">${r.kode} - ${r.uraian}</option>`).join('');
+                
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                const currentMonth = new Date().getMonth();
+                const optsBulan = months.map((m, i) => `<option value="${i+1}" ${i === currentMonth ? 'selected' : ''}>${m}</option>`).join('');
+
                 container.innerHTML = `
-                    <div class="p-6">
+                    <div class="p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Kartu Kendali Kegiatan</h1><p class="text-muted text-sm mt-1">Monitoring SPJ per Sub Kegiatan dan Bulan</p></div>
-                            <div class="flex gap-2">
-                                <select class="form-control" style="width: 250px;"><option>Bulan Juni</option><option>Bulan Juli</option></select>
-                                <button class="btn btn-primary" onclick="app.printKendali()"><i class="ph ph-printer"></i> Cetak Kartu Kendali</button>
+                            <div>
+                                <h1 class="text-2xl font-bold text-main">Kartu Kendali Kegiatan</h1>
+                                <p class="text-muted text-sm mt-1">Monitoring SPJ dan Pajak per Sub Kegiatan</p>
                             </div>
                         </div>
-                        <div class="card p-8 flex flex-col items-center justify-center text-center bg-gray-50 border-dashed" style="min-height: 400px;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Lambang_Kota_Bogor.png/400px-Lambang_Kota_Bogor.png" width="60" class="mb-4 opacity-50">
-                            <h3 class="text-lg font-bold text-gray-700">Preview Kartu Kendali</h3>
-                            <p class="text-muted text-sm max-w-lg mt-2">Kartu Kendali menggunakan format landscape khusus yang kompleks. Klik tombol "Cetak Kartu Kendali" di pojok kanan atas untuk melihat dan mengunduh format lengkapnya.</p>
+                        
+                        <div class="card p-6 max-w-3xl mx-auto w-full border-t-4 border-primary-500">
+                            <h2 class="font-bold text-lg mb-4 border-b pb-2">Filter Kartu Kendali</h2>
+                            <form id="form-kendali" class="flex flex-col gap-4">
+                                <div class="form-group">
+                                    <label class="form-label font-bold">1. Pilih Sub Kegiatan</label>
+                                    <select id="kendali-sub" class="form-control">
+                                        ${optsSub || '<option value="">-- Belum ada data Sub Kegiatan di Master Rekening --</option>'}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label font-bold">2. Pilih Bulan (Periode)</label>
+                                    <select id="kendali-bulan" class="form-control">
+                                        ${optsBulan}
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-primary mt-4 py-3" onclick="app.printKendali()"><i class="ph ph-printer text-lg"></i> Cetak Kartu Kendali (Landscape)</button>
+                            </form>
                         </div>
                     </div>
                 `;
@@ -3318,6 +3339,297 @@ exportRekening() {
                 `;
 
                 this.printDocument('Laporan Matriks DPA', content, customStyle);
+            }
+            printKendali() {
+                const subKode = document.getElementById('kendali-sub').value;
+                const bulan = parseInt(document.getElementById('kendali-bulan').value);
+                const bulanNama = document.getElementById('kendali-bulan').options[document.getElementById('kendali-bulan').selectedIndex].text;
+                
+                if (!subKode) return this.notify('Silakan pilih Sub Kegiatan terlebih dahulu', 'error');
+
+                const subRecord = DB.getById('master_rekening', subKode) || DB.get('master_rekening').find(r => r.kode === subKode);
+                const rekenings = DB.get('master_rekening').filter(r => r.kode.startsWith(subKode));
+                
+                const pencairanHead = DB.get('pencairan') || [];
+                const pencairanItems = DB.get('pencairan_items') || [];
+                const masterPajak = DB.get('master_pajak') || [];
+                
+                // 1. Inisialisasi Struktur Data untuk Matriks Rekening
+                let map = {};
+                rekenings.forEach(r => {
+                    map[r.kode] = { 
+                        ...r, 
+                        pagu_calc: r.jenis === 'Detail' ? (Number(r.pagu) || 0) : 0, 
+                        ls_lalu: 0, ls_ini: 0, gu_lalu: 0, gu_ini: 0, tu_lalu: 0, tu_ini: 0 
+                    };
+                });
+
+                // Inisialisasi Data Pajak
+                let pajak = {
+                    ppn: { lalu: 0, ini: 0 }, pph21: { lalu: 0, ini: 0 }, pph22: { lalu: 0, ini: 0 },
+                    pph23: { lalu: 0, ini: 0 }, pph42: { lalu: 0, ini: 0 }
+                };
+
+                // 2. Kalkulasi Realisasi dan Pajak dari Pencairan (Relational Check)
+                pencairanItems.forEach(item => {
+                    // Cari Kode Rekening berdasarkan rekening_id (Foreign Key)
+                    const rekMaster = DB.getById('master_rekening', item.rekening_id);
+                    if (!rekMaster) return; // Lewati jika rekening terhapus/tidak valid
+                    const rekKode = rekMaster.kode;
+
+                    if (map[rekKode]) {
+                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
+                        if (head && (head.status.toUpperCase() === 'FINAL' || head.status.toUpperCase() === 'SELESAI' || head.status.toUpperCase() === 'DRAFT')) {
+                            const date = new Date(head.tanggal);
+                            const itemBulan = date.getMonth() + 1;
+                            const isLalu = itemBulan < bulan;
+                            const isIni = itemBulan === bulan;
+                            const jenis = (head.jenis || '').toUpperCase();
+                            
+                            // Gunakan subtotal (atau total jika subtotal kosong)
+                            const amount = Number(item.subtotal) || Number(item.total) || 0;
+
+                            if (isLalu || isIni) {
+                                // Distribusi ke Nilai SPJ
+                                if (jenis === 'LS') {
+                                    if (isLalu) map[rekKode].ls_lalu += amount;
+                                    if (isIni) map[rekKode].ls_ini += amount;
+                                } else if (jenis === 'TU') {
+                                    if (isLalu) map[rekKode].tu_lalu += amount;
+                                    if (isIni) map[rekKode].tu_ini += amount;
+                                } else { // Default to UP/GU
+                                    if (isLalu) map[rekKode].gu_lalu += amount;
+                                    if (isIni) map[rekKode].gu_ini += amount;
+                                }
+
+                                // Distribusi ke Nilai Pajak berdasarkan pajak_id (Foreign Key)
+                                if (item.pajak_id) {
+                                    const taxRecord = masterPajak.find(p => p.id === item.pajak_id);
+                                    if (taxRecord) {
+                                        const taxName = (taxRecord.nama || '').toUpperCase();
+                                        const taxValue = Number(item.nilai_pajak) || 0;
+
+                                        if (isLalu) {
+                                            if (taxName.includes('PPN')) pajak.ppn.lalu += taxValue;
+                                            else if (taxName.includes('21')) pajak.pph21.lalu += taxValue;
+                                            else if (taxName.includes('22')) pajak.pph22.lalu += taxValue;
+                                            else if (taxName.includes('23')) pajak.pph23.lalu += taxValue;
+                                            else if (taxName.includes('4 AYAT 2') || taxName.includes('4(2)')) pajak.pph42.lalu += taxValue;
+                                        }
+                                        if (isIni) {
+                                            if (taxName.includes('PPN')) pajak.ppn.ini += taxValue;
+                                            else if (taxName.includes('21')) pajak.pph21.ini += taxValue;
+                                            else if (taxName.includes('22')) pajak.pph22.ini += taxValue;
+                                            else if (taxName.includes('23')) pajak.pph23.ini += taxValue;
+                                            else if (taxName.includes('4 AYAT 2') || taxName.includes('4(2)')) pajak.pph42.ini += taxValue;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 3. Roll-up Data (Dari Rekening Anak ke Induk)
+                let codes = Object.keys(map).sort((a,b) => b.length - a.length);
+                codes.forEach(code => {
+                    let parentCode = null; let maxLen = 0;
+                    for (let pCode of codes) {
+                        if (pCode.length < code.length && code.startsWith(pCode + '.')) {
+                            if (pCode.length > maxLen) { maxLen = pCode.length; parentCode = pCode; }
+                        }
+                    }
+                    if (parentCode && map[parentCode]) {
+                        map[parentCode].pagu_calc += map[code].pagu_calc;
+                        map[parentCode].ls_lalu += map[code].ls_lalu;
+                        map[parentCode].ls_ini += map[code].ls_ini;
+                        map[parentCode].gu_lalu += map[code].gu_lalu;
+                        map[parentCode].gu_ini += map[code].gu_ini;
+                        map[parentCode].tu_lalu += map[code].tu_lalu;
+                        map[parentCode].tu_ini += map[code].tu_ini;
+                    }
+                });
+
+                // 4. Pembentukan Baris Tabel Kendali
+                let sumPagu = 0, sumLSlalu = 0, sumLSini = 0, sumGUlalu = 0, sumGUini = 0, sumTUlalu = 0, sumTUini = 0, sumTotSPJ = 0;
+
+                const rowsHtml = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map(r => {
+                    // Hanya tambahkan ke subtotal utama jika levelnya tepat di bawah Sub Kegiatan (Level 7)
+                    if (r.kode.split('.').length === 7) {
+                        sumPagu += r.pagu_calc;
+                        sumLSlalu += r.ls_lalu; sumLSini += r.ls_ini;
+                        sumGUlalu += r.gu_lalu; sumGUini += r.gu_ini;
+                        sumTUlalu += r.tu_lalu; sumTUini += r.tu_ini;
+                    }
+
+                    const ls_sd = r.ls_lalu + r.ls_ini;
+                    const gu_sd = r.gu_lalu + r.gu_ini;
+                    const tu_sd = r.tu_lalu + r.tu_ini;
+                    const totSPJ = ls_sd + gu_sd + tu_sd;
+                    const sisa = r.pagu_calc - totSPJ;
+                    
+                    const isHeader = r.jenis === 'Header';
+                    const fBold = isHeader ? 'font-weight:bold;' : '';
+                    const fZero = (val) => val === 0 ? '-' : Utils.formatNumber(val);
+
+                    return `
+                        <tr style="${fBold}">
+                            <td>${r.kode}</td>
+                            <td>${r.uraian}</td>
+                            <td class="r">${fZero(r.pagu_calc)}</td>
+                            <td class="r">${fZero(r.ls_lalu)}</td><td class="r">${fZero(r.ls_ini)}</td><td class="r">${fZero(ls_sd)}</td>
+                            <td class="r">${fZero(r.gu_lalu)}</td><td class="r">${fZero(r.gu_ini)}</td><td class="r">${fZero(gu_sd)}</td>
+                            <td class="r">${fZero(r.tu_lalu)}</td><td class="r">${fZero(r.tu_ini)}</td><td class="r">${fZero(tu_sd)}</td>
+                            <td class="r font-bold" style="background:#f9fafb">${fZero(totSPJ)}</td>
+                            <td class="r font-bold">${fZero(sisa)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const totLSSd = sumLSlalu + sumLSini;
+                const totGUSd = sumGUlalu + sumGUini;
+                const totTUSd = sumTUlalu + sumTUini;
+                const grandSPJ = totLSSd + totGUSd + totTUSd;
+                const fZ = (val) => val === 0 ? '-' : Utils.formatNumber(val);
+
+                // 5. Tabel Pajak HTML
+                const pTax = (nama, pObj, num) => {
+                    const sdPenerimaan = pObj.lalu + pObj.ini;
+                    const setorLalu = pObj.lalu; 
+                    const setorIni = 0; 
+                    const sdSetor = setorLalu + setorIni;
+                    const sisaSetor = sdPenerimaan - sdSetor;
+
+                    return `
+                        <tr>
+                            <td class="c">${num}</td>
+                            <td>${nama}</td>
+                            <td class="r">${fZ(pObj.lalu)}</td><td class="r">${fZ(pObj.ini)}</td><td class="r font-bold" style="background:#f9fafb">${fZ(sdPenerimaan)}</td>
+                            <td class="r">${fZ(setorLalu)}</td><td class="r">${fZ(setorIni)}</td><td class="r font-bold" style="background:#f9fafb">${fZ(sdSetor)}</td>
+                            <td class="r font-bold">${fZ(sisaSetor)}</td>
+                        </tr>
+                    `;
+                };
+
+                const totTaxLalu = pajak.ppn.lalu + pajak.pph21.lalu + pajak.pph22.lalu + pajak.pph23.lalu + pajak.pph42.lalu;
+                const totTaxIni = pajak.ppn.ini + pajak.pph21.ini + pajak.pph22.ini + pajak.pph23.ini + pajak.pph42.ini;
+                const sdTotTax = totTaxLalu + totTaxIni;
+
+                // 6. Template HTML untuk Dicetak
+                const content = `
+                    <div class="header">
+                        <h2>KOTA BOGOR<br>BADAN KEUANGAN DAN ASET DAERAH<br>KARTU KENDALI KEGIATAN</h2>
+                    </div>
+                    
+                    <table class="meta-info">
+                        <tr><td width="180">Pejabat Pengelola Teknis Kegiatan</td><td width="10">:</td><td>Agih Pribadi Kusumah, S.E., M.Si</td></tr>
+                        <tr><td>Kegiatan</td><td>:</td><td>Pengelolaan Barang Milik Daerah</td></tr>
+                        <tr><td>Sub Kegiatan</td><td>:</td><td>${subRecord ? subRecord.uraian : '-'}</td></tr>
+                        <tr><td>Periode</td><td>:</td><td>${bulanNama} 2026</td></tr>
+                    </table>
+
+                    <table class="tbl-main">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">Kode<br>Rekening</th>
+                                <th rowspan="2">Uraian</th>
+                                <th rowspan="2">Jumlah<br>Anggaran</th>
+                                <th colspan="3">SPJ-LS</th>
+                                <th colspan="3">SPJ-UP/GU</th>
+                                <th colspan="3">SPJ TU</th>
+                                <th rowspan="2">Jumlah SPJ<br>(LS+UP/GU/TU)<br>s.d. Periode Ini</th>
+                                <th rowspan="2">Sisa Pagu Anggaran</th>
+                            </tr>
+                            <tr>
+                                <th>s.d.<br>Periode lalu</th><th>Periode<br>Ini</th><th>s.d.<br>Periode Ini</th>
+                                <th>s.d.<br>Periode lalu</th><th>Periode<br>Ini</th><th>s.d.<br>Periode Ini</th>
+                                <th>s.d.<br>Periode lalu</th><th>Periode<br>Ini</th><th>s.d.<br>Periode Ini</th>
+                            </tr>
+                            <tr class="col-nums">
+                                <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" class="c font-bold">Sub Jumlah DPA</td>
+                                <td class="r font-bold">${fZ(sumPagu)}</td>
+                                <td class="r font-bold">${fZ(sumLSlalu)}</td><td class="r font-bold">${fZ(sumLSini)}</td><td class="r font-bold" style="background:#f9fafb">${fZ(totLSSd)}</td>
+                                <td class="r font-bold">${fZ(sumGUlalu)}</td><td class="r font-bold">${fZ(sumGUini)}</td><td class="r font-bold" style="background:#f9fafb">${fZ(totGUSd)}</td>
+                                <td class="r font-bold">${fZ(sumTUlalu)}</td><td class="r font-bold">${fZ(sumTUini)}</td><td class="r font-bold" style="background:#f9fafb">${fZ(totTUSd)}</td>
+                                <td class="r font-bold" style="background:#f9fafb">${fZ(grandSPJ)}</td>
+                                <td class="r font-bold">${fZ(sumPagu - grandSPJ)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <h4 style="margin-top: 20px; font-size: 10px;">Penerimaan dan Pengeluaran Pajak</h4>
+                    <table class="tbl-main">
+                        <thead>
+                            <tr>
+                                <th rowspan="2">NO.</th>
+                                <th rowspan="2">Jenis Pajak</th>
+                                <th colspan="3">Penerimaan</th>
+                                <th colspan="3">Pengeluaran</th>
+                                <th rowspan="2">Sisa Belum Setor</th>
+                            </tr>
+                            <tr>
+                                <th>Bulan Lalu</th><th>Bulan Ini</th><th>s/d Bulan ini</th>
+                                <th>Bulan Lalu</th><th>Bulan Ini</th><th>s/d Bulan ini</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pTax('PPN', pajak.ppn, 1)}
+                            ${pTax('PPh Pasal 21', pajak.pph21, 2)}
+                            ${pTax('PPh Pasal 22', pajak.pph22, 3)}
+                            ${pTax('PPh Pasal 23', pajak.pph23, 4)}
+                            ${pTax('PPh Pasal 4 Ayat 2', pajak.pph42, 5)}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" class="c font-bold">JUMLAH</td>
+                                <td class="r font-bold">${fZ(totTaxLalu)}</td><td class="r font-bold">${fZ(totTaxIni)}</td><td class="r font-bold" style="background:#f9fafb">${fZ(sdTotTax)}</td>
+                                <td class="r font-bold">${fZ(totTaxLalu)}</td><td class="r font-bold">-</td><td class="r font-bold" style="background:#f9fafb">${fZ(totTaxLalu)}</td>
+                                <td class="r font-bold">${fZ(totTaxIni)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="ttd-area">
+                        <div class="ttd-box">
+                            <p>Bogor, ... ${bulanNama} 2026<br><b>Pejabat Pelaksana Teknis Kegiatan</b></p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold;">Agih Pribadi Kusumah, S.E., M.Si</p>
+                            <p>NIP. 198503292011011001</p>
+                        </div>
+                    </div>
+                `;
+
+                const customStyle = `
+                    @page { size: landscape; margin: 10mm; }
+                    body { font-family: 'Times New Roman', Times, serif; font-size: 8px; color: #000; }
+                    .header { text-align: center; margin-bottom: 15px; }
+                    .header h2 { font-size: 12px; margin: 0; line-height: 1.4; }
+                    .meta-info { border: none; margin-bottom: 10px; font-weight: bold; font-size: 8px; }
+                    .meta-info td { border: none; padding: 2px 0; }
+                    
+                    .tbl-main { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 3px 4px; }
+                    .tbl-main th { text-align: center; font-weight: bold; }
+                    .col-nums th { font-size: 7px; background: #f3f4f6; }
+                    
+                    .c { text-align: center; }
+                    .r { text-align: right; }
+                    .font-bold { font-weight: bold; }
+                    
+                    .ttd-area { width: 100%; display: flex; justify-content: flex-end; margin-top: 20px; font-size: 9px; }
+                    .ttd-box { text-align: center; width: 300px; }
+                    .ttd-box p { margin: 2px 0; }
+                `;
+
+                this.printDocument('Kartu Kendali', content, customStyle);
             }
 
             downloadTemplateRekening() {
