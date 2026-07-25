@@ -3084,22 +3084,76 @@ console.log(
 
             editRekening(id = null) {
                 const item = id ? DB.getById('master_rekening', id) : {kode:'', uraian:'', pagu:0, jenis:'Detail'};
+                
                 const body = `
-                    <form id="form-rekening">
-                        <div class="form-group"><label class="form-label">Jenis</label><select name="jenis" class="form-control"><option value="Header" ${item.jenis==='Header'?'selected':''}>Header (Hanya Judul/Grup)</option><option value="Detail" ${item.jenis==='Detail'?'selected':''}>Detail (Bisa Diisi Pagu)</option></select></div>
-                        <div class="form-group"><label class="form-label">Kode Rekening</label><input type="text" name="kode" class="form-control" value="${item.kode}" required></div>
-                        <div class="form-group"><label class="form-label">Uraian</label><textarea name="uraian" class="form-control" required>${item.uraian}</textarea></div>
-                        <div class="form-group"><label class="form-label">Pagu Anggaran (Rp)</label><input type="text" name="pagu" class="form-control money-input" value="${Utils.formatNumber(item.pagu)}" oninput="this.value = Utils.formatNumber(String(this.value).replace(/\\D/g, ''))"></div>
+                    <form id="form-rekening" class="flex flex-col gap-4">
+                        <div class="bg-info-50 p-3 rounded text-sm text-info-700 border border-info-200">
+                            <b>Catatan SIPD:</b> Pagu hanya boleh diinput pada level paling bawah (Sub Rincian Objek). Level di atasnya (Program, Kegiatan, Jenis Belanja) adalah Header.
+                        </div>
+                        
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Jenis Rekening</label>
+                            <select name="jenis" class="form-control" onchange="
+                                const paguInput = document.getElementById('input-pagu');
+                                if(this.value === 'Header') {
+                                    paguInput.disabled = true;
+                                    paguInput.value = '0';
+                                    paguInput.classList.add('bg-gray-100');
+                                } else {
+                                    paguInput.disabled = false;
+                                    paguInput.classList.remove('bg-gray-100');
+                                }
+                            ">
+                                <option value="Detail" ${item.jenis==='Detail'?'selected':''}>Detail / Sub Rincian (Bisa diisi Pagu)</option>
+                                <option value="Header" ${item.jenis==='Header'?'selected':''}>Header / Induk (Pagu Rekapitulasi Otomatis)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Kode Rekening (Sesuai DPA)</label>
+                            <input type="text" name="kode" class="form-control font-mono" value="${item.kode}" placeholder="Contoh: 5.02.03.2.01.0007.5.1.02.01.0001" required>
+                            <small class="text-muted text-xs">Gunakan tanda titik (.) sebagai pemisah level hierarki.</small>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Uraian Program/Kegiatan/Belanja</label>
+                            <textarea name="uraian" class="form-control" required rows="2" placeholder="Contoh: Belanja Bahan-Bahan Bangunan dan Konstruksi">${item.uraian}</textarea>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Pagu Anggaran (Rp)</label>
+                            <input type="text" id="input-pagu" name="pagu" class="form-control money-input font-bold ${item.jenis==='Header'?'bg-gray-100':''}" value="${Utils.formatNumber(item.pagu)}" oninput="this.value = Utils.formatNumber(String(this.value).replace(/\\D/g, ''))" ${item.jenis==='Header'?'disabled':''}>
+                        </div>
                     </form>
                 `;
-                DOM.openModal(id ? 'Edit Rekening' : 'Tambah Rekening', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveRekening('${id||''}')">Simpan</button>`);
+                DOM.openModal(id ? 'Edit Master Kode & Rekening' : 'Tambah Master Kode & Rekening', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveRekening('${id||''}')"><i class="ph ph-floppy-disk"></i> Simpan Data</button>`);
             }
 
             saveRekening(id) {
                 const data = DOM.getFormData('form-rekening');
-                data.pagu = Number(String(data.pagu).replace(/\D/g, '')) || 0;
-                id ? DB.update('master_rekening', id, data) : DB.insert('master_rekening', data);
-                DOM.closeModal(); this.notify('Rekening disimpan', 'success'); this.reRenderCurrentView();
+                
+                // Pastikan jika Header, pagu dipaksa 0
+                data.pagu = data.jenis === 'Header' ? 0 : (Number(String(data.pagu).replace(/\D/g, '')) || 0);
+                
+                // Otomatis membuat parent_id dengan memotong kode terakhir
+                // Contoh: dari "5.02.03.2.01" menjadi "5.02.03.2"
+                const kodeParts = data.kode.split('.');
+                if (kodeParts.length > 1) {
+                    kodeParts.pop(); // Buang segmen terakhir
+                    data.parent_id = kodeParts.join('.');
+                } else {
+                    data.parent_id = null; // Ini level paling atas (misal cuma "5")
+                }
+
+                if (id) {
+                    DB.update('master_rekening', id, data);
+                } else {
+                    DB.insert('master_rekening', data);
+                }
+                
+                DOM.closeModal(); 
+                this.notify('Data Master Rekening berhasil disimpan', 'success'); 
+                this.reRenderCurrentView();
             }
 
             formPencairan() {
