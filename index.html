@@ -2367,7 +2367,7 @@
                 `;
             }
 
-            loadFormPenerimaSign(spjId, itemId) {
+           loadFormPenerimaSign(spjId, itemId) {
                 const targetContainer = document.getElementById('container-form-penerima');
                 if (!itemId) {
                     targetContainer.innerHTML = `<p class="text-center text-muted py-8">Silakan pilih nama Anda pada pilihan di atas.</p>`;
@@ -2413,6 +2413,11 @@
                                 <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc; display: inline-block;">
                                     <img src="${item.tanda_tangan}" alt="Tanda Tangan" style="max-height: 150px;">
                                     <p class="text-xs text-success font-semibold mt-1">Anda sudah melakukan tanda tangan.</p>
+                                </div>
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="app.resetSignature('${spjId}', '${itemId}')">
+                                        <i class="ph ph-arrow-counter-clockwise"></i> Reset / Ulangi Tanda Tangan
+                                    </button>
                                 </div>
                             ` : `
                                 <div style="border: 2px dashed #94a3b8; border-radius: 8px; background: #ffffff; padding: 10px; width: 100%;">
@@ -2485,6 +2490,25 @@
 
                 alert('Tanda tangan berhasil disubmit! Terima kasih.');
                 location.reload();
+            }
+
+            async resetSignature(spjId, itemId) {
+                if (!confirm("Apakah Anda ingin mereset dan mengulangi tanda tangan?")) return;
+
+                // Update cache lokal
+                DB.update('pencairan_items', itemId, { tanda_tangan: null, status_ttd: 'DRAFT' });
+
+                // Update database Supabase
+                try {
+                    await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${itemId}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tanda_tangan: null, status_ttd: 'DRAFT' })
+                    });
+                } catch(e) { console.error(e); }
+
+                alert('Tanda tangan berhasil direset. Silakan buat ulang tanda tangan Anda.');
+                this.loadFormPenerimaSign(spjId, itemId);
             }
 
             bindNav() {
