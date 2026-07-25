@@ -3635,43 +3635,45 @@ renderSignPage(container, itemId) {
                         </div>
 
                         <div class="border rounded-lg overflow-hidden">
-                            <table class="data-table w-full text-sm">
-                                <thead class="bg-gray-100 text-left">
-                                    <tr>
-                                        <th class="p-3 text-center" style="width: 40px;">No</th>
-                                        <th class="p-3">Uraian / Sumber</th>
-                                        <th class="p-3">Penerima (Penyedia)</th>
-                                        <th class="p-3 text-right">Nilai Tagihan (Bruto)</th>
-                                        <th class="p-3 text-right">DPP</th>
-                                        <th class="p-3 text-right">PPN</th>
-                                        <th class="p-3 text-right">PPh</th>
-                                        <th class="p-3 text-right">Jumlah Dibayarkan</th>
-                                        <th class="p-3 text-center" style="width: 80px;">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${items.length ? items.map((item, idx) => `
-                                        <tr class="border-b hover:bg-gray-50">
-                                            <td class="p-3 text-center">${idx + 1}</td>
-                                            <td class="p-3">
-                                                <div class="font-semibold">${item.uraian || '-'}</div>
-                                            </td>
-                                            <td class="p-3">
-                                                <div>${item.nama_penerima || '-'}</div>
-                                                <div class="text-xs text-muted">${item.bank || '-'} - ${item.no_rekening || '-'}</div>
-                                            </td>
-                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga)}</td>
-                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga - (item.ppn || 0))}</td>
-                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.ppn)}</td>
-                                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph)}</td>
-                                            <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
-                                            <td class="p-3 text-center">
-                                                <button class="btn btn-ghost btn-sm text-danger" onclick="app.deleteItemPencairan('${item.id}', '${pencairanId}')"><i class="ph ph-trash"></i></button>
-                                            </td>
-                                        </tr>
-                                    `).join('') : '<tr><td colspan="9" class="text-center text-muted py-6">Belum ada rincian item. Silakan tambahkan item baru.</td></tr>'}
-                                </tbody>
-                            </table>
+                            <div class="table-container">
+                                    <table class="data-table w-full text-sm">
+                                        <thead class="bg-gray-100 text-left">
+                                            <tr>
+                                                <th class="p-3 text-center" style="width: 40px;">No</th>
+                                                <th class="p-3">Uraian / Sumber</th>
+                                                <th class="p-3">Penerima (Penyedia)</th>
+                                                <th class="p-3 text-right">Nilai Tagihan (Bruto)</th>
+                                                <th class="p-3 text-right">DPP</th>
+                                                <th class="p-3 text-right">PPN</th>
+                                                <th class="p-3 text-right">PPh</th>
+                                                <th class="p-3 text-right">Jumlah Dibayarkan</th>
+                                                <th class="p-3 text-center" style="width: 80px;">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${items.length ? items.map((item, idx) => `
+                                                <tr class="border-b hover:bg-gray-50">
+                                                    <td class="p-3 text-center">${idx + 1}</td>
+                                                    <td class="p-3">
+                                                        <div class="font-semibold">${item.uraian || '-'}</div>
+                                                    </td>
+                                                    <td class="p-3">
+                                                        <div>${item.nama_penerima || '-'}</div>
+                                                        <div class="text-xs text-muted">${item.bank || '-'} - ${item.no_rekening || '-'}</div>
+                                                    </td>
+                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga)}</td>
+                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga - (item.ppn || 0))}</td>
+                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.ppn)}</td>
+                                                    <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph)}</td>
+                                                    <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
+                                                    <td class="p-3 text-center">
+                                                        <button class="btn btn-ghost btn-sm text-danger" onclick="app.deleteItemPencairan('${item.id}', '${pencairanId}')"><i class="ph ph-trash"></i></button>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="9" class="text-center text-muted py-6">Belum ada rincian item. Silakan tambahkan item baru.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
                         </div>
                     </div>
                 `;
