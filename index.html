@@ -2240,13 +2240,21 @@
                     }
                     
                     return `
-                    <tr style="${style} font-family: 'Times New Roman', Times, serif; font-size: 0.85rem;" class="hover:brightness-95">
+                    <tr style="${style} font-family: 'Times New Roman', Times, serif; font-size: 0.85rem;" class="hover:brightness-95 group">
                         <td class="sticky left-0 z-10 whitespace-nowrap" style="${style} ${borderDashedLeft}">${r.kode}</td>
                         <td class="sticky left-[150px] z-10 min-w-[300px]" style="${style} ${borderDashed}">${r.uraian}</td>
                         <td style="${borderDashed} text-align: right; font-weight: 600; white-space: nowrap;">${Utils.formatNumber(r.pagu_calc)}</td>
                         ${monthCols}
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: #15803d; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
+                        
+                        <!-- KOLOM AKSI (EDIT & HAPUS) -->
+                        <td style="${style} ${borderDashed} text-align: center; vertical-align: middle;">
+                            <div class="flex justify-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+                                <button class="btn btn-ghost btn-sm text-primary p-1 bg-white border border-gray-200 shadow-sm" title="Edit Rekening" onclick="app.editRekening('${r.id}')"><i class="ph ph-pencil-simple" style="font-size: 1.1rem;"></i></button>
+                                <button class="btn btn-ghost btn-sm text-danger p-1 bg-white border border-gray-200 shadow-sm" title="Hapus Rekening" onclick="app.deleteRekening('${r.id}')"><i class="ph ph-trash" style="font-size: 1.1rem;"></i></button>
+                            </div>
+                        </td>
                     </tr>`;
                 }).join('');
 
