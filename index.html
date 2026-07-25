@@ -2606,20 +2606,17 @@
                 const nextNo = String(pencairanHead.length + 1).padStart(3, '0');
 
                 const body = `
-                    <div class="card p-4 mb-4 border border-primary-200">
-                        <h3 class="font-bold mb-3">1. Informasi & Jenis Pengajuan</h3>
-                        
-                        <!-- INPUT NOMOR & TANGGAL DITAMBAHKAN DI SINI -->
-                        <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
-                            <div class="form-group mb-0">
-                                <label class="form-label font-bold text-gray-700">Nomor Pengajuan</label>
-                                <input type="text" id="input_nomor" class="form-control" value="${nextNo}/SPP-LS/BKAD/2026">
-                            </div>
-                            <div class="form-group mb-0">
-                                <label class="form-label font-bold text-gray-700">Tanggal Pengajuan</label>
-                                <input type="date" id="input_tanggal" class="form-control" value="${new Date().toISOString().split('T')[0]}">
-                            </div>
+                    <!-- INPUT NOMOR & TANGGAL DITAMBAHKAN DI SINI -->
+                    <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Nomor Pengajuan</label>
+                            <input type="text" id="input_nomor" class="form-control" value="${nextNo}/SPP-LS/BKAD/2026">
                         </div>
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Tanggal Pengajuan</label>
+                            <input type="date" id="input_tanggal" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                    </div>
 
                         <div class="flex gap-4 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer">
