@@ -3367,7 +3367,7 @@ openFormInputItemPencairan(pencairanId) {
                     </form>
                 `;
 
-                // Tombol Kembali diperbaiki agar memanggil fungsi formDetailPencairan
+                // Tombol Kembali diperbarui dengan event onclick yang membawa parameter pencairanId
                 const footerHTML = `
                     <button class="btn btn-outline" onclick="app.formDetailPencairan('${pencairanId}')">Kembali</button>
                     <button class="btn btn-primary" onclick="app.simpanItemPencairanBaru('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Item Rincian</button>
