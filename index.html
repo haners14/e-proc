@@ -774,6 +774,12 @@
                         <td class="p-3 text-center">${p.tarif}%</td>
                         <td class="p-3 text-center">${p.dasar_hitung || '-'}</td>
                         <td class="p-3 text-sm text-gray-600">${p.keterangan || '-'}</td>
+                        <td class="p-3 text-center">
+                            <div class="flex justify-center gap-1">
+                                <button class="btn btn-ghost btn-sm text-primary" onclick="MasterPajakView.showForm('${p.id}')" title="Edit"><i class="ph ph-pencil-simple"></i></button>
+                                <button class="btn btn-ghost btn-sm text-danger" onclick="MasterPajakView.deleteData('${p.id}')" title="Hapus"><i class="ph ph-trash"></i></button>
+                            </div>
+                        </td>
                     </tr>
                 `).join('');
 
@@ -784,6 +790,7 @@
                                 <h1 class="text-2xl font-bold text-main">Master Pajak</h1>
                                 <p class="text-muted text-sm mt-1">Referensi Profil Pajak otomatis untuk Pengajuan Pencairan</p>
                             </div>
+                            <button class="btn btn-primary" onclick="MasterPajakView.showForm()"><i class="ph ph-plus"></i> Tambah Pajak Baru</button>
                         </div>
                         
                         <div class="card flex-1 overflow-hidden flex flex-col">
@@ -791,23 +798,109 @@
                                 <table class="w-full text-left border-collapse">
                                     <thead class="bg-gray-100 sticky top-0 z-10">
                                         <tr>
-                                            <th class="p-3 text-center border-b">ID</th>
+                                            <th class="p-3 text-center border-b">No</th>
                                             <th class="p-3 border-b">Profil Pajak</th>
                                             <th class="p-3 text-center border-b">PPN</th>
                                             <th class="p-3 border-b">Jenis PPh</th>
                                             <th class="p-3 text-center border-b">Tarif</th>
                                             <th class="p-3 text-center border-b">Dasar Hitung</th>
                                             <th class="p-3 border-b">Keterangan</th>
+                                            <th class="p-3 text-center border-b" style="width:100px;">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${rows.length ? rows : '<tr><td colspan="7" class="p-6 text-center text-muted">Belum ada data pajak</td></tr>'}
+                                        ${rows.length ? rows : '<tr><td colspan="8" class="p-6 text-center text-muted">Belum ada data pajak</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
                 `;
+            }
+
+            static showForm(id = null) {
+                const item = id ? DB.getById('master_pajak', id) : {
+                    profil: '', ppn: false, jenis_pph: 'Tidak Ada', tarif: 0, dasar_hitung: '-', keterangan: ''
+                };
+
+                const body = `
+                    <form id="form-pajak" class="flex flex-col gap-4">
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Nama Profil Pajak</label>
+                            <input type="text" name="profil" class="form-control" value="${item.profil}" placeholder="Contoh: Honorarium ASN Golongan III" required>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Pajak Pertambahan Nilai?</label>
+                                <select name="ppn" class="form-control">
+                                    <option value="false" ${!item.ppn ? 'selected' : ''}>Bukan PPN</option>
+                                    <option value="true" ${item.ppn ? 'selected' : ''}>Ya (PPN)</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Jenis PPh</label>
+                                <select name="jenis_pph" class="form-control">
+                                    <option value="Tidak Ada" ${item.jenis_pph === 'Tidak Ada' ? 'selected' : ''}>Bukan PPh</option>
+                                    <option value="PPh Pasal 21" ${item.jenis_pph === 'PPh Pasal 21' ? 'selected' : ''}>PPh Pasal 21</option>
+                                    <option value="PPh Pasal 22" ${item.jenis_pph === 'PPh Pasal 22' ? 'selected' : ''}>PPh Pasal 22</option>
+                                    <option value="PPh Pasal 23" ${item.jenis_pph === 'PPh Pasal 23' ? 'selected' : ''}>PPh Pasal 23</option>
+                                    <option value="PPh Final Pasal 4 Ayat (2)" ${item.jenis_pph === 'PPh Final Pasal 4 Ayat (2)' ? 'selected' : ''}>PPh Final Pasal 4 Ayat (2)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Tarif Pajak (%)</label>
+                                <input type="number" step="0.01" name="tarif" class="form-control" value="${item.tarif}" required>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Dasar Hitung (Pengali)</label>
+                                <select name="dasar_hitung" class="form-control">
+                                    <option value="-" ${item.dasar_hitung === '-' ? 'selected' : ''}>-</option>
+                                    <option value="DPP" ${item.dasar_hitung === 'DPP' ? 'selected' : ''}>DPP (Dasar Pengenaan Pajak)</option>
+                                    <option value="Bruto" ${item.dasar_hitung === 'Bruto' ? 'selected' : ''}>Bruto (Total Keseluruhan)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Keterangan Tambahan</label>
+                            <textarea name="keterangan" class="form-control" rows="2" placeholder="Catatan opsional...">${item.keterangan || ''}</textarea>
+                        </div>
+                    </form>
+                `;
+
+                DOM.openModal(id ? 'Edit Master Pajak' : 'Tambah Profil Pajak', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="MasterPajakView.saveData('${id || ''}')"><i class="ph ph-floppy-disk"></i> Simpan</button>`);
+            }
+
+            static saveData(id) {
+                const data = DOM.getFormData('form-pajak');
+                
+                // Konversi string form menjadi boolean & number sebelum kirim ke DB
+                data.ppn = data.ppn === 'true';
+                data.tarif = Number(data.tarif) || 0;
+                data.aktif = true;
+
+                if (id) {
+                    DB.update('master_pajak', id, data);
+                    app.notify('Master Pajak berhasil diperbarui', 'success');
+                } else {
+                    DB.insert('master_pajak', data);
+                    app.notify('Profil Pajak baru berhasil ditambahkan', 'success');
+                }
+                
+                DOM.closeModal();
+                app.reRenderCurrentView();
+            }
+
+            static deleteData(id) {
+                if(confirm('Apakah Anda yakin ingin menghapus profil pajak ini secara permanen?')) {
+                    DB.delete('master_pajak', id);
+                    app.notify('Profil Pajak berhasil dihapus', 'success');
+                    app.reRenderCurrentView();
+                }
             }
         }
 
@@ -2493,39 +2586,41 @@
                     }
                 });
 
-                // Formatting Dropdown Rekening (Menyembunyikan Kode, Menampilkan Sub Kegiatan)
                 const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => {
                     const subKode = r.kode.split('.').slice(0, 6).join('.');
                     const subRecord = rekenings.find(sub => sub.kode === subKode);
                     const namaSub = subRecord ? subRecord.uraian : 'Tanpa Sub Kegiatan';
-                    
-                    const pagu = Number(r.pagu) || 0;
-                    const realisasi = realisasiMap[r.id] || 0;
-                    const sisaPagu = pagu - realisasi;
-                    
+                    const sisaPagu = (Number(r.pagu) || 0) - (realisasiMap[r.id] || 0);
                     return `<option value="${r.id}" data-sisa="${sisaPagu}">${namaSub} - ${r.uraian} (Sisa: ${Utils.formatNumber(sisaPagu)})</option>`;
                 }).join('');
 
-                // Formatting Dropdown Penyedia (Penerima)
-                const optsPenyedia = penyedias.map(p => 
-                    `<option value="${p.id}" data-bank="${p.bank}" data-norek="${p.no_rekening}">${p.name} - ${p.direktur}</option>`
-                ).join('');
-
-                // Formatting Dropdown Pajak
-                const optsPajak = masterPajak.map(p => 
-                    `<option value="${p.id}" data-ppn="${p.ppn}" data-tarif="${p.tarif}" data-dasar="${p.dasar_hitung}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`
-                ).join('');
-
-                // Formatting Dropdown Paket (BAGIAN YANG DIPERBAIKI)
+                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-bank="${p.bank}" data-norek="${p.no_rekening}">${p.name} - ${p.direktur}</option>`).join('');
+                const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-ppn="${p.ppn}" data-tarif="${p.tarif}" data-dasar="${p.dasar_hitung}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
                 const optsPaket = packages.map(p => {
-                    const t = DB.calculatePackageTotals(p); // <--- Perbaikan di sini (sebelumnya this.calculate...)
+                    const t = DB.calculatePackageTotals(p);
                     const nego = p.pembulatan_negosiasi || t.negosiasi || 0;
                     return `<option value="${p.id}" data-nilai="${nego}">${p.name}</option>`;
                 }).join('');
 
+                // Nomor pengajuan otomatis (bisa diedit)
+                const nextNo = String(pencairanHead.length + 1).padStart(3, '0');
+
                 const body = `
                     <div class="card p-4 mb-4 border border-primary-200">
-                        <h3 class="font-bold mb-3">1. Jenis Pengajuan</h3>
+                        <h3 class="font-bold mb-3">1. Informasi & Jenis Pengajuan</h3>
+                        
+                        <!-- INPUT NOMOR & TANGGAL DITAMBAHKAN DI SINI -->
+                        <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Nomor Pengajuan</label>
+                                <input type="text" id="input_nomor" class="form-control" value="${nextNo}/SPP-LS/BKAD/2026">
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Tanggal Pengajuan</label>
+                                <input type="date" id="input_tanggal" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+                            </div>
+                        </div>
+
                         <div class="flex gap-4 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input type="radio" name="jenis_input" value="non_paket" checked onchange="app.toggleJenisInput()"> Non-Paket (Input Mandiri)
@@ -2605,11 +2700,84 @@
                 `;
                 DOM.openModal('Form Pengajuan Pencairan', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.savePencairan()">Buat Pengajuan</button>`);
                 
-                // Event listener for money formatter
                 document.getElementById('input_tagihan').addEventListener('input', function(e) {
                     let val = String(e.target.value).replace(/\D/g, '');
                     e.target.value = Utils.formatNumber(val);
                 });
+            }
+
+            savePencairan() {
+                const isPaket = document.querySelector('input[name="jenis_input"]:checked').value === 'paket';
+                const paketId = document.getElementById('pilih_paket').value;
+                const rekeningId = document.getElementById('input_rekening').value;
+                const penyediaId = document.getElementById('input_penerima').value;
+                const tagihan = parseFloat(String(document.getElementById('input_tagihan').value).replace(/\D/g, '')) || 0;
+                const pajakId = document.getElementById('input_pajak').value;
+
+                // Ambil Nilai dari Input Nomor dan Tanggal
+                const nomorInput = document.getElementById('input_nomor').value;
+                const tanggalInput = document.getElementById('input_tanggal').value;
+
+                if (!rekeningId || !penyediaId || tagihan <= 0 || !tanggalInput) {
+                    return this.notify('Harap lengkapi Tanggal, Rekening, Penerima, dan Nilai Tagihan', 'error');
+                }
+
+                const ppn = parseFloat(document.getElementById('calc_ppn').innerText.replace(/\D/g, '')) || 0;
+                const pph = parseFloat(document.getElementById('calc_pph').innerText.replace(/\D/g, '')) || 0;
+                const totalPotongan = parseFloat(document.getElementById('calc_potongan').innerText.replace(/\D/g, '')) || 0;
+                const jumlahDibayarkan = parseFloat(document.getElementById('calc_dibayarkan').innerText.replace(/\D/g, '')) || 0;
+
+                const selRek = document.getElementById('input_rekening');
+                const namaSubKeg = selRek.options[selRek.selectedIndex].text.split('-')[0].trim();
+                
+                // Konversi tanggal ke nama bulan untuk kebutuhan metadata laporan
+                const dateObj = new Date(tanggalInput);
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                const namaBulan = months[dateObj.getMonth()];
+
+                const head = { 
+                    nomor: nomorInput, 
+                    tanggal: tanggalInput, 
+                    bulan: namaBulan, 
+                    kegiatan: 'Pengelolaan Barang Milik Daerah', 
+                    sub_kegiatan: namaSubKeg, 
+                    jenis: 'LS', 
+                    status: 'DRAFT',
+                    package_id: isPaket ? paketId : null,
+                    total: tagihan
+                };
+                const res = DB.insert('pencairan', head);
+                
+                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
+                if (pajakId) {
+                    const selPajakText = document.getElementById('input_pajak').options[document.getElementById('input_pajak').selectedIndex].text.toUpperCase();
+                    if (selPajakText.includes('21')) pph21 = pph;
+                    else if (selPajakText.includes('22')) pph22 = pph;
+                    else if (selPajakText.includes('23')) pph23 = pph;
+                    else if (selPajakText.includes('4 AYAT')) pph42 = pph;
+                }
+
+                const item = { 
+                    pencairan_id: res.id, 
+                    rekening_id: rekeningId, 
+                    uraian: 'Pembayaran Tagihan Pihak Ketiga',
+                    qty: 1,
+                    harga: tagihan,
+                    subtotal: tagihan,
+                    pajak_id: pajakId || null,
+                    nilai_pajak: totalPotongan,
+                    pajak_ppn: ppn, 
+                    pajak_pph21: pph21,
+                    pajak_pph22: pph22,
+                    pajak_pph23: pph23,
+                    pajak_pph42: pph42,
+                    total: jumlahDibayarkan
+                };
+                DB.insert('pencairan_items', item);
+                
+                DOM.closeModal(); 
+                this.notify('Pengajuan Pencairan berhasil dibuat', 'success'); 
+                this.reRenderCurrentView();
             }
 
             toggleJenisInput() {
