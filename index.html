@@ -3494,7 +3494,7 @@ openFormInputItemPencairan(pencairanId) {
 
                 const jumlahDibayarkan = bruto - pph;
 
-                // Payload disesuaikan agar kompatibel dengan skema umum pencairan_items
+                // Payload lengkap sesuai skema tabel SQL terbaru
                 const newItem = {
                     id: Utils.generateId(),
                     pencairan_id: pencairanId,
@@ -3508,8 +3508,8 @@ openFormInputItemPencairan(pencairanId) {
                     subtotal: bruto,
                     pajak_id: pajakId || null,
                     nilai_pajak: pph,
-                    pajak_ppn: ppn,
-                    pajak_pph23: pph, // Disamakan agar masuk rekapitulasi lampiran
+                    ppn: ppn,
+                    pph: pph,
                     total: jumlahDibayarkan,
                     created_at: new Date().toISOString()
                 };
