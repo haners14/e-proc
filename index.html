@@ -3116,9 +3116,10 @@
                     </form>
                 `;
 
+                const btnText = id ? 'Simpan Perubahan & Atur Detail' : 'Lanjut ke Rincian Detail';
                 const footer = `
                     <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
-                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-arrow-right"></i> ${id ? 'Simpan Perubahan & Atur Detail' : 'Lanjut ke Rincian Detail'}</button>
+                    <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-arrow-right"></i> ${btnText}</button>
                 `;
 
                 DOM.openModal(id ? 'Edit Header Pencairan' : '1. Buat Header Pengajuan Baru', body, footer);
