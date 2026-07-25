@@ -2909,21 +2909,41 @@ renderSignPage(container, itemId) {
 
             modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
-                const opts = pencairanList.map(p => `<option value="${p.id}">${p.nomor} — ${p.sub_kegiatan}</option>`).join('');
+                const pencairanItems = DB.get('pencairan_items') || [];
+
+                const opts = pencairanList.map(p => {
+                    const items = pencairanItems.filter(i => i.pencairan_id === p.id);
+                    const total = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+                    return `<option value="${p.id}">[No: ${p.nomor || '-'}] — Sub Kegiatan: ${p.sub_kegiatan || '-'} (${p.bulan || '-'} 2026) | Total: Rp ${Utils.formatNumber(total)} (${items.length} Penerima)</option>`;
+                }).join('');
 
                 const body = `
                     <form id="form-tambah-spj" class="flex flex-col gap-4">
                         <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan</label>
-                            <select name="pencairan_id" class="form-control" required>
-                                <option value="">-- Pilih Pengajuan --</option>
+                            <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan (Cari & Pilih)</label>
+                            <select id="select-pencairan-spj" name="pencairan_id" class="form-control searchable-select" required>
+                                <option value="">-- Ketik nomor, sub kegiatan, atau bulan untuk mencari --</option>
                                 ${opts}
                             </select>
+                            <small class="text-muted text-xs mt-1">Menampilkan informasi lengkap rincian anggaran dan jumlah penerima agar tidak salah pilih.</small>
                         </div>
                     </form>
                 `;
 
-                DOM.openModal('Tambah Header SPJ & Absen', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.simpanSPJHeader()">Simpan</button>`);
+                DOM.openModal('Tambah Header SPJ & Absen', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.simpanSPJHeader()">Simpan</button>`, '700px');
+
+                // Inisialisasi TomSelect agar kolom pilihan bisa dicari (searching)
+                setTimeout(() => {
+                    if (window.TomSelect) {
+                        const el = document.getElementById('select-pencairan-spj');
+                        if (el && !el.tomselect) {
+                            new TomSelect(el, {
+                                create: false,
+                                sortField: { field: "text", direction: "asc" }
+                            });
+                        }
+                    }
+                }, 100);
             }
 
             simpanSPJHeader() {
