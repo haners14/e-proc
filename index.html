@@ -4147,25 +4147,33 @@ renderSignPage(container, itemId) {
 
                 const existingItem = itemId ? pencairanItems.find(i => i.id === itemId) : null;
 
-                // Filter rekening DPA yang jenisnya 'Detail' dan uraian/induknya sesuai dengan sub kegiatan pada header pencairan
+                // Filter rekening DPA (jenis Detail) yang cocok atau terkait dengan sub kegiatan header
                 const optsRekening = daftarRekening.filter(r => {
                     if (r.jenis !== 'Detail') return false;
-                    if (!subKegiatanHeader) return true; // Fallback jika header belum diisi
+                    if (!subKegiatanHeader) return true;
 
-                    // Mencari kecocokan apakah rekening ini berada di bawah sub kegiatan header
+                    // Cek kecocokan teks sub kegiatan pada uraian rekening atau induknya
                     let curr = r;
                     let matched = false;
                     let safety = 0;
                     while (curr && safety < 10) {
-                        if (curr.uraian && curr.uraian.trim().toLowerCase() === subKegiatanHeader) {
+                        const uraianCurr = (curr.uraian || '').toLowerCase();
+                        if (uraianCurr.includes(subKegiatanHeader) || subKegiatanHeader.includes(uraianCurr)) {
                             matched = true;
                             break;
                         }
                         curr = daftarRekening.find(x => x.kode === curr.parent_id);
                         safety++;
                     }
-                    return matched || r.uraian.trim().toLowerCase().includes(subKegiatanHeader);
-                }).map(r => {
+                    
+                    // Fallback inklusif jika masih belum tersaring tapi mengandung kata kunci umum
+                    return matched;
+                });
+
+                // Jika hasil filter kosong (untuk pencegahan agar tidak blank), tampilkan semua rekening detail
+                const finalRekeningList = optsRekening.length > 0 ? optsRekening : daftarRekening.filter(r => r.jenis === 'Detail');
+
+                const optsRekeningHtml = finalRekeningList.map(r => {
                     const selected = existingItem && existingItem.rekening_id === r.id ? 'selected' : '';
                     return `<option value="${r.id}" ${selected}>${r.kode} - ${r.uraian}</option>`;
                 }).join('');
@@ -4208,10 +4216,10 @@ renderSignPage(container, itemId) {
                         </div>
 
                         <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Rekening DPA (Sesuai Sub Kegiatan: ${header.sub_kegiatan || '-'})</label>
+                            <label class="form-label font-bold text-gray-700">Rekening DPA (Sub Kegiatan: ${header.sub_kegiatan || '-'})</label>
                             <select id="detail_rekening_id" class="form-control searchable-select" required>
-                                <option value="">-- Pilih Rekening Belanja yang Sesuai --</option>
-                                ${optsRekening || '<option value="">Tidak ada rekening detail yang cocok dengan sub kegiatan ini</option>'}
+                                <option value="">-- Pilih Rekening Belanja --</option>
+                                ${optsRekeningHtml}
                             </select>
                         </div>
 
