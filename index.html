@@ -2295,6 +2295,7 @@
                                             ${monthHeaders1}
                                             <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: right; min-width: 120px; padding: 8px;">Total Realisasi</th>
                                             <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: right; min-width: 120px; padding: 8px;">Sisa Anggaran</th>
+                                            <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: center; min-width: 90px; padding: 8px;">Aksi</th>
                                         </tr>
                                         <tr>
                                             ${monthHeaders2}
@@ -3165,6 +3166,19 @@ console.log(
                 DOM.closeModal(); 
                 this.notify('Data Master Rekening berhasil disimpan', 'success'); 
                 this.reRenderCurrentView();
+            }
+            deleteRekening(id) {
+                // Meminta konfirmasi berlapis untuk menghindari hapus tidak sengaja
+                if(confirm('Apakah Anda yakin ingin menghapus rekening ini?\n\nPeringatan: Menghapus level "Header" TIDAK akan otomatis menghapus anak-anaknya di Supabase. Data yang dihapus tidak dapat dikembalikan.')) {
+                    
+                    // Eksekusi fungsi DB.delete (sudah akan otomatis ter-sync ke Supabase berkat method _sync)
+                    DB.delete('master_rekening', id);
+                    
+                    this.notify('Rekening berhasil dihapus dari sistem', 'success');
+                    
+                    // Render ulang tabel matriks
+                    this.reRenderCurrentView();
+                }
             }
 exportRekening() {
                 const rekenings = DB.get('master_rekening').sort((a,b) => a.kode.localeCompare(b.kode));
