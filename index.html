@@ -3155,100 +3155,104 @@
                 this.formDetailPencairan(headerId);
             }
 
-            formDetailPencairan(pencairanId) {
-                const header = DB.getById('pencairan', pencairanId);
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
-                const rekenings = DB.get('master_rekening') || [];
-                const masterPajak = DB.get('master_pajak') || [];
-                const penyedias = DB.get('penyedia') || [];
+           formDetailPencairan(pencairanId) {
+    const pencairanList = DB.get('pencairan') || [];
+    const header = pencairanList.find(d => d.id === pencairanId);
+    if (!header) return alert('Data pengajuan tidak ditemukan.');
 
-                const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
-                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
+    const pencairanItems = DB.get('pencairan_items') || [];
+    const items = pencairanItems.filter(item => item.pencairan_id === pencairanId);
+    
+    // Ambil data referensi pendukung
+    const daftarPaket = DB.get('paket') || [];
+    const daftarPenyedia = DB.get('penyedia') || [];
+    const daftarMasterPajak = DB.get('master_pajak') || [];
+    const daftarRekening = DB.get('rekening') || []; // atau sumber data sub kegiatan / rekening DPA
 
-                const rowsHtml = items.map((item, idx) => `
-                    <tr class="item-row border-b bg-white" data-index="${idx}">
-                        <td class="p-3 text-center align-middle font-bold">${idx + 1}</td>
-                        <td class="p-3">
-                            <div class="space-y-2">
-                                <select class="form-control item-rekening text-xs font-semibold" required>
-                                    <option value="">-- Pilih Kode Rekening DPA --</option>
-                                    ${rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}" ${item.rekening_id === r.id ? 'selected' : ''}>${r.kode} - ${r.uraian}</option>`).join('')}
-                                </select>
-                                <textarea class="form-control item-uraian text-xs" rows="2" placeholder="Uraian / Keperluan Pembayaran">${item.uraian || ''}</textarea>
-                            </div>
-                        </td>
-                        <td class="p-3">
-                            <div class="space-y-2">
-                                <select class="form-control item-penyedia text-xs" onchange="app.autofillPenyediaDetail(this)">
-                                    <option value="">-- Pilih dari Master Penyedia --</option>
-                                    ${optsPenyedia}
-                                </select>
-                                <input type="text" class="form-control item-nama-penerima text-xs" value="${item.nama_penerima || ''}" placeholder="Nama Penerima / Rekanan">
-                            </div>
-                        </td>
-                        <td class="p-3">
-                            <div class="space-y-2">
-                                <input type="text" class="form-control item-bank text-xs" value="${item.bank || ''}" placeholder="Nama Bank (Cth: BJB)">
-                                <input type="text" class="form-control item-norek text-xs font-mono" value="${item.no_rekening || ''}" placeholder="Nomor Rekening">
-                            </div>
-                        </td>
-                        <td class="p-3">
-                            <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right text-sm" value="${Utils.formatNumber(item.subtotal || item.harga || 0)}" oninput="app.hitungItemDetail(this)">
-                        </td>
-                        <td class="p-3">
-                            <div class="space-y-2">
-                                <select class="form-control item-pajak-profil text-xs" onchange="app.hitungItemDetail(this)">
-                                    <option value="">-- Tanpa Pajak --</option>
-                                    ${optsPajak}
-                                </select>
-                                <div class="text-[11px] bg-gray-50 p-1.5 rounded border text-gray-600">
-                                    PPN: <span class="val-ppn font-semibold text-gray-900">0</span><br>
-                                    PPh: <span class="val-pph font-semibold text-gray-900">0</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="p-3 text-center align-middle">
-                            <button type="button" class="btn btn-ghost btn-sm text-danger hover:bg-red-50 p-2" onclick="this.closest('tr').remove(); app.hitungTotalSemuaItem();"><i class="ph ph-trash text-lg"></i></button>
-                        </td>
-                    </tr>
-                `).join('');
-
-                const body = `
-                    <div class="mb-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
-                        <div class="font-bold text-primary-900 text-sm">Nomor: ${header.nomor}</div>
-                        <div class="text-xs text-primary-700 mt-0.5">Sub Kegiatan: <b>${header.sub_kegiatan}</b></div>
+    // Render Modal / Halaman Workspace Detail
+    let modalHTML = `
+        <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                    <div>
+                        <h2 class="text-xl font-bold text-main">Kelola Rincian Item Pengajuan</h2>
+                        <p class="text-xs text-muted mt-1">No. Pengajuan: <b>${header.nomor || '-'}</b> | Sub Kegiatan: <b>${header.sub_kegiatan || '-'}</b></p>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" onclick="app.closeModal()"><i class="ph ph-x text-xl"></i></button>
+                </div>
+                
+                <div class="p-6 flex-1 overflow-y-auto space-y-6">
+                    <!-- Tombol Tambah Item -->
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-semibold text-main">Daftar Belanja & Pajak</h3>
+                        <button class="btn btn-primary btn-sm" onclick="app.openFormInputItemPencairan('${pencairanId}')"><i class="ph ph-plus"></i> Tambah Item Rincian</button>
                     </div>
 
-                    <div class="table-container mb-4 overflow-x-auto" style="max-height: 50vh;">
-                        <table class="w-full text-left border-collapse" id="table-detail-items">
-                            <thead class="bg-gray-100 sticky top-0 z-10 text-xs text-gray-700 uppercase">
+                    <!-- Tabel Item -->
+                    <div class="border rounded-lg overflow-hidden">
+                        <table class="data-table w-full text-sm">
+                            <thead class="bg-gray-100 text-left">
                                 <tr>
-                                    <th class="p-3 text-center" style="width: 45px;">No</th>
-                                    <th class="p-3" style="min-width: 260px;">Rekening & Keperluan</th>
-                                    <th class="p-3" style="min-width: 200px;">Penyedia / Penerima</th>
-                                    <th class="p-3" style="min-width: 170px;">Bank & No Rekening</th>
-                                    <th class="p-3 text-right" style="min-width: 140px;">Jumlah Bruto (Rp)</th>
-                                    <th class="p-3" style="min-width: 180px;">Potongan Pajak</th>
-                                    <th class="p-3 text-center" style="width: 60px;">Aksi</th>
+                                    <th class="p-3 text-center" style="width: 40px;">No</th>
+                                    <th class="p-3">Uraian / Sumber</th>
+                                    <th class="p-3">Penerima (Penyedia)</th>
+                                    <th class="p-3 text-right">Nilai Tagihan (Bruto)</th>
+                                    <th class="p-3 text-right">DPP</th>
+                                    <th class="p-3 text-right">PPN</th>
+                                    <th class="p-3 text-right">PPh</th>
+                                    <th class="p-3 text-right">Jumlah Dibayarkan</th>
+                                    <th class="p-3 text-center" style="width: 80px;">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${rowsHtml}
+                                ${items.length ? items.map((item, idx) => `
+                                    <tr class="border-b hover:bg-gray-50">
+                                        <td class="p-3 text-center">${idx + 1}</td>
+                                        <td class="p-3">
+                                            <div class="font-semibold">${item.uraian || '-'}</div>
+                                            <div class="text-xs text-muted">${item.rekening_info || '-'}</div>
+                                        </td>
+                                        <td class="p-3">
+                                            <div>${item.penyedia_nama || '-'}</div>
+                                            <div class="text-xs text-muted">${item.penyedia_bank} - ${item.penyedia_rekening}</div>
+                                        </td>
+                                        <td class="p-3 text-right">Rp ${Utils.formatNumber(item.bruto)}</td>
+                                        <td class="p-3 text-right">Rp ${Utils.formatNumber(item.dpp)}</td>
+                                        <td class="p-3 text-right">Rp ${Utils.formatNumber(item.ppn)}</td>
+                                        <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph)}</td>
+                                        <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
+                                        <td class="p-3 text-center">
+                                            <button class="btn btn-ghost btn-sm text-danger" onclick="app.deleteItemPencairan('${item.id}', '${pencairanId}')"><i class="ph ph-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="9" class="text-center text-muted py-6">Belum ada rincian item. Silakan tambahkan item baru.</td></tr>'}
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-outline w-full py-2.5 border-dashed border-2 text-primary-600 hover:bg-primary-50" onclick="app.tambahBarisDetailItem()"><i class="ph ph-plus-circle text-lg"></i> Tambah Baris Rincian Belanja</button>
-                `;
+                </div>
 
-                const footer = `
-                    <button class="btn btn-outline" onclick="app.renderPengajuan(app.routerView); DOM.closeModal();">Kembali / Selesai</button>
-                    <button class="btn btn-primary px-6" onclick="app.saveDetailPencairan('${pencairanId}')"><i class="ph ph-floppy-disk"></i> Simpan Semua Rincian</button>
-                `;
+                <div class="p-4 border-t bg-gray-50 flex justify-end">
+                    <button class="btn btn-secondary" onclick="app.closeModal()">Tutup & Selesai</button>
+                </div>
+            </div>
+        </div>
+    `;
 
-                // Memperlebar modal secara khusus agar tabel rincian sangat leluasa di-input
-                DOM.openModal(`2. Rincian Item Belanja — ${header.nomor}`, body, footer);
-                document.getElementById('modal-content-box').style.maxWidth = '1150px';
-            }
+    // Lampirkan ke container modal global aplikasi Anda
+    let modalContainer = document.getElementById('modal-container');
+    if (!modalContainer) {
+        modalContainer = document.createElement('div');
+        modalContainer.id = 'modal-container';
+        document.body.appendChild(modalContainer);
+    }
+    modalContainer.innerHTML = modalHTML;
+},
+
+openFormInputItemPencairan(pencairanId) {
+    // Formulir input / modal turunan untuk Opsi 1 (Non-Paket) atau Opsi 2 (Dari Paket)
+    // Serta kalkulasi otomatis berdasarkan rumus DPP = Bruto / 1.11, PPN = Bruto - DPP, dan PPh = DPP * (tarif/100)
+    // ...
+},
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
