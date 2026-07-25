@@ -2270,13 +2270,13 @@
 
                 this.bindNav(); 
                 this.navigate('dashboard');
-            }
+            },
             renderSignHeaderPage(container, spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 
                 if (!spj) {
-                    container.innerHTML = `<div style="padding: 60px; text-align: center; color: #dc2626; font-weight: bold; font-size: 1.1rem;">Link SPJ tidak valid atau sudah kedaluwarsa.</div>`;
+                    container.innerHTML = `<div style="padding: 60px; text-align: center; color: #dc2626; font-weight: bold; font-size: 1.1rem;">Link Presensi SPJ tidak valid atau sudah kedaluwarsa.</div>`;
                     return;
                 }
 
@@ -2293,17 +2293,19 @@
                     <div style="min-height: 100vh; background: #f1f5f9; padding: 40px 20px; font-family: 'Inter', sans-serif;">
                         <div style="max-width: 850px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden;">
                             <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px;">
-                                <h1 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 4px;">Pilih Nama & Isi Tanda Tangan Presensi</h1>
-                                <p style="font-size: 0.8rem; opacity: 0.85;">Kegiatan: ${pencairan.sub_kegiatan || '-'}</p>
+                                <h1 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 4px;">Presensi Kegiatan & Tanda Tangan SPJ</h1>
+                                <p style="font-size: 0.85rem; opacity: 0.9;">Sub Kegiatan: ${pencairan.sub_kegiatan || '-'}</p>
+                                <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 4px;">Bulan: ${pencairan.bulan || '-'} 2026 | BKAD Kota Bogor</p>
                             </div>
                             
                             <div style="padding: 35px;" class="space-y-4">
                                 <div class="form-group">
-                                    <label class="form-label font-bold">Pilih Nama Anda sesuai Daftar Penerima:</label>
+                                    <label class="form-label font-bold text-gray-700">Pilih Nama Anda sesuai Daftar Penerima:</label>
                                     <select id="select-penerima-sign" class="form-control" onchange="app.loadFormPenerimaSign('${spjId}', this.value)">
                                         <option value="">-- Pilih Nama Anda --</option>
                                         ${optionsPenerima}
                                     </select>
+                                    <small class="text-muted text-xs mt-1">Silakan cari dan pilih nama Anda untuk melihat nominal dan melakukan tanda tangan digital.</small>
                                 </div>
 
                                 <div id="container-form-penerima" style="margin-top: 20px;">
@@ -2980,48 +2982,79 @@ renderSignPage(container, itemId) {
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
                 const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
 
-                let listHtml = items.map((item, idx) => `
-                    <tr class="border-b">
-                        <td class="p-3 text-center">${idx + 1}</td>
-                        <td class="p-3">
-                            <div class="font-semibold">${item.uraian || '-'}</div>
-                            <div class="text-xs text-muted">Bank: ${item.bank || '-'} (${item.no_rekening || '-'})</div>
-                        </td>
-                        <td class="p-3 font-medium">${item.nama_penerima || '-'}</td>
-                        <td class="p-3 text-right font-bold">Rp ${Utils.formatNumber(item.total)}</td>
-                        <td class="p-3 text-center">
-                            ${item.status_ttd === 'SIGNED' ? '<span class="badge badge-success">Sudah TTD</span>' : '<span class="badge badge-warning">Belum TTD</span>'}
-                        </td>
-                    </tr>
-                `).join('');
+                const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
+
+                let listHtml = items.map((item, idx) => {
+                    const isSigned = item.status_ttd === 'SIGNED';
+
+                    return `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3 text-center">${idx + 1}</td>
+                            <td class="p-3 font-semibold">${item.nama_penerima || '-'}</td>
+                            <td class="p-3">${item.uraian || '-'}</td>
+                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.harga || item.subtotal || 0)}</td>
+                            <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph || item.nilai_pajak || 0)}</td>
+                            <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
+                            <td class="p-3 text-center">
+                                ${isSigned 
+                                    ? '<span class="badge badge-success"><i class="ph-fill ph-check-circle"></i> Sudah TTD</span>' 
+                                    : '<span class="badge badge-warning">Belum TTD</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
 
                 const body = `
-                    <div class="space-y-4">
-                        <div class="text-sm bg-gray-50 p-3 rounded border">
-                            <p><strong>Nomor Pengajuan:</strong> ${pencairan.nomor || '-'}</p>
-                            <p><strong>Sub Kegiatan:</strong> ${pencairan.sub_kegiatan || '-'}</p>
+                    <div class="space-y-6">
+                        <div class="card p-5 bg-white border border-gray-200 shadow-sm rounded-lg space-y-3">
+                            <div class="border-b pb-3 flex justify-between items-center">
+                                <div>
+                                    <h2 class="font-bold text-lg text-gray-900">Presensi Kegiatan</h2>
+                                    <p class="text-xs text-muted">Daftar Presensi Kegiatan & Rincian Honorarium</p>
+                                </div>
+                                <span class="badge badge-info">${pencairan.nomor || '-'}</span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 gap-2 text-sm">
+                                <div class="flex"><span class="w-32 font-semibold text-gray-600">Nama Kegiatan</span><span class="flex-1">: ${pencairan.sub_kegiatan || '-'}</span></div>
+                                <div class="flex"><span class="w-32 font-semibold text-gray-600">Bulan</span><span class="flex-1">: ${pencairan.bulan || '-'} 2026</span></div>
+                                <div class="flex"><span class="w-32 font-semibold text-gray-600">PPTK</span><span class="flex-1">: Agih Pribadi Kusumah, S.E., M.Si</span></div>
+                                <div class="flex"><span class="w-32 font-semibold text-gray-600">Bendahara</span><span class="flex-1">: Rikka Fendriani</span></div>
+                            </div>
+
+                            <div class="pt-2 flex items-center gap-2">
+                                <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link Presensi Berhasil Disalin!', 'success'))">
+                                    <i class="ph ph-link"></i> Salin Link Presensi untuk Dibagikan
+                                </button>
+                                <a href="${signUrl}" target="_blank" class="btn btn-outline btn-sm">
+                                    <i class="ph ph-arrow-square-out"></i> Pratinjau Halaman TTD
+                                </a>
+                            </div>
                         </div>
-                        <div class="table-container" style="max-height: 55vh;">
+
+                        <div class="table-container shadow-sm" style="max-height: 50vh;">
                             <table class="data-table w-full text-sm">
                                 <thead class="bg-gray-100 sticky top-0">
                                     <tr>
-                                        <th class="p-3 text-center" style="width:40px;">No</th>
-                                        <th class="p-3">Uraian / Rekening</th>
-                                        <th class="p-3">Nama Penerima / Penyedia</th>
-                                        <th class="p-3 text-right">Jumlah Bersih</th>
+                                        <th class="p-3 text-center" style="width: 50px;">No</th>
+                                        <th class="p-3">Nama</th>
+                                        <th class="p-3">Uraian Keperluan</th>
+                                        <th class="p-3 text-right">Jumlah (Bruto)</th>
+                                        <th class="p-3 text-right">Pajak</th>
+                                        <th class="p-3 text-right">Dibayarkan (Bersih)</th>
                                         <th class="p-3 text-center">Status TTD</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${listHtml || '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada rincian item dalam pengajuan ini.</td></tr>'}
+                                    ${listHtml || '<tr><td colspan="7" class="text-center text-muted py-6">Belum ada rincian penerima dalam SPJ ini.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 `;
 
-                // Buka modal dengan lebar besar (1000px)
-                DOM.openModal(`Detail Rekening & Penyedia (${pencairan.nomor || ''})`, body, `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup</button>`, '1000px');
+                const footer = `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup</button>`;
+                DOM.openModal('Detail Presensi & Tanda Tangan SPJ', body, footer, '1050px');
             }
 
             // ==========================================
