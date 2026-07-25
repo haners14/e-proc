@@ -4135,6 +4135,10 @@ renderSignPage(container, itemId) {
             }
 
            openFormInputItemPencairan(pencairanId, itemId = null) {
+                const pencairanList = DB.get('pencairan') || [];
+                const header = pencairanList.find(d => d.id === pencairanId) || {};
+                const subKegiatanHeader = header.sub_kegiatan ? header.sub_kegiatan.trim().toLowerCase() : '';
+
                 const daftarRekening = DB.get('master_rekening') || [];
                 const daftarPaket = DB.get('paket') || [];
                 const daftarPenyedia = DB.get('penyedia') || [];
@@ -4143,7 +4147,25 @@ renderSignPage(container, itemId) {
 
                 const existingItem = itemId ? pencairanItems.find(i => i.id === itemId) : null;
 
-                const optsRekening = daftarRekening.filter(r => r.jenis === 'Detail').map(r => {
+                // Filter rekening DPA yang jenisnya 'Detail' dan uraian/induknya sesuai dengan sub kegiatan pada header pencairan
+                const optsRekening = daftarRekening.filter(r => {
+                    if (r.jenis !== 'Detail') return false;
+                    if (!subKegiatanHeader) return true; // Fallback jika header belum diisi
+
+                    // Mencari kecocokan apakah rekening ini berada di bawah sub kegiatan header
+                    let curr = r;
+                    let matched = false;
+                    let safety = 0;
+                    while (curr && safety < 10) {
+                        if (curr.uraian && curr.uraian.trim().toLowerCase() === subKegiatanHeader) {
+                            matched = true;
+                            break;
+                        }
+                        curr = daftarRekening.find(x => x.kode === curr.parent_id);
+                        safety++;
+                    }
+                    return matched || r.uraian.trim().toLowerCase().includes(subKegiatanHeader);
+                }).map(r => {
                     const selected = existingItem && existingItem.rekening_id === r.id ? 'selected' : '';
                     return `<option value="${r.id}" ${selected}>${r.kode} - ${r.uraian}</option>`;
                 }).join('');
@@ -4186,10 +4208,10 @@ renderSignPage(container, itemId) {
                         </div>
 
                         <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Rekening DPA & Sub Kegiatan</label>
+                            <label class="form-label font-bold text-gray-700">Rekening DPA (Sesuai Sub Kegiatan: ${header.sub_kegiatan || '-'})</label>
                             <select id="detail_rekening_id" class="form-control searchable-select" required>
-                                <option value="">-- Cari & Pilih Rekening Belanja --</option>
-                                ${optsRekening}
+                                <option value="">-- Pilih Rekening Belanja yang Sesuai --</option>
+                                ${optsRekening || '<option value="">Tidak ada rekening detail yang cocok dengan sub kegiatan ini</option>'}
                             </select>
                         </div>
 
