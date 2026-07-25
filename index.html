@@ -2252,12 +2252,12 @@
                 this.init(); 
             }
             
-           async init() {
+          async init() {
                 await DB.init();
                 
-                // Isolasi view jika diakses via link tanda tangan khusus penerima
+                // Isolasi tampilan khusus jika diakses melalui link header SPJ
                 const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('action') === 'sign' && urlParams.get('item_id')) {
+                if (urlParams.get('action') === 'sign_header' && urlParams.get('spj_id')) {
                     const appRoot = document.getElementById('app-root');
                     const globalLoader = document.getElementById('global-loader');
                     if (appRoot) appRoot.style.display = 'none';
@@ -2269,12 +2269,175 @@
                         signContainer.id = 'public-sign-view';
                         document.body.appendChild(signContainer);
                     }
-                    this.renderSignPage(signContainer, urlParams.get('item_id'));
+                    this.renderSignHeaderPage(signContainer, urlParams.get('spj_id'));
                     return;
                 }
 
                 this.bindNav(); 
                 this.navigate('dashboard');
+            }
+            renderSignHeaderPage(container, spjId) {
+                const spjHeaders = DB.cache['spj_headers'] || [];
+                const spj = spjHeaders.find(s => s.id === spjId);
+                
+                if (!spj) {
+                    container.innerHTML = `<div style="padding: 60px; text-align: center; color: #dc2626; font-weight: bold; font-size: 1.1rem;">Link SPJ tidak valid atau sudah kedaluwarsa.</div>`;
+                    return;
+                }
+
+                const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
+                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+
+                let optionsPenerima = items.map(item => `
+                    <option value="${item.id}">
+                        ${item.nama_penerima || 'Penerima'} — Rp ${Utils.formatNumber(item.total)} ${item.status_ttd === 'SIGNED' ? '(Sudah TTD)' : ''}
+                    </option>
+                `).join('');
+
+                container.innerHTML = `
+                    <div style="min-height: 100vh; background: #f1f5f9; padding: 40px 20px; font-family: 'Inter', sans-serif;">
+                        <div style="max-width: 850px; margin: 0 auto; background: white; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); overflow: hidden;">
+                            <div style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px;">
+                                <h1 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 4px;">Pilih Nama & Isi Tanda Tangan Presensi</h1>
+                                <p style="font-size: 0.8rem; opacity: 0.85;">Kegiatan: ${pencairan.sub_kegiatan || '-'}</p>
+                            </div>
+                            
+                            <div style="padding: 35px;" class="space-y-4">
+                                <div class="form-group">
+                                    <label class="form-label font-bold">Pilih Nama Anda sesuai Daftar Penerima:</label>
+                                    <select id="select-penerima-sign" class="form-control" onchange="app.loadFormPenerimaSign('${spjId}', this.value)">
+                                        <option value="">-- Pilih Nama Anda --</option>
+                                        ${optionsPenerima}
+                                    </select>
+                                </div>
+
+                                <div id="container-form-penerima" style="margin-top: 20px;">
+                                    <p class="text-center text-muted py-8">Silakan pilih nama Anda pada pilihan di atas untuk menampilkan detail nominal dan kolom tanda tangan.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            loadFormPenerimaSign(spjId, itemId) {
+                const targetContainer = document.getElementById('container-form-penerima');
+                if (!itemId) {
+                    targetContainer.innerHTML = `<p class="text-center text-muted py-8">Silakan pilih nama Anda pada pilihan di atas.</p>`;
+                    return;
+                }
+
+                const item = DB.getById('pencairan_items', itemId);
+                if (!item) return;
+
+                const isAlreadySigned = item.status_ttd === 'SIGNED';
+
+                targetContainer.innerHTML = `
+                    <div class="space-y-4 border-t pt-4">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label class="form-label text-xs font-semibold">Nama Penerima</label>
+                                <input type="text" class="form-control" value="${item.nama_penerima || '-'}" readonly style="background: #f8fafc;">
+                            </div>
+                            <div>
+                                <label class="form-label text-xs font-semibold">Bank & Rekening</label>
+                                <input type="text" class="form-control" value="${item.bank || '-'} (${item.no_rekening || '-'})" readonly style="background: #f8fafc;">
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                            <div>
+                                <label class="form-label text-xs font-semibold">Jumlah Bruto</label>
+                                <input type="text" class="form-control" value="Rp ${Utils.formatNumber(item.harga)}" readonly style="background: #f8fafc;">
+                            </div>
+                            <div>
+                                <label class="form-label text-xs font-semibold">Pajak (PPh)</label>
+                                <input type="text" class="form-control" value="Rp ${Utils.formatNumber(item.pph || item.nilai_pajak || 0)}" readonly style="background: #f8fafc;">
+                            </div>
+                            <div>
+                                <label class="form-label text-xs font-semibold">Dibayarkan (Bersih)</label>
+                                <input type="text" class="form-control font-bold text-success" value="Rp ${Utils.formatNumber(item.total)}" readonly style="background: #f8fafc;">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label font-bold">Tanda Tangan Digital <span class="text-danger">*</span></label>
+                            ${isAlreadySigned && item.tanda_tangan ? `
+                                <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc; display: inline-block;">
+                                    <img src="${item.tanda_tangan}" alt="Tanda Tangan" style="max-height: 150px;">
+                                    <p class="text-xs text-success font-semibold mt-1">Anda sudah melakukan tanda tangan.</p>
+                                </div>
+                            ` : `
+                                <div style="border: 2px dashed #94a3b8; border-radius: 8px; background: #ffffff; padding: 10px; width: 100%;">
+                                    <canvas id="sig-canvas" width="600" height="200" style="touch-action: none; cursor: crosshair; width: 100%; max-width: 600px; height: 200px; background: #fff;"></canvas>
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="app.clearSignature()">Bersihkan Canvas</button>
+                                </div>
+                            `}
+                        </div>
+
+                        ${!isAlreadySigned ? `
+                            <div class="flex justify-end pt-3">
+                                <button type="button" class="btn btn-primary px-6" onclick="app.submitSignatureHeader('${itemId}')">Submit Tanda Tangan</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                if (!isAlreadySigned) {
+                    setTimeout(() => {
+                        const canvas = document.getElementById('sig-canvas');
+                        if (!canvas) return;
+                        const ctx = canvas.getContext('2d');
+                        let painting = false;
+
+                        function startPosition(e) { painting = true; draw(e); }
+                        function finishedPosition() { painting = false; ctx.beginPath(); }
+                        function draw(e) {
+                            if (!painting) return;
+                            ctx.lineWidth = 2.5;
+                            ctx.lineCap = 'round';
+                            ctx.strokeStyle = '#0f172a';
+
+                            const rect = canvas.getBoundingClientRect();
+                            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+                            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+
+                            ctx.lineTo(x, y);
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                        }
+
+                        canvas.addEventListener('mousedown', startPosition);
+                        canvas.addEventListener('mouseup', finishedPosition);
+                        canvas.addEventListener('mousemove', draw);
+                        canvas.addEventListener('touchstart', startPosition);
+                        canvas.addEventListener('touchend', finishedPosition);
+                        canvas.addEventListener('touchmove', draw);
+                    }, 100);
+                }
+            }
+
+            async submitSignatureHeader(itemId) {
+                const canvas = document.getElementById('sig-canvas');
+                if (!canvas) return;
+                
+                const dataURL = canvas.toDataURL('image/png');
+                
+                DB.update('pencairan_items', itemId, { tanda_tangan: dataURL, status_ttd: 'SIGNED' });
+
+                try {
+                    await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${itemId}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tanda_tangan: dataURL, status_ttd: 'SIGNED' })
+                    });
+                } catch(e) { console.error(e); }
+
+                alert('Tanda tangan berhasil disubmit! Terima kasih.');
+                location.reload();
             }
 
             bindNav() {
@@ -2682,67 +2845,161 @@ renderSignPage(container, itemId) {
             renderSPJ(container) {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
+                const spjHeaders = DB.cache['spj_headers'] || []; // Penyimpanan lokal header SPJ yang ditambahkan manual
 
-                let rows = '';
-                pencairanList.forEach((d) => {
-                    const items = pencairanItems.filter(item => item.pencairan_id === d.id);
-                    items.forEach((item, idx) => {
-                        const signUrl = `${window.location.origin + window.location.pathname}?action=sign&item_id=${item.id}`;
-                        const isSigned = item.status_ttd === 'SIGNED';
+                let rowsHeader = '';
+                spjHeaders.forEach((spj, idx) => {
+                    const pencairan = pencairanList.find(p => p.id === spj.pencairan_id) || {};
+                    const items = pencairanItems.filter(item => item.pencairan_id === spj.pencairan_id);
+                    const totalNominal = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+                    
+                    const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
 
-                        rows += `
-                            <tr class="hover:bg-gray-50 border-b">
-                                <td class="p-3 text-center">${idx + 1}</td>
-                                <td class="p-3 font-bold text-primary-600">${d.nomor || '-'}</td>
-                                <td class="p-3">${item.uraian || '-'}</td>
-                                <td class="p-3 font-semibold">${item.nama_penerima || '-'}</td>
-                                <td class="p-3 text-right">Rp ${Utils.formatNumber(item.total)}</td>
-                                <td class="p-3 text-center">
-                                    ${isSigned ? '<span class="badge badge-success">Sudah TTD</span>' : '<span class="badge badge-warning">Belum TTD</span>'}
-                                </td>
-                                <td class="p-3 text-center">
-                                    <div class="flex justify-center gap-1">
-                                        <button class="btn btn-outline btn-sm text-primary" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link tanda tangan berhasil disalin!', 'success'))" title="Salin Link Khusus Penerima">
-                                            <i class="ph ph-link"></i> Salin Link TTD
-                                        </button>
-                                        <a href="${signUrl}" target="_blank" class="btn btn-primary btn-sm" title="Buka Halaman Tanda Tangan">
-                                            <i class="ph ph-signature"></i> Buka
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
-                    });
+                    rowsHeader += `
+                        <tr class="hover:bg-gray-50 border-b">
+                            <td class="p-3 text-center">${idx + 1}</td>
+                            <td class="p-3 font-bold text-primary-600">${pencairan.nomor || 'SPJ-' + spj.id}</td>
+                            <td class="p-3">
+                                <div class="font-semibold">${pencairan.sub_kegiatan || '-'}</div>
+                                <div class="text-xs text-muted">Periode: ${pencairan.bulan || '-'} 2026 • ${items.length} Penerima</div>
+                            </td>
+                            <td class="p-3 text-right font-bold">Rp ${Utils.formatNumber(totalNominal)}</td>
+                            <td class="p-3 text-center">
+                                <div class="flex justify-center gap-1">
+                                    <button class="btn btn-outline btn-sm text-primary" onclick="app.bukaDetailSPJ('${spj.id}')" title="Buka Detail Rekening & Penyedia">
+                                        <i class="ph ph-list-dashes"></i> Buka Detail
+                                    </button>
+                                    <button class="btn btn-outline btn-sm text-success" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link Header TTD berhasil disalin!', 'success'))" title="Salin Link Tanda Tangan Header">
+                                        <i class="ph ph-link"></i> Salin Link
+                                    </button>
+                                    <button class="btn btn-ghost btn-sm text-danger" onclick="app.hapusSPJHeader('${spj.id}')" title="Hapus">
+                                        <i class="ph ph-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                 });
+
+                const optsPencairan = pencairanList.map(p => `<option value="${p.id}">${p.nomor} — ${p.sub_kegiatan} (${p.bulan || '-'})</option>`).join('');
 
                 container.innerHTML = `
                     <div class="p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6">
                             <div>
-                                <h1 class="text-2xl font-bold text-main">SPJ & Absen - Tanda Tangan Digital Penerima</h1>
-                                <p class="text-muted text-sm mt-1">Salin dan bagikan link khusus di bawah ini kepada masing-masing penerima agar mereka hanya bisa membuka formulir tanda tangannya saja.</p>
+                                <h1 class="text-2xl font-bold text-main">SPJ & Absen - Rekapitulasi Kegiatan</h1>
+                                <p class="text-muted text-sm mt-1">Tambahkan pengajuan pencairan ke daftar SPJ, lalu bagikan satu link header untuk ditandatangani bersama.</p>
                             </div>
+                            <button class="btn btn-primary" onclick="app.modalTambahSPJHeader()"><i class="ph ph-plus"></i> Tambah Header SPJ</button>
                         </div>
                         <div class="card flex-1 overflow-auto">
                             <table class="data-table">
                                 <thead>
                                     <tr>
                                         <th class="text-center" style="width: 50px;">No</th>
-                                        <th>No. Pengajuan</th>
-                                        <th>Uraian Kegiatan</th>
-                                        <th>Nama Penerima</th>
-                                        <th class="text-right">Jumlah Dibayarkan</th>
-                                        <th class="text-center">Status</th>
-                                        <th class="text-center" style="width: 200px;">Aksi Link</th>
+                                        <th>Nomor Pengajuan / SPJ</th>
+                                        <th>Sub Kegiatan & Keterangan</th>
+                                        <th class="text-right">Total Anggaran</th>
+                                        <th class="text-center" style="width: 280px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${rows || '<tr><td colspan="7" class="text-center text-muted py-8">Belum ada data penerima pencairan. Silakan buat pengajuan terlebih dahulu di menu Pengajuan Pencairan.</td></tr>'}
+                                    ${rowsHeader || '<tr><td colspan="5" class="text-center text-muted py-8">Belum ada header SPJ yang ditambahkan. Klik tombol "Tambah Header SPJ" di atas.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 `;
+            }
+
+            modalTambahSPJHeader() {
+                const pencairanList = DB.get('pencairan') || [];
+                const opts = pencairanList.map(p => `<option value="${p.id}">${p.nomor} — ${p.sub_kegiatan}</option>`).join('');
+
+                const body = `
+                    <form id="form-tambah-spj" class="flex flex-col gap-4">
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan</label>
+                            <select name="pencairan_id" class="form-control" required>
+                                <option value="">-- Pilih Pengajuan --</option>
+                                ${opts}
+                            </select>
+                        </div>
+                    </form>
+                `;
+
+                DOM.openModal('Tambah Header SPJ & Absen', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.simpanSPJHeader()">Simpan</button>`);
+            }
+
+            simpanSPJHeader() {
+                const data = DOM.getFormData('form-tambah-spj');
+                if (!data.pencairan_id) return this.notify('Pilih pengajuan pencairan terlebih dahulu', 'error');
+
+                if (!DB.cache['spj_headers']) DB.cache['spj_headers'] = [];
+                DB.cache['spj_headers'].unshift({ id: Utils.generateId(), pencairan_id: data.pencairan_id });
+
+                DOM.closeModal();
+                this.notify('Header SPJ berhasil ditambahkan', 'success');
+                this.renderSPJ(this.routerView);
+            }
+
+            hapusSPJHeader(id) {
+                if (confirm('Hapus header SPJ ini dari daftar?')) {
+                    DB.cache['spj_headers'] = (DB.cache['spj_headers'] || []).filter(s => s.id !== id);
+                    this.notify('Header SPJ dihapus', 'success');
+                    this.renderSPJ(this.routerView);
+                }
+            }
+
+            bukaDetailSPJ(spjId) {
+                const spjHeaders = DB.cache['spj_headers'] || [];
+                const spj = spjHeaders.find(s => s.id === spjId);
+                if (!spj) return;
+
+                const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
+                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+
+                let listHtml = items.map((item, idx) => `
+                    <tr class="border-b">
+                        <td class="p-3 text-center">${idx + 1}</td>
+                        <td class="p-3">
+                            <div class="font-semibold">${item.uraian || '-'}</div>
+                            <div class="text-xs text-muted">Bank: ${item.bank || '-'} (${item.no_rekening || '-'})</div>
+                        </td>
+                        <td class="p-3 font-medium">${item.nama_penerima || '-'}</td>
+                        <td class="p-3 text-right font-bold">Rp ${Utils.formatNumber(item.total)}</td>
+                        <td class="p-3 text-center">
+                            ${item.status_ttd === 'SIGNED' ? '<span class="badge badge-success">Sudah TTD</span>' : '<span class="badge badge-warning">Belum TTD</span>'}
+                        </td>
+                    </tr>
+                `).join('');
+
+                const body = `
+                    <div class="space-y-4">
+                        <div class="text-sm bg-gray-50 p-3 rounded border">
+                            <p><strong>Nomor Pengajuan:</strong> ${pencairan.nomor || '-'}</p>
+                            <p><strong>Sub Kegiatan:</strong> ${pencairan.sub_kegiatan || '-'}</p>
+                        </div>
+                        <div class="border rounded-lg overflow-hidden">
+                            <table class="data-table w-full text-sm">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="p-3 text-center" style="width:40px;">No</th>
+                                        <th class="p-3">Uraian / Rekening</th>
+                                        <th class="p-3">Nama Penerima / Penyedia</th>
+                                        <th class="p-3 text-right">Jumlah Bersih</th>
+                                        <th class="p-3 text-center">Status TTD</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${listHtml || '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada rincian item dalam pengajuan ini.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                DOM.openModal(`Detail Rekening & Penyedia (${pencairan.nomor || ''})`, body, `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup</button>`);
             }
 
             // ==========================================
