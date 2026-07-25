@@ -3133,19 +3133,22 @@
                     }
                 });
 
-                // Dropdown Rekening
+                // Dropdown Rekening dengan TomSelect atau diperlebar tampilannya
                 const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => {
                     const subKode = r.kode.split('.').slice(0, 6).join('.');
                     const subRecord = rekenings.find(sub => sub.kode === subKode);
                     const namaSub = subRecord ? subRecord.uraian : 'Tanpa Sub Kegiatan';
                     const sisaPagu = (Number(r.pagu) || 0) - (realisasiMap[r.id] || 0);
-                    return `<option value="${r.id}" data-sisa="${sisaPagu}">${namaSub} - ${r.uraian} (Sisa: ${Utils.formatNumber(sisaPagu)})</option>`;
+                    return `<option value="${r.id}" data-sisa="${sisaPagu}">${namaSub} — ${r.uraian} [Sisa: Rp ${Utils.formatNumber(sisaPagu)}]</option>`;
                 }).join('');
 
-                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-bank="${p.bank}" data-norek="${p.no_rekening}">${p.name} - ${p.direktur}</option>`).join('');
+                // Dropdown Penyedia (Menampilkan Nama, Bank, dan No Rekening agar tidak kepotong)
+                const optsPenyedia = penyedias.map(p => 
+                    `<option value="${p.id}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} — ${p.direktur} (Bank: ${p.bank || '-'} | No. Rek: ${p.no_rekening || '-'})</option>`
+                ).join('');
+
                 const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-ppn="${p.ppn}" data-tarif="${p.tarif}" data-dasar="${p.dasar_hitung}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
                 
-                // Dropdown Paket - Menggunakan DB.calculatePackageTotals
                 const optsPaket = packages.map(p => {
                     const t = DB.calculatePackageTotals(p);
                     const nego = p.pembulatan_negosiasi || t.negosiasi || 0;
@@ -3158,7 +3161,6 @@
                     <div class="card p-4 mb-4 border border-primary-200">
                         <h3 class="font-bold mb-3">1. Informasi & Jenis Pengajuan</h3>
                         
-                        <!-- INPUT NOMOR & TANGGAL -->
                         <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
                             <div class="form-group mb-0">
                                 <label class="form-label font-bold text-gray-700">Nomor Pengajuan</label>
@@ -3190,22 +3192,25 @@
 
                     <div class="card p-4">
                         <h3 class="font-bold mb-3">2. Rincian Tagihan & Pajak</h3>
-                        <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="grid grid-cols-1 gap-4 mb-4">
                             <div class="form-group">
                                 <label class="form-label">Rekening Belanja</label>
-                                <select id="input_rekening" class="form-control" onchange="app.hitungPajakPencairan()">
+                                <select id="input_rekening" class="form-control searchable-select" onchange="app.hitungPajakPencairan()">
                                     <option value="">-- Pilih Rekening --</option>
                                     ${optsRekening}
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Penerima (Referensi Penyedia)</label>
-                                <select id="input_penerima" class="form-control" onchange="app.updateInfoPenerima()">
-                                    <option value="">-- Pilih Penerima --</option>
+                                <label class="form-label">Penerima / Penyedia (Bisa Ketik untuk Cari Nama / Rekening)</label>
+                                <select id="input_penerima" class="form-control searchable-select" onchange="app.updateInfoPenerima()">
+                                    <option value="">-- Ketik nama perusahaan atau nomor rekening --</option>
                                     ${optsPenyedia}
                                 </select>
-                                <div id="info_bank" class="text-xs text-muted mt-1"></div>
+                                <div id="info_bank" class="text-xs font-semibold text-primary-700 bg-primary-50 p-2 rounded mt-2 border border-primary-100"></div>
                             </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-4">
                             <div class="form-group">
                                 <label class="form-label">Nilai Tagihan (Termasuk PPN jika ada)</label>
                                 <input type="text" inputmode="numeric" id="input_tagihan" class="form-control money-input font-bold" placeholder="0" oninput="app.hitungPajakPencairan()">
@@ -3247,8 +3252,20 @@
                         </div>
                     </div>
                 `;
+                
                 DOM.openModal('Form Pengajuan Pencairan', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.savePencairan()">Buat Pengajuan</button>`);
                 
+                // Inisialisasi TomSelect agar kotak pilihan pencairan bisa dicari (searchable)
+                setTimeout(() => {
+                    if(window.TomSelect) {
+                        new TomSelect("#input_rekening", { create: false, sortField: { field: "text", direction: "asc" } });
+                        new TomSelect("#input_penerima", { create: false, sortField: { field: "text", direction: "asc" } });
+                        if(document.getElementById('pilih_paket')) {
+                            new TomSelect("#pilih_paket", { create: false, sortField: { field: "text", direction: "asc" } });
+                        }
+                    }
+                }, 100);
+
                 document.getElementById('input_tagihan').addEventListener('input', function(e) {
                     let val = String(e.target.value).replace(/\D/g, '');
                     e.target.value = Utils.formatNumber(val);
