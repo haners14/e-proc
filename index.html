@@ -2284,17 +2284,53 @@
                 this.bindNav(); 
                 this.navigate('dashboard');
             }
-            renderSignHeaderPage(container, spjId) {
-                const spjHeaders = DB.cache['spj_headers'] || [];
-                const spj = spjHeaders.find(s => s.id === spjId);
+            async renderSignHeaderPage(container, spjId) {
+                // 1. Coba cari dulu dari cache lokal
+                let spjHeaders = DB.cache['spj_headers'] || [];
+                let spj = spjHeaders.find(s => s.id === spjId);
                 
+                // 2. Jika tidak ada di cache (misal dibuka di tab baru), fetch langsung ke Supabase
+                if (!spj) {
+                    try {
+                        const res = await fetch(`${SUPABASE_URL}spj_headers?id=eq.${spjId}`, {
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                        });
+                        if (res.ok) {
+                            const rows = await res.json();
+                            spj = rows[0];
+                        }
+                    } catch (e) {
+                        console.error("Gagal mengambil data spj_headers:", e);
+                    }
+                }
+
+                // Jika setelah dicari ke Supabase tetap tidak ketemu
                 if (!spj) {
                     container.innerHTML = `<div style="padding: 60px; text-align: center; color: #dc2626; font-weight: bold; font-size: 1.1rem;">Link Presensi SPJ tidak valid atau sudah kedaluwarsa.</div>`;
                     return;
                 }
 
-                const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                // Pastikan data pendukung seperti pencairan dan items juga ter-fetch jika belum ada di cache
+                let pencairan = DB.getById('pencairan', spj.pencairan_id);
+                if (!pencairan) {
+                    try {
+                        const res = await fetch(`${SUPABASE_URL}pencairan?id=eq.${spj.pencairan_id}`, {
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                        });
+                        const rows = res.ok ? await res.json() : [];
+                        pencairan = rows[0] || {};
+                    } catch (e) { pencairan = {}; }
+                }
+
+                let items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                if (items.length === 0) {
+                    try {
+                        const res = await fetch(`${SUPABASE_URL}pencairan_items?pencairan_id=eq.${spj.pencairan_id}`, {
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                        });
+                        items = res.ok ? await res.json() : [];
+                    } catch (e) { items = []; }
+                }
 
                 let optionsPenerima = items.map(item => `
                     <option value="${item.id}">
