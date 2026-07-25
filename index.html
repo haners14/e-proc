@@ -2519,9 +2519,9 @@
 
                 let rowsHtml = items.map((item, idx) => {
                     const matchedPenyedia = listPenyedia.find(p => p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
-                    const nama = item.nama_penerima || '-';
+                    const nama = matchedPenyedia ? matchedPenyedia.direktur : (item.nama_penerima || '-');
                     const jabatan = matchedPenyedia?.jabatan_direktur || '-';
-                    const instansi = matchedPenyedia?.name || '-';
+                    const instansi = matchedPenyedia?.name || item.nama_penerima || '-';
                     
                     const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
                         ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
@@ -2537,17 +2537,6 @@
                         </tr>
                     `;
                 }).join('');
-
-                // Jika baris kurang dari 10, tambahkan baris kosong agar format tabel rapi seperti contoh
-                const totalRows = Math.max(items.length, 10);
-                for (let i = items.length; i < totalRows; i++) {
-                    rowsHtml += `
-                        <tr>
-                            <td style="text-align: center; vertical-align: middle;">${i + 1}</td>
-                            <td></td><td></td><td></td><td></td>
-                        </tr>
-                    `;
-                }
 
                 const content = `
                     <div class="header" style="text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 20px; font-family: Arial, sans-serif;">
@@ -2574,6 +2563,23 @@
                             ${rowsHtml}
                         </tbody>
                     </table>
+
+                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 10pt; font-family: Arial, sans-serif;">
+                        <div style="text-align: center; width: 250px;">
+                            <p>Mengetahui,</p>
+                            <p><b>BENDAHARA PENGELUARAN</b></p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold;">RIKKA FENDRIANI</p>
+                            <p>NIP. 197102131997032001</p>
+                        </div>
+                        <div style="text-align: center; width: 280px;">
+                            <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026</p>
+                            <p><b>PEJABAT PELAKSANA TEKNIS KEGIATAN</b></p>
+                            <br><br><br><br>
+                            <p style="text-decoration: underline; font-weight: bold;">AGIH PRIBADI KUSUMAH, S.E., M.Si</p>
+                            <p>NIP. 198503292011011001</p>
+                        </div>
+                    </div>
                 `;
 
                 const customStyle = `
@@ -2605,11 +2611,9 @@
                     totalPajak += pajak;
                     totalBersih += bersih;
 
-                    let jabatanInfo = 'Pembina - IV/a';
                     const matchedPenyedia = listPenyedia.find(p => p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
-                    if (matchedPenyedia && matchedPenyedia.jabatan_direktur) {
-                        jabatanInfo = matchedPenyedia.jabatan_direktur;
-                    }
+                    const nama = matchedPenyedia ? matchedPenyedia.direktur : (item.nama_penerima || '-');
+                    const jabatanInfo = matchedPenyedia?.jabatan_direktur || '-';
 
                     const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
                         ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
@@ -2618,7 +2622,7 @@
                     return `
                         <tr>
                             <td style="text-align: center; vertical-align: middle;">${idx + 1}</td>
-                            <td style="vertical-align: middle;">${item.nama_penerima || '-'}</td>
+                            <td style="vertical-align: middle;">${nama}</td>
                             <td style="vertical-align: middle;">${jabatanInfo}</td>
                             <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(bruto)}</td>
                             <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(pajak)}</td>
@@ -2666,7 +2670,7 @@
                     </table>
 
                     <div style="border: 1px solid #000; border-top: none; padding: 6px 10px; font-size: 9.5pt; font-family: Arial, sans-serif; font-style: italic;">
-                        Terbilang : <b>${Utils.toWords(totalBersih)} rupiah</b>
+                        Terbilang : <b>${Utils.toWords(totalBruto)} rupiah</b>
                     </div>
 
                     <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 10pt; font-family: Arial, sans-serif;">
