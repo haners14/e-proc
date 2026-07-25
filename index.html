@@ -3475,7 +3475,6 @@ openFormInputItemPencairan(pencairanId) {
                     return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, dan nilai tagihan.', 'error');
                 }
 
-                // Kalkulasi akhir sebelum simpan
                 let dpp = bruto;
                 let ppn = 0;
                 let pph = 0;
@@ -3495,7 +3494,6 @@ openFormInputItemPencairan(pencairanId) {
 
                 const jumlahDibayarkan = bruto - pph;
 
-                // Siapkan data item baru
                 const newItem = {
                     id: Utils.generateId(),
                     pencairan_id: pencairanId,
@@ -3513,11 +3511,9 @@ openFormInputItemPencairan(pencairanId) {
                     created_at: new Date().toISOString()
                 };
 
-                // Simpan ke cache & database Supabase
                 if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
                 DB.cache['pencairan_items'].unshift(newItem);
 
-                // Sinkron ke Supabase REST API
                 fetch(`${SUPABASE_URL}pencairan_items`, {
                     method: 'POST',
                     headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
@@ -3525,8 +3521,10 @@ openFormInputItemPencairan(pencairanId) {
                 }).catch(e => console.error(e));
 
                 this.notify('Item rincian berhasil ditambahkan', 'success');
-                this.formDetailPencairan(pencairanId); // Kembali ke halaman tabel detail
-            }
+                
+                // Kembali ke halaman detail item rincian (bukan kembali ke daftar utama)
+                this.formDetailPencairan(pencairanId);
+            },
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
