@@ -626,12 +626,13 @@
         };
 
         // -----------------------------------------------------
-        // 4. CRUD ENGINE
+        // 4. CRUD ENGINE (Dengan Perbaikan Paket: Search, Ceklis, Paginasi)
         // -----------------------------------------------------
         class CRUDEngine {
             constructor(schemaKey) {
                 this.schemaKey = schemaKey; this.schema = Schemas[schemaKey];
                 this.filteredData = []; this.currentPage = 1; this.itemsPerPage = 10; this.searchQuery = '';
+                this.selectedIds = new Set(); // State untuk menyimpan ID baris yang dicentang
             }
 
             loadData() {
@@ -683,23 +684,58 @@
                                 </div>
                                 <div class="flex gap-2"><button class="btn btn-ghost btn-sm" onclick="app.crudEngine.refresh()"><i class="ph ph-arrows-clockwise"></i> Sync API</button></div>
                             </div>
-                            <div class="flex-1 overflow-auto">${this.renderTable()}</div>
-                            ${this.renderPagination()}
+                            <div class="flex-1 overflow-auto" id="crud-table-container">${this.renderTable()}</div>
+                            <div id="crud-pagination-container">${this.renderPagination()}</div>
                         </div>
                     </div>
                 `;
                 const si = document.getElementById('crud-search');
-                if(si) si.addEventListener('keypress', (e) => { if(e.key === 'Enter') this.handleSearch(); });
+                if(si) {
+                    // Gunakan event 'input' agar pencarian merespons secara real-time tanpa harus menekan Enter
+                    si.addEventListener('input', (e) => {
+                        this.searchQuery = e.target.value;
+                        this.currentPage = 1;
+                        this.loadData();
+                        document.getElementById('crud-table-container').innerHTML = this.renderTable();
+                        document.getElementById('crud-pagination-container').innerHTML = this.renderPagination();
+                    });
+                }
             }
 
-            handleSearch() { this.searchQuery = document.getElementById('crud-search').value; this.currentPage = 1; app.reRenderCurrentView(); }
-            async refresh() { this.searchQuery = ''; app.reRenderCurrentView(); app.notify('Sinkronisasi selesai', 'info'); }
+            handleSearch() { 
+                this.searchQuery = document.getElementById('crud-search').value; 
+                this.currentPage = 1; 
+                app.reRenderCurrentView(); 
+            }
+
+            async refresh() { 
+                this.searchQuery = ''; 
+                app.reRenderCurrentView(); 
+                app.notify('Sinkronisasi selesai', 'info'); 
+            }
 
             renderTable() {
                 if(this.filteredData.length === 0) return `<div class="empty-state"><i class="ph ph-database text-4xl mb-3"></i><p>Tidak ada data ditemukan.</p></div>`;
-                const start = (this.currentPage - 1) * this.itemsPerPage; const paginated = this.filteredData.slice(start, start + this.itemsPerPage); const fields = this.schema.fields.filter(f => !f.hideInTable);
-                let thead = `<tr><th style="width:50px">No</th>` + fields.map(f => `<th style="width:${f.width||'auto'}">${f.label}</th>`).join('') + `<th style="width:100px; text-align:right;">Aksi</th></tr>`;
+                const start = (this.currentPage - 1) * this.itemsPerPage; 
+                const paginated = this.filteredData.slice(start, start + this.itemsPerPage); 
+                const fields = this.schema.fields.filter(f => !f.hideInTable);
+                
+                let checkboxTh = '';
+                if (this.schemaKey === 'paket') {
+                    const pageIds = paginated.map(i => i.id);
+                    const allChecked = pageIds.length > 0 && pageIds.every(id => this.selectedIds.has(id));
+                    checkboxTh = `<th style="width:40px; text-align:center;"><input type="checkbox" ${allChecked ? 'checked' : ''} onclick="app.crudEngine.handleCheckAll(this.checked)"></th>`;
+                }
+
+                let thead = `<tr>${checkboxTh}<th style="width:50px">No</th>` + fields.map(f => `<th style="width:${f.width||'auto'}">${f.label}</th>`).join('') + `<th style="width:100px; text-align:right;">Aksi</th></tr>`;
+                
                 let tbody = paginated.map((item, index) => {
+                    let checkboxTd = '';
+                    if (this.schemaKey === 'paket') {
+                        const isChecked = this.selectedIds.has(item.id) ? 'checked' : '';
+                        checkboxTd = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}" ${isChecked} onclick="app.crudEngine.handleCheckRow('${item.id}', this.checked)"></td>`;
+                    }
+
                     let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
                     const rowColors = {'BELUM PROSES':'#f8fafc','PROSES SPSE':'#eff6ff','KONTRAK':'#f0fdf4','SELESAI':'#f0fdf4'};
                     const rowStyle = this.schemaKey === 'paket' ? ` style="background:${rowColors[item.stage] || '#fff'}"` : '';
@@ -717,9 +753,30 @@
                                <button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
                     }
                     
-                    return `<tr${rowStyle}>${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
+                    return `<tr${rowStyle}>${checkboxTd}${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
                 }).join('');
                 return `<table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+            }
+
+            handleCheckRow(id, isChecked) {
+                if (isChecked) {
+                    this.selectedIds.add(id);
+                } else {
+                    this.selectedIds.delete(id);
+                }
+            }
+
+            handleCheckAll(isChecked) {
+                const start = (this.currentPage - 1) * this.itemsPerPage; 
+                const paginated = this.filteredData.slice(start, start + this.itemsPerPage);
+                paginated.forEach(item => {
+                    if (isChecked) {
+                        this.selectedIds.add(item.id);
+                    } else {
+                        this.selectedIds.delete(item.id);
+                    }
+                });
+                document.getElementById('crud-table-container').innerHTML = this.renderTable();
             }
 
             renderPagination() {
@@ -733,7 +790,8 @@
                 const totalPages = Math.ceil(this.filteredData.length / this.itemsPerPage);
                 if (page < 1 || page > totalPages) return;
                 this.currentPage = page;
-                app.reRenderCurrentView();
+                document.getElementById('crud-table-container').innerHTML = this.renderTable();
+                document.getElementById('crud-pagination-container').innerHTML = this.renderPagination();
             }
 
             showForm(id = null) {
