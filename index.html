@@ -1845,7 +1845,12 @@
                             <div class="text-xs text-muted">${master.document_code || '-'}</div>
                         </td>
                         <td>
-                            <input type="text" class="form-control chk-num-input" data-id="${master.id}" value="${displayNum}" placeholder="Nomor dokumen">
+                            <div class="flex gap-1 items-center">
+                                <input type="text" class="form-control chk-master-input w-full" data-id="${master.id}" data-field="document_number" value="${displayNum}" placeholder="Nomor dokumen">
+                                <button class="btn btn-ghost btn-sm text-warning" title="Reset ke Format Otomatis" onclick="app.resetDocumentNumber('${master.id}', '${master.document_name}')">
+                                    <i class="ph ph-arrow-counter-clockwise"></i>
+                                </button>
+                            </div>
                         </td>
                         <td>
                             <input type="date" class="form-control chk-date-input" data-id="${master.id}" value="${displayDate}">
@@ -3315,6 +3320,21 @@ console.log(
                 }
 
                 this.notify('Checklist, nomor, dan tanggal dokumen berhasil disimpan ke database!', 'success');
+                this.reRenderCurrentView();
+            }
+            resetDocumentNumber(docId, docName) {
+                // Berikan konfirmasi ke pengguna sebelum menghapus nomor manual
+                if (!confirm(`Kembalikan nomor dokumen ${docName} ke format penomoran otomatis?`)) {
+                    return;
+                }
+
+                // Ubah document_number menjadi null di database
+                // agar sistem otomatis menggunakan rumus dari calculateDocumentMeta
+                DB.update('package_documents', docId, {
+                    document_number: null
+                });
+
+                this.notify(`Nomor dokumen ${docName} berhasil direset.`, 'success');
                 this.reRenderCurrentView();
             }
             togglePinPackage(pkgId) {
