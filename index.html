@@ -1853,7 +1853,12 @@
                             </div>
                         </td>
                         <td>
-                            <input type="date" class="form-control chk-date-input" data-id="${master.id}" value="${displayDate}">
+                            <div class="flex gap-1 items-center">
+                                <input type="date" class="form-control chk-date-input w-full" data-id="${master.id}" value="${displayDate}">
+                                <button class="btn btn-ghost btn-sm text-warning" title="Reset ke Jadwal Otomatis" onclick="app.resetDocumentDate('${master.id}', '${master.document_name}')">
+                                    <i class="ph ph-arrow-counter-clockwise"></i>
+                                </button>
+                            </div>
                         </td>
                         <td>${Utils.getBadge(master.status || 'DRAFT')}</td>
                         <td>
@@ -3335,6 +3340,20 @@ console.log(
                 });
 
                 this.notify(`Nomor dokumen ${docName} berhasil direset.`, 'success');
+                this.reRenderCurrentView();
+            }
+            resetDocumentDate(docId, docName) {
+                // Konfirmasi sebelum mereset tanggal
+                if (!confirm(`Kembalikan tanggal dokumen ${docName} ke perhitungan jadwal otomatis?`)) {
+                    return;
+                }
+
+                // Kosongkan field document_date di database
+                DB.update('package_documents', docId, {
+                    document_date: null
+                });
+
+                this.notify(`Tanggal dokumen ${docName} berhasil direset ke jadwal Master Waktu.`, 'success');
                 this.reRenderCurrentView();
             }
             togglePinPackage(pkgId) {
