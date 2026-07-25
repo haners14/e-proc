@@ -4155,29 +4155,41 @@ renderSignPage(container, itemId) {
                     }
                 });
 
-                // Filter rekening DPA (jenis Detail) yang sesuai dengan Sub Kegiatan pada header
-                const optsRekening = daftarRekening.filter(r => {
-                    if (r.jenis !== 'Detail') return false;
-                    if (!subKegiatanHeader) return true;
-
-                    // Telusuri hierarki ke atas untuk mencocokkan sub kegiatan header
-                    let curr = r;
-                    let matched = false;
-                    let safety = 0;
-                    while (curr && safety < 10) {
-                        const uraianCurr = (curr.uraian || '').toLowerCase();
-                        if (uraianCurr.includes(subKegiatanHeader) || subKegiatanHeader.includes(uraianCurr)) {
-                            matched = true;
-                            break;
-                        }
-                        curr = daftarRekening.find(x => x.kode === curr.parent_id);
-                        safety++;
-                    }
-                    return matched;
+                // Cari master rekening yang bertindak sebagai Sub Kegiatan yang cocok dengan header
+                const matchedSubKegiatanNodes = daftarRekening.filter(r => {
+                    if (!subKegiatanHeader) return false;
+                    const uraianRek = (r.uraian || '').toLowerCase();
+                    return uraianRek === subKegiatanHeader || uraianRek.includes(subKegiatanHeader);
                 });
 
-                // Fallback jika hasil filter kosong, tampilkan seluruh rekening detail agar form tidak blank
-                const finalRekeningList = optsRekening.length > 0 ? optsRekening : daftarRekening.filter(r => r.jenis === 'Detail');
+                const matchedIds = new Set(matchedSubKegiatanNodes.map(r => r.id));
+                const matchedCodes = new Set(matchedSubKegiatanNodes.map(r => r.kode));
+
+                // Filter rekening DPA (jenis Detail) yang secara hierarki berada di bawah Sub Kegiatan header
+                const optsRekening = daftarRekening.filter(r => {
+                    if (r.jenis !== 'Detail') return false;
+                    if (!subKegiatanHeader) return true; // Tampilkan semua jika header kosong
+
+                    // Cek apakah parent_id atau jalur hierarki ke atas merujuk ke sub kegiatan header
+                    let curr = r;
+                    let safety = 0;
+                    while (curr && safety < 15) {
+                        if (matchedIds.has(curr.id) || matchedCodes.has(curr.kode)) {
+                            return true;
+                        }
+                        // Cek pencocokan teks langsung pada level di atasnya
+                        const currUraian = (curr.uraian || '').toLowerCase();
+                        if (currUraian === subKegiatanHeader || currUraian.includes(subKegiatanHeader)) {
+                            return true;
+                        }
+                        curr = daftarRekening.find(x => x.kode === curr.parent_id || x.id === curr.parent_id);
+                        safety++;
+                    }
+                    return false;
+                });
+
+                // Jika hasil filter strict kosong, gunakan seluruh rekening agar tidak error/blank total
+                const finalRekeningList = optsRekening.length > 0 ? optsRekening : [];
 
                 const optsRekeningHtml = finalRekeningList.map(r => {
                     const selected = existingItem && existingItem.rekening_id === r.id ? 'selected' : '';
@@ -4229,7 +4241,7 @@ renderSignPage(container, itemId) {
                             <label class="form-label font-bold text-gray-700">Rekening DPA (Sub Kegiatan: ${header.sub_kegiatan || '-'})</label>
                             <select id="detail_rekening_id" class="form-control searchable-select" required>
                                 <option value="">-- Pilih Rekening Belanja Sesuai Sub Kegiatan --</option>
-                                ${optsRekeningHtml}
+                                ${optsRekeningHtml || '<option value="">Tidak ada rekening detail untuk sub kegiatan ini</option>'}
                             </select>
                         </div>
 
