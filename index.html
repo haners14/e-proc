@@ -3707,8 +3707,20 @@ renderSignPage(container, itemId) {
                     </div>
                 `;
 
-                const footerHTML = `<button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup & Selesai</button>`;
+                // Footer diubah menjadi tombol Simpan (menyelesaikan dan merefresh tabel utama pengajuan)
+                const footerHTML = `
+                    <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
+                    <button class="btn btn-primary" onclick="app.selesaiKelolaDetailPencairan()"><i class="ph ph-floppy-disk"></i> Simpan</button>
+                `;
                 DOM.openModal('Kelola Rincian Item Pengajuan', bodyHTML, footerHTML, '1050px');
+            }
+
+            selesaiKelolaDetailPencairan() {
+                DOM.closeModal();
+                this.notify('Rincian item pencairan berhasil disimpan.', 'success');
+                if (typeof this.renderPengajuan === 'function') {
+                    this.renderPengajuan(this.routerView);
+                }
             }
 
            openFormInputItemPencairan(pencairanId, itemId = null) {
