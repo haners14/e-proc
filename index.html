@@ -5550,9 +5550,11 @@ renderSignPage(container, itemId) {
                 }
                 try { localStorage.setItem('pf_pinned', JSON.stringify(DB.cache['pinned_packages'])); } catch(e) {}
                 
-                // Jika sedang berada di halaman daftar paket, render ulang tabelnya agar perubahan ikon langsung terlihat
-                if (this.crudEngine && this.currentRoute === 'pengadaan-daftar') {
+                // Perbarui tampilan sesuai route aktif saat ini
+                if (this.currentRoute === 'pengadaan-daftar' && this.crudEngine) {
                     this.crudEngine.render(this.routerView);
+                } else if (this.currentRoute === 'dashboard') {
+                    CustomViews.renderDashboard(this.routerView);
                 } else {
                     this.reRenderCurrentView();
                 }
