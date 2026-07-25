@@ -3301,7 +3301,7 @@
 
                 // Formatting Dropdown Paket
                 const optsPaket = packages.map(p => {
-                    const t = this.calculatePackageTotals(p);
+    const t = DB.calculatePackageTotals(p);
                     const nego = p.pembulatan_negosiasi || t.negosiasi || 0;
                     return `<option value="${p.id}" data-nilai="${nego}">${p.name}</option>`;
                 }).join('');
