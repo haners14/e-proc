@@ -220,6 +220,7 @@
                     <div class="nav-group-title">MASTER DATA</div>
                     <div class="nav-item" data-route="master-pejabat"><i class="ph ph-identification-badge"></i> <span>Pejabat</span></div>
                     <div class="nav-item" data-route="master-penyedia"><i class="ph ph-buildings"></i> <span>Penyedia</span></div>
+                    <div class="nav-item" data-route="master-pajak"><i class="ph ph-receipt"></i> <span>Master Pajak</span></div>
                     <div class="nav-item" data-route="master-template"><i class="ph ph-files"></i> <span>Template Dokumen</span></div>
                     <div class="nav-item" data-route="master-penomoran"><i class="ph ph-list-numbers"></i> <span>Penomoran Dokumen</span></div>
                     <div class="nav-item" data-route="master-waktu"><i class="ph ph-timer"></i> <span>Master Waktu</span></div>
@@ -228,16 +229,6 @@
                     <div class="nav-item" data-route="master-kontrak"><i class="ph ph-file-text"></i> <span>Jenis Kontrak</span></div>
                     <div class="nav-item" data-route="master-libur"><i class="ph ph-calendar-x"></i> <span>Hari Libur</span></div>
                 </div>
-
-                <!-- GRUP DOKUMEN DISEMBUNYIKAN SEMENTARA
-                <div class="nav-group">
-                    <div class="nav-group-title">DOKUMEN</div>
-                    <div class="nav-item" data-route="dokumen-sistem"><i class="ph ph-file-text"></i> <span>Dokumen Sistem</span></div>
-                    <div class="nav-item" data-route="dokumen-pendukung"><i class="ph ph-upload-simple"></i> <span>Dokumen Pendukung</span></div>
-                    <div class="nav-item" data-route="dokumen-spse"><i class="ph ph-link"></i> <span>Dokumen SPSE</span></div>
-                    <div class="nav-item" data-route="dokumen-arsip"><i class="ph ph-archive"></i> <span>Arsip Dokumen</span></div>
-                </div>
-                -->
 
                 <div class="nav-group">
                     <div class="nav-group-title">PERTANGGUNGJAWABAN</div>
@@ -249,13 +240,6 @@
                 
                 <div class="nav-group">
                     <div class="nav-group-title">LAPORAN</div>
-                    <!-- SUB-MENU LAPORAN DISEMBUNYIKAN
-                    <div class="nav-item" data-route="laporan-pengadaan"><i class="ph ph-chart-bar"></i> <span>Monitoring Pengadaan</span></div>
-                    <div class="nav-item" data-route="laporan-jadwal"><i class="ph ph-calendar"></i> <span>Monitoring Jadwal</span></div>
-                    <div class="nav-item" data-route="laporan-anggaran"><i class="ph ph-currency-circle-dollar"></i> <span>Monitoring Anggaran</span></div>
-                    <div class="nav-item" data-route="laporan-penyedia"><i class="ph ph-users"></i> <span>Laporan Penyedia</span></div>
-                    <div class="nav-item" data-route="laporan-pejabat"><i class="ph ph-user-list"></i> <span>Laporan Pejabat</span></div>
-                    -->
                     <div class="nav-item" data-route="laporan-paket"><i class="ph ph-printer"></i> <span>Cetak Laporan Paket</span></div>
                 </div>
 
@@ -289,7 +273,7 @@
             
             <!-- Global Modal Overlay -->
             <div class="modal-overlay" id="global-modal">
-                <div class="modal-content">
+                <div class="modal-content" id="modal-content-box">
                     <div class="modal-header">
                         <h3 class="font-bold text-lg" id="modal-title">Form</h3>
                         <button class="btn btn-ghost btn-sm" onclick="DOM.closeModal()"><i class="ph ph-x"></i></button>
@@ -392,7 +376,7 @@
             'pejabat': 'profiles', 'penyedia': 'suppliers', 'template': 'document_templates', 'penomoran': 'document_number_rules',
             'waktu': 'schedule_document_rules', 'jadwal_proses': 'schedule_process_rules', 'paket': 'packages',
             'package_documents': 'package_documents', 'documents': 'generated_documents',
-            'jenis': 'jenis_pengadaan', 'kontrak': 'jenis_kontrak', 'libur': 'libur'
+            'jenis': 'jenis_pengadaan', 'kontrak': 'jenis_kontrak', 'libur': 'libur', 'master_pajak': 'master_pajak'
         };
 
         const DEFAULTS = {
@@ -438,9 +422,7 @@
                         {id:'R5', kode:'5.02.03.2.01.0007.5.1.02.02.001.00080', uraian:'Belanja Honorarium Penanggungjawaban Pengelola Keuangan', pagu:26520000, jenis:'Detail'}
                     ];
                 }
-                if(!this.cache['master_pajak'] || this.cache['master_pajak'].length === 0) {
-                    this.cache['master_pajak'] = [{id:'P1', nama:'PPN', persentase:11}, {id:'P2', nama:'PPh 21', persentase:5}, {id:'P3', nama:'PPh 22', persentase:1.5}, {id:'P4', nama:'PPh 23', persentase:2}, {id:'P5', nama:'PPh 4 Ayat 2', persentase:10}];
-                }
+                
                 if(!this.cache['pencairan']) this.cache['pencairan'] = [];
                 if(!this.cache['pencairan_items']) this.cache['pencairan_items'] = [];
                 if(!this.cache['package_personnel']) this.cache['package_personnel'] = [];
@@ -470,7 +452,7 @@
             },
 
             get(table) { return this.cache[TABLE_MAP[table] || table] || []; },
-            getById(table, id) { return this.get(table).find(i => i.id === id); },
+            getById(table, id) { return this.get(table).find(i => String(i.id) === String(id)); },
             
             insert(table, payload) {
                 const sbTable = TABLE_MAP[table] || table;
@@ -485,7 +467,6 @@
                 const sbTable = TABLE_MAP[table] || table;
                 const data = this.get(table);
                 
-                // PERBAIKAN 1: Konversi kedua ID menjadi String agar selalu cocok
                 const index = data.findIndex(i => String(i.id) === String(id));
                 
                 if(index > -1) {
@@ -501,8 +482,6 @@
                         }
                     }
 
-                    // PERBAIKAN 3: Ubah semua string kosong ("") menjadi null 
-                    // agar Supabase tidak menolak tipe data tanggal/angka
                     for (let key in payload) {
                         if (payload[key] === "") {
                             payload[key] = null;
@@ -513,20 +492,15 @@
                     data[index] = updated;
 
                     let cpy = { ...payload };
-
-                    // PERBAIKAN 2: Hapus ID dari payload sebelum dikirim ke Supabase 
-                    // untuk mencegah error "cannot update primary key column"
                     delete cpy.id;
 
                    if (payload.items !== undefined) {
                         const itemsToInsert = payload.items.map((item, idx) => {
-                            // KEMBALIKAN ID: Jangan buang ID, jika tidak ada generate baru menggunakan Utils
                             return { 
                                 ...item, 
-                                id: item.id || Utils.generateId(), // Pastikan ID selalu ada
+                                id: item.id || Utils.generateId(), 
                                 package_id: id, 
                                 urutan: idx,
-                                // Pertahankan fallback nilai 0 ini
                                 sat: item.sat || '',
                                 vol_hps: Number(item.vol_hps) || 0,
                                 harga_hps: Number(item.harga_hps) || 0,
@@ -550,7 +524,6 @@
                                         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, 
                                         body: JSON.stringify(itemsToInsert) 
                                     });
-                                    if (!res.ok) console.error("Error insert Supabase:", await res.text());
                                 }
                             } catch (e) { console.error(e); }
                         })();
@@ -559,11 +532,7 @@
 
                     if (payload.personnel !== undefined) {
                         const personnelToInsert = payload.personnel.map(item => {
-                            return { 
-                                ...item, 
-                                id: item.id || Utils.generateId(), // Pastikan ID selalu ada
-                                package_id: id 
-                            };
+                            return { ...item, id: item.id || Utils.generateId(), package_id: id };
                         });
                         (async () => {
                             try {
@@ -581,7 +550,7 @@
 
             delete(table, id) {
                 const sbTable = TABLE_MAP[table] || table;
-                this.cache[sbTable] = this.cache[sbTable].filter(i => i.id !== id);
+                this.cache[sbTable] = this.cache[sbTable].filter(i => String(i.id) !== String(id));
                 this._sync('DELETE', table, null, id);
             },
             
@@ -621,11 +590,25 @@
         };
 
         const DOM = {
-            openModal(title, bodyHTML, footerHTML) {
+            openModal(title, bodyHTML, footerHTML = '') {
                 document.getElementById('modal-title').innerText = title; 
                 document.getElementById('modal-body').innerHTML = bodyHTML; 
                 document.getElementById('modal-footer').innerHTML = footerHTML; 
                 document.getElementById('global-modal').classList.add('active');
+                
+                // Jika footer kosong, sembunyikan border footer
+                if(footerHTML === '') {
+                    document.getElementById('modal-footer').style.display = 'none';
+                } else {
+                    document.getElementById('modal-footer').style.display = 'flex';
+                }
+                
+                // Tambahkan max-width lebih besar untuk form tertentu
+                if(title.includes('Pengajuan Pencairan')) {
+                    document.getElementById('modal-content-box').style.maxWidth = '800px';
+                } else {
+                    document.getElementById('modal-content-box').style.maxWidth = '500px';
+                }
             },
             closeModal() { document.getElementById('global-modal').classList.remove('active'); },
             getFormData(formId) { 
@@ -775,8 +758,59 @@
         }
 
         // -----------------------------------------------------
-        // 5. CUSTOM VIEWS (Dashboard, Reports, AI)
+        // 5. CUSTOM VIEWS
         // -----------------------------------------------------
+        
+        class MasterPajakView {
+            static render(container) {
+                const pajaks = DB.get('master_pajak') || [];
+                
+                const rows = pajaks.map((p, index) => `
+                    <tr class="hover:bg-gray-50 border-b">
+                        <td class="p-3 text-center">${index + 1}</td>
+                        <td class="p-3 font-medium">${p.profil}</td>
+                        <td class="p-3 text-center">${p.ppn ? '<span class="text-success font-bold">✓</span>' : '<span class="text-danger">✗</span>'}</td>
+                        <td class="p-3">${p.jenis_pph || '-'}</td>
+                        <td class="p-3 text-center">${p.tarif}%</td>
+                        <td class="p-3 text-center">${p.dasar_hitung || '-'}</td>
+                        <td class="p-3 text-sm text-gray-600">${p.keterangan || '-'}</td>
+                    </tr>
+                `).join('');
+
+                container.innerHTML = `
+                    <div class="p-6 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h1 class="text-2xl font-bold text-main">Master Pajak</h1>
+                                <p class="text-muted text-sm mt-1">Referensi Profil Pajak otomatis untuk Pengajuan Pencairan</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card flex-1 overflow-hidden flex flex-col">
+                            <div class="table-container flex-1 overflow-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead class="bg-gray-100 sticky top-0 z-10">
+                                        <tr>
+                                            <th class="p-3 text-center border-b">ID</th>
+                                            <th class="p-3 border-b">Profil Pajak</th>
+                                            <th class="p-3 text-center border-b">PPN</th>
+                                            <th class="p-3 border-b">Jenis PPh</th>
+                                            <th class="p-3 text-center border-b">Tarif</th>
+                                            <th class="p-3 text-center border-b">Dasar Hitung</th>
+                                            <th class="p-3 border-b">Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${rows.length ? rows : '<tr><td colspan="7" class="p-6 text-center text-muted">Belum ada data pajak</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         class CustomViews {
             static renderDashboard(container) {
                 const packages = DB.get('paket');
@@ -1056,17 +1090,10 @@
                 };
 
                 if(this.activeTab === 'datapaket') bindAutoSave('form-datapaket', d => { 
-    if(d.pagu) d.pagu = Number(String(d.pagu).replace(/\D/g, '')) || 0; 
-    
-    // Solusi Sapu Jagat: Ubah semua string kosong ("") menjadi null
-    for (let key in d) {
-        if (d[key] === "") {
-            d[key] = null;
-        }
-    }
-    
-    return d; 
-});
+                    if(d.pagu) d.pagu = Number(String(d.pagu).replace(/\D/g, '')) || 0; 
+                    for (let key in d) { if (d[key] === "") d[key] = null; }
+                    return d; 
+                });
                 if(this.activeTab === 'pejabat') bindAutoSave('form-pejabat');
                 if(this.activeTab === 'kak') bindAutoSave('form-kak');
                 if(this.activeTab === 'catatan') bindAutoSave('pkg-notes', () => ({ notes: document.getElementById('pkg-notes').value }));
@@ -1940,22 +1967,13 @@
                                 <div class="form-group"><label class="form-label">Maksud & Tujuan</label><textarea name="maksud_tujuan" class="form-control" rows="3">${p.maksud_tujuan || ''}</textarea></div>
                                 <div class="form-group"><label class="form-label">Sasaran</label><textarea name="sasaran" class="form-control" rows="2">${p.sasaran || ''}</textarea></div>
                                 <div class="form-group">
-    <label class="form-label">Dasar Hukum</label>
-    <textarea
-        name="dasar_hukum"
-        class="form-control"
-        rows="4"
-        placeholder="Masukkan dasar hukum penyusunan KAK">${p.dasar_hukum || ''}</textarea>
-</div>
-
-<div class="form-group">
-    <label class="form-label">Spesifikasi Teknis</label>
-    <textarea
-        name="spesifikasi_teknis"
-        class="form-control"
-        rows="5"
-        placeholder="Masukkan spesifikasi teknis pekerjaan">${p.spesifikasi_teknis || ''}</textarea>
-</div>
+                                    <label class="form-label">Dasar Hukum</label>
+                                    <textarea name="dasar_hukum" class="form-control" rows="4" placeholder="Masukkan dasar hukum penyusunan KAK">${p.dasar_hukum || ''}</textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Spesifikasi Teknis</label>
+                                    <textarea name="spesifikasi_teknis" class="form-control" rows="5" placeholder="Masukkan spesifikasi teknis pekerjaan">${p.spesifikasi_teknis || ''}</textarea>
+                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
                                     <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><textarea name="sumber_pembiayaan" class="form-control" rows="2">${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
@@ -2134,8 +2152,79 @@
             }
         }
 
-        class PertanggungjawabanView {
-            static renderPagu(container) {
+        class App {
+            constructor() { 
+                this.routerView = document.getElementById('router-view'); 
+                this.currentRoute = ''; 
+                this.init(); 
+            }
+            
+            async init() {
+                await DB.init();
+                this.bindNav(); 
+                this.navigate('dashboard');
+            }
+
+            bindNav() {
+                document.getElementById('sidebar-nav').addEventListener('click', (e) => {
+                    const nav = e.target.closest('.nav-item');
+                    if (nav && nav.dataset.route) { 
+                        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+                        nav.classList.add('active'); 
+                        this.navigate(nav.dataset.route); 
+                    }
+                });
+            }
+
+            navigate(route, param = null) {
+                this.currentRoute = route; 
+                this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Memuat modul dari Supabase...</p></div>`;
+                
+                setTimeout(() => {
+                    this.routerView.innerHTML = '';
+                    const schemaMap = { 
+                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket' 
+                    };
+                    
+                    if (schemaMap[route]) { 
+                        this.crudEngine = new CRUDEngine(schemaMap[route]); 
+                        this.crudEngine.render(this.routerView); 
+                        return; 
+                    }
+
+                    switch(route) {
+                        case 'dashboard': CustomViews.renderDashboard(this.routerView); break;
+                        case 'workspace': 
+                            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+                            this.currentViewInstance = new WorkspaceView(param); 
+                            this.currentViewInstance.render(this.routerView); 
+                            break;
+                        case 'master-pajak': MasterPajakView.render(this.routerView); break;
+                        case 'ai-assistant': CustomViews.renderAIAssistant(this.routerView); break;
+                        
+                        case 'pj-pagu': this.renderPagu(this.routerView); break;
+                        case 'pj-kendali': this.renderKendali(this.routerView); break;
+                        case 'pj-pengajuan': this.renderPengajuan(this.routerView); break;
+                        case 'pj-spj': this.renderSPJ(this.routerView); break;
+
+                        case 'laporan-pengadaan': case 'laporan-jadwal': case 'laporan-anggaran': case 'laporan-penyedia': case 'laporan-pejabat': 
+                            CustomViews.renderReports(this.routerView); 
+                            break;
+                        case 'laporan-paket': 
+                            this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Laporan Total Paket</h1><p class="text-muted mb-5">Mencakup seluruh paket, lokasi, pagu, HPS, dan tahapan.</p><button class="btn btn-primary" onclick="app.printTotalReport()"><i class="ph ph-printer"></i> Cetak Laporan Total Paket</button></div></div>`; 
+                            break;
+                        case 'pengaturan': CustomViews.renderSettings(this.routerView); break;
+                        default: 
+                            this.routerView.innerHTML = `<div class="empty-state"><i class="ph ph-hammer text-4xl mb-4"></i><h2 class="text-lg font-bold text-main">Halaman Belum Tersedia</h2></div>`;
+                    }
+                }, 150);
+            }
+
+            // ==========================================
+            // LOGIKA DPA & PERTANGGUNGJAWABAN DIPINDAH KE CLASS APP
+            // ==========================================
+            
+            renderPagu(container) {
                 // 1. Ambil Data
                 let rekenings = [...DB.get('master_rekening')].sort((a,b) => a.kode.localeCompare(b.kode));
                 let pencairanHead = DB.get('pencairan') || [];
@@ -2144,7 +2233,6 @@
                 // 2. Siapkan wadah kalkulasi
                 let map = {};
                 
-                // Inisialisasi struktur map dengan nilai 0
                 rekenings.forEach(r => {
                     map[r.kode] = { 
                         ...r, 
@@ -2152,56 +2240,45 @@
                         realisasi_total: 0,
                         realisasi_bulan: {} 
                     };
-                    // Siapkan slot bulan 1-12 dan jenis pencairan (LS, GU, TU)
                     for(let i = 1; i <= 12; i++) {
                         map[r.kode].realisasi_bulan[i] = { LS: 0, GU: 0, TU: 0, TOTAL: 0 };
                     }
                 });
 
-                // 3. Masukkan data realisasi pencairan ke Level Paling Bawah (Detail)
+                // 3. Masukkan data realisasi
                 pencairanItems.forEach(item => {
-                    if (map[item.rekening_kode]) {
+                    const rekMaster = DB.getById('master_rekening', item.rekening_id);
+                    if (!rekMaster) return;
+                    
+                    if (map[rekMaster.kode]) {
                         const head = pencairanHead.find(h => h.id === item.pencairan_id);
-                        // Ekstraksi nilai (sementara DRAFT juga dihitung agar Anda bisa langsung melihat efeknya saat input)
-                        if (head && (head.status === 'FINAL' || head.status === 'SELESAI' || head.status === 'DRAFT')) {
+                        if (head && (head.status.toUpperCase() === 'FINAL' || head.status.toUpperCase() === 'SELESAI' || head.status.toUpperCase() === 'DRAFT')) {
                             const date = new Date(head.tanggal);
-                            const month = date.getMonth() + 1; // 1 = Jan, 12 = Des
-                            const jenis = head.jenis_pencairan; // 'LS', 'GU', atau 'TU'
-                            const amount = Number(item.jumlah) || 0;
+                            const month = date.getMonth() + 1;
+                            const jenis = head.jenis_pencairan || head.jenis || 'LS';
+                            const amount = Number(item.subtotal) || Number(item.total) || 0;
 
-                            if (map[item.rekening_kode].realisasi_bulan[month]) {
-                                map[item.rekening_kode].realisasi_bulan[month][jenis] += amount;
-                                map[item.rekening_kode].realisasi_bulan[month].TOTAL += amount;
-                                map[item.rekening_kode].realisasi_total += amount;
+                            if (map[rekMaster.kode].realisasi_bulan[month]) {
+                                map[rekMaster.kode].realisasi_bulan[month][jenis] += amount;
+                                map[rekMaster.kode].realisasi_bulan[month].TOTAL += amount;
+                                map[rekMaster.kode].realisasi_total += amount;
                             }
                         }
                     }
                 });
 
-                // 4. Algoritma Roll-up Berjenjang yang Presisi (Ngelink dari Bawah ke Atas)
-                // Urutkan kode dari yang terpanjang (Level 6) ke yang terpendek (Program)
+                // 4. Roll-up
                 let codes = Object.keys(map).sort((a,b) => b.length - a.length);
-                
                 codes.forEach(code => {
-                    // Cari parent yang valid: Induk adalah kode terpanjang yang menjadi awalan (prefix) dari kode saat ini
-                    let parentCode = null;
-                    let maxLen = 0;
+                    let parentCode = null; let maxLen = 0;
                     for (let possibleParent of codes) {
                         if (possibleParent.length < code.length && code.startsWith(possibleParent + '.')) {
-                            if (possibleParent.length > maxLen) {
-                                maxLen = possibleParent.length;
-                                parentCode = possibleParent;
-                            }
+                            if (possibleParent.length > maxLen) { maxLen = possibleParent.length; parentCode = possibleParent; }
                         }
                     }
-                    
                     if (parentCode && map[parentCode]) {
-                        // Tambahkan pagu ke level atasnya
                         map[parentCode].pagu_calc += map[code].pagu_calc;
-                        // Tambahkan total realisasi ke level atasnya
                         map[parentCode].realisasi_total += map[code].realisasi_total;
-                        
-                        // Tambahkan rincian per bulan ke level atasnya
                         for(let i = 1; i <= 12; i++) {
                             map[parentCode].realisasi_bulan[i].LS += map[code].realisasi_bulan[i].LS;
                             map[parentCode].realisasi_bulan[i].GU += map[code].realisasi_bulan[i].GU;
@@ -2211,15 +2288,13 @@
                     }
                 });
 
-                // 5. Render Styling Hierarki Sesuai Gambar DPA
                 const getStyleByLevel = (kode) => {
                     const parts = kode.split('.');
-                    // Styling didasarkan pada kedalaman titik (jumlah parts)
-                    if (parts.length <= 5) return 'font-weight: 700; background-color: #fef08a;'; // Program & Kegiatan (Kuning Terang)
-                    if (parts.length === 6) return 'font-weight: 700; background-color: #facc15;'; // Sub Kegiatan (Kuning Gelap)
-                    if (parts.length === 8) return 'font-weight: 700; background-color: #ffffff;'; // Rekening Level 1 & 2 (Belanja Operasi/Modal)
-                    if (parts.length >= 12) return 'background-color: #e0f2fe;'; // Level Sub Rincian Objek (Biru Muda)
-                    return 'background-color: #ffffff;'; // Default Level Menengah
+                    if (parts.length <= 5) return 'font-weight: 700; background-color: #fef08a;'; 
+                    if (parts.length === 6) return 'font-weight: 700; background-color: #facc15;'; 
+                    if (parts.length === 8) return 'font-weight: 700; background-color: #ffffff;'; 
+                    if (parts.length >= 12) return 'background-color: #e0f2fe;'; 
+                    return 'background-color: #ffffff;'; 
                 };
 
                 let rows = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map((r) => {
@@ -2228,7 +2303,6 @@
                     const borderDashed = 'border-bottom: 1px dashed #000; border-right: 1px dashed #000; padding: 6px 12px;';
                     const borderDashedLeft = 'border-bottom: 1px dashed #000; border-right: 1px dashed #000; border-left: 1px dashed #000; padding: 6px 12px;';
                     
-                    // Build kolom bulan secara dinamis
                     let monthCols = '';
                     for(let i = 1; i <= 12; i++) {
                         monthCols += `
@@ -2248,7 +2322,6 @@
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: #15803d; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
                         
-                        <!-- KOLOM AKSI (EDIT & HAPUS) -->
                         <td style="${style} ${borderDashed} text-align: center; vertical-align: middle;">
                             <div class="flex justify-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
                                 <button class="btn btn-ghost btn-sm text-primary p-1 bg-white border border-gray-200 shadow-sm" title="Edit Rekening" onclick="app.editRekening('${r.id}')"><i class="ph ph-pencil-simple" style="font-size: 1.1rem;"></i></button>
@@ -2258,7 +2331,6 @@
                     </tr>`;
                 }).join('');
 
-                // Header Bulan
                 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                 let monthHeaders1 = months.map(m => `<th colspan="4" class="text-center" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; padding: 8px;">${m}</th>`).join('');
                 let monthHeaders2 = months.map(m => `
@@ -2310,8 +2382,7 @@
                 `;
             }
 
-            static renderKendali(container) {
-                // Ambil daftar Sub Kegiatan (Level kode dengan 6 titik/segmen) dari master_rekening
+            renderKendali(container) {
                 const subKegiatans = DB.get('master_rekening').filter(r => r.kode.split('.').length === 6);
                 const optsSub = subKegiatans.map(r => `<option value="${r.kode}">${r.kode} - ${r.uraian}</option>`).join('');
                 
@@ -2324,7 +2395,7 @@
                         <div class="flex justify-between items-center mb-6">
                             <div>
                                 <h1 class="text-2xl font-bold text-main">Kartu Kendali Kegiatan</h1>
-                                <p class="text-muted text-sm mt-1">Monitoring SPJ dan Pajak per Sub Kegiatan</p>
+                                <p class="text-muted text-sm mt-1">Monitoring SPJ dan Pajak per Sub Kegiatan (Landscape SIPD)</p>
                             </div>
                         </div>
                         
@@ -2349,21 +2420,30 @@
                     </div>
                 `;
             }
-
-            static renderPengajuan(container) {
+            
+            renderPengajuan(container) {
                 const data = DB.get('pencairan');
-                let rows = data.map((d, i) => `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis_pencairan}</td><td>${d.sub_kegiatan}</td><td>${Utils.getBadge(d.status)}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.printSI('${d.id}')"><i class="ph ph-printer"></i> Cetak Lampiran</button></td></tr>`).join('');
-                if(!rows) rows = '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada data pengajuan.</td></tr>';
+                let rows = data.map((d, i) => {
+                    // Coba tarik nama paket jika paket_id ada
+                    let itemName = d.sub_kegiatan || '-';
+                    if (d.package_id) {
+                        const pkg = DB.getById('paket', d.package_id);
+                        if (pkg) itemName += `<br><small class="text-primary-600">Paket: ${pkg.name}</small>`;
+                    }
+                    
+                    return `<tr><td>${i+1}</td><td>${d.nomor}</td><td>${Utils.formatDate(d.tanggal)}</td><td>${d.jenis || d.jenis_pencairan}</td><td>${itemName}</td><td class="text-right">Rp ${Utils.formatNumber(d.total)}</td><td>${Utils.getBadge(d.status)}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.printSI('${d.id}')"><i class="ph ph-printer"></i> Cetak Lampiran</button></td></tr>`;
+                }).join('');
+                if(!rows) rows = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada data pengajuan.</td></tr>';
 
                 container.innerHTML = `
                     <div class="p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">Pengajuan Pencairan (SI)</h1><p class="text-muted text-sm mt-1">Buat Lampiran Permintaan Pembayaran dan set status.</p></div>
+                            <div><h1 class="text-2xl font-bold text-main">Pengajuan Pencairan (SI)</h1><p class="text-muted text-sm mt-1">Buat Lampiran Permintaan Pembayaran dengan hitungan pajak cerdas.</p></div>
                             <button class="btn btn-primary" onclick="app.formPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
                         </div>
                         <div class="card flex-1 overflow-auto">
                             <table class="data-table">
-                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Sub Kegiatan</th><th>Status</th><th>Aksi</th></tr></thead>
+                                <thead><tr><th>No</th><th>No Pengajuan</th><th>Tanggal</th><th>Jenis</th><th>Tujuan / Sub Kegiatan</th><th class="text-right">Total Dibayar</th><th>Status</th><th>Aksi</th></tr></thead>
                                 <tbody>${rows}</tbody>
                             </table>
                         </div>
@@ -2371,7 +2451,7 @@
                 `;
             }
 
-            static renderSPJ(container) {
+            renderSPJ(container) {
                 const data = DB.get('pencairan');
                 const options = data.map(d => `<option value="${d.id}">${d.nomor} - ${d.sub_kegiatan}</option>`).join('');
                 
@@ -2392,954 +2472,327 @@
                     </div>
                 `;
             }
-        }
 
-        // -----------------------------------------------------
-        // 7. APP CONTROLLER
-        // -----------------------------------------------------
-        class App {
-            constructor() { 
-                this.routerView = document.getElementById('router-view'); 
-                this.currentRoute = ''; 
-                this.init(); 
-            }
-            
-            async init() {
-                await DB.init();
-                this.bindNav(); 
-                this.navigate('dashboard');
-            }
-
-            bindNav() {
-                document.getElementById('sidebar-nav').addEventListener('click', (e) => {
-                    const nav = e.target.closest('.nav-item');
-                    if (nav && nav.dataset.route) { 
-                        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
-                        nav.classList.add('active'); 
-                        this.navigate(nav.dataset.route); 
-                    }
-                });
-            }
-
-            // Fungsi Excel Export / Import Paket
-            exportPaket() {
-                const pkgs = DB.get('paket');
-                const data = pkgs.map(p => ({
-                    "ID Paket": p.id,
-                    "Nama Paket": p.name || '',
-                    "Uraian": p.uraian || '',
-                    "Lokasi": p.lokasi || '',
-                    "Tahun Anggaran": p.tahun_anggaran || '',
-                    "Pagu": p.pagu || 0,
-                    "Metode Pemilihan": p.metode_pemilihan || '',
-                    "Jenis Pengadaan": p.jenis_pengadaan || '',
-                    "Jenis Kontrak": p.jenis_kontrak || '',
-                    "Tahapan": p.stage || 'BELUM PROSES',
-                    "OPD": p.opd || '',
-                    "Kode RUP": p.kode_rup || '',
-                    "MAK": p.mak || ''
-                }));
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Daftar Paket");
-                XLSX.writeFile(wb, "Export_Daftar_Paket_EProc.xlsx");
-            }
-
-            importPaket(event) {
-                const file = event.target.files[0];
-                if(!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(firstSheet);
-                    
-                    rows.forEach(r => {
-                        const payload = {
-                            name: r["Nama Paket"] || 'Paket Baru',
-                            uraian: r["Uraian"] || '',
-                            lokasi: r["Lokasi"] || '',
-                            tahun_anggaran: String(r["Tahun Anggaran"] || new Date().getFullYear()),
-                            pagu: Number(r["Pagu"]) || 0,
-                            metode_pemilihan: r["Metode Pemilihan"] || 'Pengadaan Langsung',
-                            jenis_pengadaan: r["Jenis Pengadaan"] || 'Barang',
-                            jenis_kontrak: r["Jenis Kontrak"] || 'Lumsum',
-                            stage: r["Tahapan"] || 'BELUM PROSES',
-                            opd: r["OPD"] || 'BKAD Kota Bogor',
-                            kode_rup: r["Kode RUP"] || '',
-                            mak: r["MAK"] || ''
-                        };
-                        
-                        if(r["ID Paket"]) {
-                            const existing = DB.getById('paket', r["ID Paket"]);
-                            if (existing) {
-                                DB.update('paket', r["ID Paket"], payload);
-                                return; // lanjutkan loop ke baris berikutnya
-                            }
-                        }
-                        
-                        // Set Pejabat default jika buat paket baru
-                        const today = new Date().toISOString().split('T')[0];
-                        const pjb = DB.get('pejabat'); 
-                        const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                        
-                        DB.insert('paket', { 
-                            ...payload,
-                            tgl_awal: today, tgl_mulai: today, 
-                            tgl_selesai: Utils.addWorkingDays(today, 30, DB.get('libur').map(l=>l.date)), 
-                            ppk_id: first('PPK'), pp_id: first('Pejabat Pengadaan'), pptk_id: first('PPTK'), bendahara_id: first('Bendahara'),
-                            durasi_kontrak: 30
-                        });
-                    });
-                    this.notify('Data Paket berhasil diimpor dari Excel', 'success');
-                    this.reRenderCurrentView();
-                    event.target.value = ''; // reset input
-                };
-                reader.readAsArrayBuffer(file);
-            }
-
-
-            // Fungsi Excel Export / Import HPS
-            downloadTemplateHPS() {
-                const ws = XLSX.utils.aoa_to_sheet([
-                    ["Tipe (ITEM/HEADER)", "Uraian Pekerjaan", "Satuan", "Vol HPS", "Harga HPS", "Vol Pen", "Harga Pen", "Vol Neg", "Harga Neg", "Pajak (%)"],
-                    ["HEADER", "I. Pekerjaan Persiapan (Contoh Kunci Baris)", "", "", "", "", "", "", "", ""],
-                    ["ITEM", "Pembersihan Lahan", "m2", 100, 15000, 100, 14000, 100, 14000, 11]
-                ]);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Template HPS");
-                XLSX.writeFile(wb, "Template_Import_HPS.xlsx");
-            }
-
-           importHPS(event, pkgId) {
-                const file = event.target.files[0];
-                if(!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
-                    
-                    // PERBAIKAN: Ambil data paket (pkg) terlebih dahulu berdasarkan pkgId
-                    const pkg = DB.getById('paket', pkgId);
-                    
-                    let items = Array.isArray(pkg.items) ? [...pkg.items] : [];
-
-                    rows.slice(1).forEach(r => {
-                        if(!r[0] && !r[1]) return; // Skip if empty row
-                        const isHeader = String(r[0]).toUpperCase() === 'HEADER';
-                        items.push({
-                            id: Date.now().toString() + Math.random(),
-                            is_header: isHeader,
-                            uraian: r[1] || '',
-                            sat: r[2] || 'Ls',
-                            vol_hps: Number(r[3]) || 0,
-                            harga_hps: Number(r[4]) || 0,
-                            vol_pen: Number(r[5]) || 0,
-                            harga_pen: Number(r[6]) || 0,
-                            vol_neg: Number(r[7]) || 0,
-                            harga_neg: Number(r[8]) || 0,
-                            pajak: Number(r[9]) || 0
-                        });
-                    });
-
-                    DB.update('paket', pkgId, { items });
-                    this.notify('Data HPS berhasil diimpor dari Excel', 'success');
-                    this.reRenderCurrentView();
-                    event.target.value = ''; // reset input
-                };
-                reader.readAsArrayBuffer(file);
-            }
-
-            // REVISI 6: Handler untuk Upload Dokumen Manual
-            uploadDokumenManual(event, pkgId) {
-                const file = event.target.files[0];
-                if(!file) return;
-                
-                // Simulasi proses upload dan insert ke db local
-                DB.insert('documents', { 
-                    package_id: pkgId, 
-                    doc_type: 'Manual', 
-                    name: file.name, 
-                    status: 'UPLOADED', 
-                    date: new Date().toISOString().split('T')[0] 
-                });
-                
-                this.notify('Dokumen berhasil diunggah', 'success');
-                this.reRenderCurrentView();
-                event.target.value = '';
-            }
-
-            addTimTeknis(pkgId) {
-                const pkg = DB.getById('paket', pkgId);
-                const formData = DOM.getFormData('form-tt');
-                if (!formData.nama || !formData.nip || !formData.jabatan) { this.notify('Harap isi nama, NIP, dan jabatan!', 'error'); return; }
-                const timTeknis = pkg.tim_teknis || [];
-                timTeknis.push(formData);
-                DB.update('paket', pkgId, { tim_teknis: timTeknis });
-                this.notify('Anggota Tim Teknis berhasil ditambahkan', 'success');
-                this.reRenderCurrentView();
-            }
-
-            addPersonnelRow(pkgId) { 
-                const pkg = DB.getById('paket', pkgId); 
-                const personnel = Array.isArray(pkg.personnel) ? [...pkg.personnel] : []; 
-                personnel.push({ id: Date.now().toString(), jabatan: '', pendidikan: '', pengalaman: '', sertifikat: '', jumlah: 1, orang_bulan: 1 }); 
-                DB.update('paket', pkgId, { personnel }); 
-                this.reRenderCurrentView(); 
-            }
-
-            removePersonnelRow(pkgId, index) {
-                const pkg = DB.getById('paket', pkgId);
-                let personnel = Array.isArray(pkg.personnel) ? [...pkg.personnel] : []; 
-                personnel.splice(index, 1);
-                DB.update('paket', pkgId, { personnel });
-                this.reRenderCurrentView();
-            }
-
-            addHargaRow(pkgId) { 
-                const pkg = DB.getById('paket', pkgId); 
-                const items = Array.isArray(pkg.items) ? [...pkg.items] : []; 
-                items.push({ id: Date.now().toString(), is_header: false, uraian: '', sat: 'Ls', vol_hps: 1, harga_hps: 0, vol_pen: 0, harga_pen: 0, vol_neg: 0, harga_neg: 0, pajak: 11 }); 
-                DB.update('paket', pkgId, { items }); 
-                this.reRenderCurrentView(); 
-            }
-
-            addHargaHeader(pkgId) {
-                const pkg = DB.getById('paket', pkgId);
-                const items = Array.isArray(pkg.items) ? [...pkg.items] : [];
-                items.push({ id: Date.now().toString(), uraian: '', is_header: true });
-                DB.update('paket', pkgId, { items });
-                this.reRenderCurrentView();
-            }
-
-            removeHargaRow(pkgId, index) {
-                const pkg = DB.getById('paket', pkgId);
-                let items = Array.isArray(pkg.items) ? [...pkg.items] : []; 
-                items.splice(index, 1);
-                DB.update('paket', pkgId, { items: items });
-                this.reRenderCurrentView();
-            }
-
-            getDocumentHistory(master) {
-                return DB.get('documents').filter(d => d.package_id === master.package_id && (d.doc_type === master.document_code || d.id === master.generated_document_id)).sort((a,b) => (b.version||0) - (a.version||0) || new Date(b.created_at) - new Date(a.created_at));
-            }
-
-            documentCode(name) {
-                const aliases = {
-                    'Nota Dinas':'NOTA_DINAS',
-                    'HPS/RAB':'HPS_RAB',
-                    'KAK':'KAK',
-                    'Uraian Singkat': 'URAIAN_SINGKAT',
-                    'BA Reviu Dok Persiapan':'BA_REVIU',
-                    'BA Reviu Dokumen Persiapan':'BA_REVIU',
-                    'SDP':'SDP',
-                    'BA Evaluasi': 'BA_EVALUASI',
-                    'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
-                    'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
-                    'BA Negosiasi': 'BA_NEGOSIASI',
-                    'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
-                    'Undangan Verifikasi': 'UND_VERIFIKASI',
-                    'Undangan Reviu': 'UND_REVIU',
-                    'BA Hasil Pemilihan': 'BA_HASIL',
-                    'SPPBJ': 'SPPBJ',
-                    'Undangan Penandatanganan Kontrak':'UND_KONTRAK',
-                    'Rancangan Kontrak':'RANCANGAN_KONTRAK',
-                    'SPK':'SPK',
-                    'SSUK':'SSUK',
-                    'SSKK':'SSKK',
-                    'SPMK':'SPMK',
-                    'BAST':'BAST',
-                    'BAP':'BAP'
-                };
-                return aliases[name] || String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
-            }
-
-            normalizeProcurementType(value) {
-                const type = String(value || '').toLowerCase();
-                if (type.includes('konstruksi')) return 'Konstruksi';
-                if (type.includes('konsultansi')) return 'Konsultansi';
-                if (type.includes('barang')) return 'Barang';
-                if (type.includes('lain')) return 'Jasa Lainnya';
-                return 'Umum';
-            }
-
-            selectTemplate(code, pkg, preferredId = null) {
-                const type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
-                const remote = DB.get('template');
-                const all = [...remote, ...BUILTIN_TEMPLATES.filter(b => !remote.some(t => t.code === b.code))];
-                const byCode = all.filter(t => t.code === code);
-                
-                return byCode.find(t => this.normalizeProcurementType(t.type) === type)
-                    || byCode.find(t => t.id === preferredId && (!t.type || this.normalizeProcurementType(t.type) === type))
-                    || byCode.find(t => !t.type || this.normalizeProcurementType(t.type) === 'Umum')
-                    || byCode[0]
-                    || null;
-            }
-
-            resolveDocumentMaster(reference, pkgId) {
-                const records = DB.get('package_documents');
-                let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (d.document_name === reference || d.document_code === reference));
-                if (!master) {
-                    const code = this.documentCode(reference);
-                    const pkg = DB.getById('paket', pkgId);
-                    const template = this.selectTemplate(code, pkg);
-                    master = DB.insert('package_documents', {package_id: pkgId, document_name: reference, document_code: code, template_id: template?.id || null, status: 'DRAFT', version: 1, generated: false});
-                }
-                return master;
-            }
-
-            openDocumentForm(pkgId) {
-                const pkg = DB.getById('paket', pkgId), type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
-                const templates = [...DB.get('template'), ...BUILTIN_TEMPLATES.filter(b => !DB.get('template').some(t => t.code === b.code))].filter(t => !t.type || this.normalizeProcurementType(t.type) === type || this.normalizeProcurementType(t.type) === 'Umum');
-                const options = templates.map(t => `<option value="${t.id}" data-code="${t.code}">${t.name} (${t.code}) — ${t.type || 'Umum'}</option>`).join('');
-                const body = `<form id="document-master-form"><div class="bg-info-50 p-3 rounded text-sm mb-4">Jenis paket: <b>${type}</b>. Hanya template ${type} atau Umum yang ditampilkan; saat Generate, sistem memilih kecocokan kode + jenis dari Supabase.</div><div class="form-group"><label class="form-label">Nama Dokumen</label><input class="form-control" name="document_name" required placeholder="Contoh: Nota Dinas"></div><div class="form-group"><label class="form-label">Kode Dokumen</label><input class="form-control" name="document_code" placeholder="NOTA_DINAS"></div><div class="form-group"><label class="form-label">Template</label><select class="form-control" name="template_id"><option value="">Pilih otomatis sesuai jenis paket</option>${options}</select></div><div class="grid" style="grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Nomor Dokumen</label><input class="form-control" name="document_number"></div><div class="form-group"><label class="form-label">Tanggal Dokumen</label><input class="form-control" type="date" name="document_date"></div></div></form>`;
-                DOM.openModal('Tambah Dokumen Paket', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveDocumentMaster('${pkgId}')">Simpan</button>`);
-            }
-
-            saveDocumentMaster(pkgId) {
-                const data = DOM.getFormData('document-master-form');
-                if (!data.document_name) return this.notify('Nama dokumen wajib diisi.', 'error');
-                const template = [...DB.get('template'), ...BUILTIN_TEMPLATES].find(t => t.id === data.template_id);
-                data.document_code = data.document_code || template?.code || this.documentCode(data.document_name);
-                DB.insert('package_documents', {...data, package_id: pkgId, status: 'DRAFT', version: 1, generated: false});
-                DOM.closeModal(); this.notify('Dokumen master disimpan.', 'success'); this.reRenderCurrentView();
-            }
-
-            openDocumentUpload(docId) {
-                const input = document.createElement('input'); input.type = 'file'; input.accept = '.doc,.docx,.pdf';
-                input.onchange = e => this.uploadMasterDocument(e, docId); input.click();
-            }
-
-            uploadMasterDocument(event, docId) {
-                const file = event.target.files[0]; if (!file) return;
-                const master = DB.getById('package_documents', docId); if (!master) return;
-                const history = this.getDocumentHistory(master); const version = Math.max(master.version || 0, ...history.map(x => x.version || 0)) + 1;
-                const item = DB.insert('documents', {package_id: master.package_id, doc_type: master.document_code, name: master.document_name, status: 'UPLOADED', date: master.document_date || new Date().toISOString().slice(0,10), document_number: master.document_number, document_date: master.document_date, filename: file.name, file_size: file.size, file_url: URL.createObjectURL(file), version, generated_by: 'Manual upload'});
-                DB.update('package_documents', master.id, {generated_document_id: item.id, version, status: 'UPLOADED', generated: true, file_url: item.file_url});
-                DB.update('package_documents', e.target.dataset.id, {
-    [e.target.dataset.field]: e.target.value
-});
-
-console.log(
-    DB.getById("package_documents", e.target.dataset.id)
-);
-                this.notify('Versi unggahan ditambahkan ke riwayat.', 'success'); this.reRenderCurrentView();
-                
-            }
-
-            previewDocument(docId) { const master = DB.getById('package_documents', docId), file = master && this.getDocumentHistory(master)[0]?.file_url || master?.file_url; if(file) window.open(file, '_blank'); }
-            downloadDocument(docId) { const master = DB.getById('package_documents', docId), item = master && this.getDocumentHistory(master)[0]; if(!item?.file_url) return; const a=document.createElement('a'); a.href=item.file_url; a.download=item.filename || item.name || 'dokumen'; a.click(); }
-            showDocumentHistory(docId) { const master = DB.getById('package_documents', docId); const rows = master ? this.getDocumentHistory(master).map(x=>`<tr><td>v${x.version||1}</td><td>${x.filename||x.name}</td><td>${Utils.formatDate(x.document_date||x.date)}</td><td>${Utils.getBadge(x.status)}</td></tr>`).join('') : ''; DOM.openModal('Riwayat Dokumen', `<table class="data-table"><thead><tr><th>Versi</th><th>File</th><th>Tanggal</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Belum ada riwayat.</td></tr>'}</tbody></table>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button>`); }
-
-            openDocumentOutput(name, pkgId, fallbackPrint = '') {
-                const master = this.resolveDocumentMaster(name, pkgId);
-                const latest = this.getDocumentHistory(master)[0];
-                if (latest?.file_url) { window.open(latest.file_url, '_blank'); return; }
-                this.runDocumentEngine(master.id, pkgId);
-            }
-
-            async runDocumentEngine(reference, pkgId) {
-
-    const master = this.resolveDocumentMaster(reference, pkgId);
-
-    console.log("===== GENERATE =====");
-    console.log("MASTER =", master);
-    console.log("ID =", master.id);
-    console.log("NUMBER =", master.document_number);
-    console.log("DATE =", master.document_date);
-
-    const docName = master.document_name;
-    const pkg = DB.getById('paket', pkgId);
-                let templateCode = docName.replace(/ /g, '_').toUpperCase();
-                
-                const template = this.selectTemplate(master.document_code || templateCode, pkg, master.template_id);
-                if (!template || !template.file_url) {
-                    this.notify(`Template untuk ${docName} belum diset di Master Template.`, 'error');
-                    return;
-                }
-
-                if (master.template_id !== template.id) {
-                    DB.update('package_documents', master.id, { template_id: template.id });
-                    master.template_id = template.id;
-                }
-
-                const modalHTML = `<div id="engine-log" class="text-sm font-mono text-gray-700 bg-gray-50 p-4 rounded h-64 overflow-y-auto flex flex-col gap-2"></div>`;
-                DOM.openModal(`Generating ${docName}...`, modalHTML, '');
-                const logEl = document.getElementById('engine-log');
-                const addLog = (msg) => { logEl.innerHTML += `<div>> ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; };
-
-                try {
-                    addLog(`Memulai Document Dependency Engine...`);
-                    addLog(`Menyiapkan data payload untuk ${docName}...`);
-                    const payload = this.prepareDocumentPayload(pkgId, docName, master);
-                    addLog(`Mengunduh file template dari server...`);
-                    
-                    const response = await fetch(template.file_url);
-                    if (!response.ok) throw new Error("Gagal mengunduh template dari URL");
-                    const arrayBuffer = await response.arrayBuffer();
-
-                    addLog(`Menyusun dokumen dengan Docxtemplater...`);
-                    const zip = new window.PizZip(arrayBuffer);
-                    const doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-                    const autoMeta = this.calculateDocumentMeta(pkg, docName);
-                    if (!master.document_number) master.document_number = autoMeta.number;
-                    if (!master.document_date) master.document_date = autoMeta.date;
-
-                    // Langsung simpan nilai otomatis ini ke database sebagai nilai permanen
-                    DB.update('package_documents', master.id, { 
-                        document_number: master.document_number, 
-                        document_date: master.document_date 
-                    });
-
-                    // Cekatan terakhir jika master penomoran benar-benar gagal membuat nomor/tanggal
-                    if (!master.document_number || !master.document_date) {
-                        this.notify("Nomor atau Tanggal dokumen tidak ditemukan di jadwal. Harap isi manual.", "error");
-                        return;
-                    }
-                    doc.render(payload);
-                    addLog(`Merapikan file final...`);
-
-                    const out = doc.getZip().generate({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-                    
-                    const fileName = `${docName.replace(/ /g, '_')}_${pkg.keyword_penomoran || pkg.id}.docx`;
-                    saveAs(out, fileName);
-
-                    const version = Math.max(master.version || 0, ...this.getDocumentHistory(master).map(x => x.version || 0)) + 1;
-                    const generated = DB.insert('documents', { package_id: pkgId, doc_type: master.document_code, name: docName, status: 'FINAL', date: master.document_date || new Date().toISOString().split('T')[0], document_number: master.document_number, document_date: master.document_date, filename: fileName, file_size: out.size, file_url: URL.createObjectURL(out), version, generated_by: 'Document Engine' });
-                    DB.update('package_documents', master.id, { generated_document_id: generated.id, version, status: 'FINAL', generated: true, file_url: generated.file_url });
-                   
-
-                    addLog(`<span class="text-success font-bold">SELESAI! Dokumen berhasil dibuat dan diunduh.</span>`);
-                    
-                    setTimeout(() => {
-                        DOM.closeModal();
-                        this.notify(`${docName} berhasil di-generate dan diunduh`, 'success');
-                        this.reRenderCurrentView();
-                    }, 2000);
-
-                } catch (error) {
-                    console.error(error);
-                    if (error.properties && error.properties.errors instanceof Array) {
-                        const errorMessages = error.properties.errors.map(function (e) { return e.properties.explanation || e.message; }).join("<br> - ");
-                        addLog(`<span class="text-danger font-bold" style="white-space: normal;">Kesalahan Template Word:<br> - ${errorMessages}</span>`);
-                    } else { addLog(`<span class="text-danger font-bold">ERROR: ${error.message}</span>`); }
-                    addLog(`<button class="btn btn-outline btn-sm mt-4" onclick="DOM.closeModal()">Tutup</button>`);
-                }
-            }
-
-            prepareDocumentPayload(pkgId, docName, master = null) {
-                const pkg = DB.getById('paket', pkgId);
-                console.log("PKG =", pkg);
-                console.log("nama_sub_kegiatan =", pkg.nama_sub_kegiatan);
-                console.log("kode_sub_kegiatan =", pkg.kode_sub_kegiatan);
-                const supplier = pkg.supplier_id ? DB.getById('penyedia', pkg.supplier_id) : { name: '...', direktur: '...' };
-                const pjb = DB.get('pejabat');
-                
-                const ppk = pjb.find(p => p.id === pkg.ppk_id) || { name: '...', nip: '...' };
-                const pp = pjb.find(p => p.id === pkg.pp_id) || { name: 'Detty Hegartika, S.E, MM.Si.', nip: '-' };
-
-                const totals = DB.calculatePackageTotals(pkg);
-                const hpsRound = pkg.pembulatan_hps || totals.hps;
-                const penRound = pkg.pembulatan_penawaran || totals.penawaran;
-                const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
-
-                let noCounter = 1;
-                let sub_hps = 0, sub_pen = 0, sub_neg = 0;
-                let ppn_hps = 0, ppn_pen = 0, ppn_neg = 0;
-                let ppn_persen = 11; 
-
-                const itemsPayload = (pkg.items || []).map((item) => {
-                    if (item.is_header) {
-                        return {
-                            no: '', is_header: true, uraian: item.uraian, sat: '',
-                            vol_hps: '', harga_hps: '', total_hps: '',
-                            vol_pen: '', harga_pen: '', total_pen: '',
-                            vol_neg: '', harga_neg: '', total_neg: ''
-                        };
-                    } else {
-                        const taxRate = (Number(item.pajak) || 0) / 100;
-                        if (taxRate > 0) ppn_persen = Number(item.pajak);
-
-                        const base_hps = item.vol_hps * item.harga_hps;
-                        const base_pen = item.vol_pen * item.harga_pen;
-                        const base_neg = item.vol_neg * item.harga_neg;
-
-                        sub_hps += base_hps; ppn_hps += base_hps * taxRate;
-                        sub_pen += base_pen; ppn_pen += base_pen * taxRate;
-                        sub_neg += base_neg; ppn_neg += base_neg * taxRate;
-
-                        return {
-                            no: noCounter++, is_header: false, uraian: item.uraian, sat: item.sat,
-                            vol_hps: item.vol_hps, harga_hps: Utils.formatNumber(item.harga_hps), total_hps: Utils.formatNumber(base_hps),
-                            vol_pen: item.vol_pen, harga_pen: Utils.formatNumber(item.harga_pen), total_pen: Utils.formatNumber(base_pen),
-                            vol_neg: item.vol_neg, harga_neg: Utils.formatNumber(item.harga_neg), total_neg: Utils.formatNumber(base_neg)
-                        };
-                    }
-                });
-
-                const meta = master ? {number: master.document_number || '', date: master.document_date || ''} : this.getDocumentMeta(pkg, docName);
-                
-                const dateObj = new Date(meta.date || pkg.tgl_mulai || new Date().toISOString().split('T')[0]);
-                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-                // DYNAMIC DOCUMENT VARIABLES & SEQ NUMBER
-                const docCodes = ['NOTA_DINAS', 'HPS_RAB', 'KAK', 'BA_REVIU', 'SDP', 'BA_EVALUASI', 'BA_PEMBUKTIAN', 'UNDANGAN_NEGOSIASI', 'BA_NEGOSIASI', 'UND_PENGADAAN', 'UND_VERIFIKASI', 'UND_REVIU', 'URAIAN_SINGKAT', 'BA_HASIL', 'SPPBJ', 'UND_KONTRAK', 'RANCANGAN_KONTRAK', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP'];
-                const dynamicDocVars = {};
-                const allPackageDocs = DB.get('package_documents').filter(d => d.package_id === pkgId);
-                
-                docCodes.forEach(code => {
-                    let d = allPackageDocs.find(x => x.document_code === code);
-                    const lowerCode = code.toLowerCase();
-                    const aliasesRev = {
-                        'NOTA_DINAS':'Nota Dinas', 'HPS_RAB':'HPS/RAB', 'KAK':'KAK', 'URAIAN_SINGKAT': 'Uraian Singkat', 'BA_REVIU': 'BA Reviu Dokumen Persiapan', 'SDP':'SDP', 'BA_EVALUASI':'BA Evaluasi', 'BA_PEMBUKTIAN':'BA Pembuktian Kualifikasi', 'UNDANGAN_NEGOSIASI':'Undangan Negosiasi', 'BA_NEGOSIASI':'BA Negosiasi', 'UND_PENGADAAN':'Undangan Pengadaan Langsung', 'UND_VERIFIKASI': 'Undangan Verifikasi', 'UND_REVIU': 'Undangan Reviu', 'BA_HASIL':'BA Hasil Pemilihan', 'SPPBJ':'SPPBJ', 'UND_KONTRAK': 'Undangan Penandatanganan Kontrak', 'RANCANGAN_KONTRAK': 'Rancangan Kontrak', 'SPK':'SPK', 'SSUK':'SSUK', 'SSKK':'SSKK', 'SPMK':'SPMK', 'BAST':'BAST', 'BAP':'BAP'
-                    };
-                    
-                    if (d && d.document_number) {
-                        dynamicDocVars[`nomor_${lowerCode}`] = d.document_number;
-                    } else {
-                        const calc = this.calculateDocumentMeta(pkg, aliasesRev[code] || code);
-                        dynamicDocVars[`nomor_${lowerCode}`] = calc.number || '-';
-                    }
-                    
-                    if (d && d.document_date) {
-                        dynamicDocVars[`tanggal_${lowerCode}`] = Utils.formatDate(d.document_date);
-                    } else {
-                        const calc = this.calculateDocumentMeta(pkg, aliasesRev[code] || code);
-                        dynamicDocVars[`tanggal_${lowerCode}`] = Utils.formatDate(calc.date) || '-';
-                    }
-                });
-
-                // Calculate Package Sequence Number 001, 002
-                const allPkgs = DB.get('paket');
-                const sortedPkgs = [...allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-                const pkgIdx = sortedPkgs.findIndex(p => p.id === pkgId);
-                const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
-
-                return {
-                    ...dynamicDocVars,
-                    nomor_urut_paket: seqNum,
-                    
-                    // Specific mapping to match your word template examples
-                    hari_tanggal_nota_dinas: `${days[new Date(dynamicDocVars.tanggal_nota_dinas || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_nota_dinas || '-'}`,
-                    nomor_dokumen_nota_dinas: dynamicDocVars.nomor_nota_dinas || '-',
-                    "hari_tanggal_undangan pengadaan": `${days[new Date(dynamicDocVars.tanggal_und_pengadaan || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_und_pengadaan || '-'}`,
-                    nomor_undangan_pengadaan: dynamicDocVars.nomor_und_pengadaan || '-',
-                    tanggal_hps: dynamicDocVars.tanggal_hps_rab || '-',
-                    
-                    nomor_ba: meta.number,
-                    nomor_dokumen: meta.number,
-                    nama_ppk: ppk.name || '-',
-                    nip_ppk: ppk.nip || '-',
-                    nilai_pagu: Utils.formatNumber(pkg.pagu || 0),
-                    pagu: Utils.formatNumber(pkg.pagu || 0),
-                    pagu_terbilang: Utils.toWords(pkg.pagu || 0) + ' rupiah',
-                    kode_rup: pkg.kode_rup || '-', kode_rup: pkg.kode_rup ?? "-",
-                    kode_mak: pkg.kode_mak ?? "-",
-                    kode_rekening: pkg.kode_rekening ?? "-",
-                    jenis_kontrak: pkg.jenis_kontrak || '-', jenis_pengadaan: pkg.jenis_pengadaan || '-',
-                    alamat_penyedia: supplier.address || '-', email_penyedia: supplier.email || '-',
-                    jabatan_direktur: supplier.jabatan_direktur || 'Direktur',
-                    tanggal_mulai_kontrak: Utils.formatDate(pkg.tgl_mulai), tanggal_akhir_kontrak: Utils.formatDate(pkg.tgl_selesai),
-                    tanggal_mulai_kerja: Utils.formatDate(pkg.tgl_mulai), tanggal_selesai: Utils.formatDate(pkg.tgl_selesai),
-                    lingkup_pekerjaan: pkg.ruang_lingkup || pkg.uraian || '-',
-                    hari_tanggal: Utils.formatDate(meta.date),
-                    nama_paket: pkg.name, kode_rekening: pkg.kode_rekening || "5.1.02.02.008.00019", nama_rekening: pkg.nama_rekening || "Belanja Jasa Konsultansi Pengawasan", sumber_dana: "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
-                    waktu_pelaksanaan: `${pkg.durasi_kontrak || 60} (enam puluh) Hari Kalender`,
-                    nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
-                    
-                    hps_nominal: Utils.formatNumber(hpsRound),
-                    hps_terbilang: Utils.toWords(hpsRound) + " rupiah",
-                    terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
-                    
-                    penawaran_nominal: Utils.formatNumber(penRound),
-                    penawaran_terbilang: Utils.toWords(penRound) + " rupiah",
-                    terbilang_pen: Utils.toWords(penRound) + " rupiah",
-                    
-                    penawaran_koreksi_nominal: Utils.formatNumber(penRound),
-                    penawaran_koreksi_terbilang: Utils.toWords(penRound) + " rupiah",
-                    
-                    negosiasi_nominal: Utils.formatNumber(negoRound),
-                    negosiasi_terbilang: Utils.toWords(negoRound) + " rupiah",
-                    terbilang_neg: Utils.toWords(negoRound) + " rupiah",
-
-                    program: pkg.program ?? "-",
-                    kode_program: pkg.kode_program ?? "-",
-                    
-                    kegiatan: pkg.kegiatan ?? "-",
-                    nama_kegiatan: pkg.kegiatan ?? "-",
-                    kode_kegiatan: pkg.kode_kegiatan ?? "-",
-                    
-                    sub_kegiatan: pkg.nama_sub_kegiatan ?? "-",
-                    nama_sub_kegiatan: pkg.nama_sub_kegiatan ?? "-",
-                    kode_sub_kegiatan: pkg.kode_sub_kegiatan ?? "-",
-                    
-                    lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 30} Hari Kalender`,
-                    
-                    items: itemsPayload,
-                    
-                    total_hps_formatted: Utils.formatNumber(hpsRound), total_penawaran_formatted: Utils.formatNumber(penRound), total_negosiasi_formatted: Utils.formatNumber(negoRound),
-                    nama_pejabat_pengadaan: pp.name || '-', nip_pejabat_pengadaan: pp.nip || "-",
-                    
-                    hari: days[dateObj.getDay()],
-                    tanggal_terbilang: Utils.toWords(dateObj.getDate()),
-                    bulan: months[dateObj.getMonth()],
-                    tahun_terbilang: Utils.toWords(dateObj.getFullYear()),
-                    tanggal_numerik: Utils.formatDate(meta.date),
-                    tanggal_negosiasi: Utils.formatDate(meta.date),
-                    nama_pp: pp.name || '-',
-                    durasi_kontrak: pkg.durasi_kontrak || 60,
-                    durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 60),
-                    
-                    kbli: '-', uraian_kbli: '-', kualifikasi_penyedia: '-', tahun_pajak_terakhir: '2025',
-                    
-                    latar_belakang: pkg.latar_belakang || '-',
-                    maksud_tujuan: pkg.maksud_tujuan || '-',
-                    sasaran: pkg.sasaran || '-',
-                    organisasi_pengadaan: pkg.organisasi_pengadaan || '-',
-                    sumber_pembiayaan: pkg.sumber_pembiayaan || '-',
-                    dasar_hukum: pkg.dasar_hukum || '-',
-                    ruang_lingkup: pkg.ruang_lingkup || '-',
-                    spesifikasi_teknis: pkg.spesifikasi_teknis || '-',
-                    kewenangan_penyedia: pkg.kewenangan_penyedia || '-',
-                    fasilitas_penyedia: pkg.fasilitas_penyedia || '-',
-                    pelaporan: pkg.pelaporan || '-',
-                    output_kak: pkg.output_kak || '-',
-                    outcome: pkg.outcome || '-',
-                    produksi_dalam_negeri: pkg.produksi_dalam_negeri || '-',
-                    alih_pengetahuan: pkg.alih_pengetahuan || '-',
-                    
-                    
-                    // Safe mapping array for table generating
-                    tenaga_ahli: (pkg.personnel || []).map((p, i) => ({ 
-                        no_urut: i + 1, 
-                        posisi: p.jabatan || '-', 
-                        kualifikasi: `${p.pendidikan||'-'} ${p.pengalaman||'0'} Tahun ${p.sertifikat?' ('+p.sertifikat+')':''}`, 
-                        jumlah: p.jumlah || 1, 
-                        satuan: 'Orang' 
-                    })),
-                    tim_teknis: (pkg.tim_teknis || []).map((p, i) => ({ 
-                        no_urut: i + 1, 
-                        nama: p.nama || '-', 
-                        jabatan: p.jabatan || '-', 
-                        nip: p.nip || '-' 
-                    })),
-                    
-                    jumlah_hps: Utils.formatNumber(sub_hps),
-                    jumlah_pen: Utils.formatNumber(sub_pen),
-                    jumlah_neg: Utils.formatNumber(sub_neg),
-                    ppn_persen: ppn_persen,
-                    ppn_hps: Utils.formatNumber(ppn_hps),
-                    ppn_pen: Utils.formatNumber(ppn_pen),
-                    ppn_neg: Utils.formatNumber(ppn_neg),
-                    jumlah_total_hps: Utils.formatNumber(sub_hps + ppn_hps),
-                    jumlah_total_pen: Utils.formatNumber(sub_pen + ppn_pen),
-                    jumlah_total_neg: Utils.formatNumber(sub_neg + ppn_neg),
-                    pembulatan_hps: Utils.formatNumber(hpsRound),
-                    pembulatan_pen: Utils.formatNumber(penRound),
-                    pembulatan_neg: Utils.formatNumber(negoRound)
-                };
-            }
-
-            reRenderCurrentView() { 
-                const wsBody = document.getElementById('ws-body');
-                const scrollPos = wsBody ? wsBody.scrollTop : 0;
-                const mainScroll = document.querySelector('.content-scroll-area');
-                const mainScrollPos = mainScroll ? mainScroll.scrollTop : 0;
-
-                if (this.currentRoute === 'workspace' && this.currentViewInstance) {
-                    this.currentViewInstance.render(this.routerView);
-                } else if (this.currentRoute.startsWith('master-') || this.currentRoute === 'pengadaan-daftar') {
-                    if (this.crudEngine) this.crudEngine.render(this.routerView);
-                } else {
-                    this.navigate(this.currentRoute);
-                }
-
-                setTimeout(() => {
-                    const newWsBody = document.getElementById('ws-body');
-                    if (newWsBody) newWsBody.scrollTop = scrollPos;
-                    const newMainScroll = document.querySelector('.content-scroll-area');
-                    if (newMainScroll) newMainScroll.scrollTop = mainScrollPos;
-                }, 0);
-            }
-
-            navigate(route, param = null) {
-                this.currentRoute = route; 
-                this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Memuat modul dari Supabase...</p></div>`;
-                
-                setTimeout(() => {
-                    this.routerView.innerHTML = '';
-                    const schemaMap = { 
-                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket' 
-                    };
-                    
-                    if (schemaMap[route]) { 
-                        this.crudEngine = new CRUDEngine(schemaMap[route]); 
-                        this.crudEngine.render(this.routerView); 
-                        return; 
-                    }
-
-                    switch(route) {
-                        case 'dashboard': CustomViews.renderDashboard(this.routerView); break;
-                        case 'workspace': 
-                            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
-                            this.currentViewInstance = new WorkspaceView(param); 
-                            this.currentViewInstance.render(this.routerView); 
-                            break;
-                        case 'ai-assistant': CustomViews.renderAIAssistant(this.routerView); break;
-                        
-                        case 'pj-pagu': PertanggungjawabanView.renderPagu(this.routerView); break;
-                        case 'pj-kendali': PertanggungjawabanView.renderKendali(this.routerView); break;
-                        case 'pj-pengajuan': PertanggungjawabanView.renderPengajuan(this.routerView); break;
-                        case 'pj-spj': PertanggungjawabanView.renderSPJ(this.routerView); break;
-
-                        case 'laporan-pengadaan': case 'laporan-jadwal': case 'laporan-anggaran': case 'laporan-penyedia': case 'laporan-pejabat': 
-                            CustomViews.renderReports(this.routerView); 
-                            break;
-                        case 'laporan-paket': 
-                            this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Laporan Total Paket</h1><p class="text-muted mb-5">Mencakup seluruh paket, lokasi, pagu, HPS, dan tahapan.</p><button class="btn btn-primary" onclick="app.printTotalReport()"><i class="ph ph-printer"></i> Cetak Laporan Total Paket</button></div></div>`; 
-                            break;
-                        case 'cetak-pencairan': 
-                            this.routerView.innerHTML=`<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Cetak Pengajuan Pencairan</h1><p class="text-muted mb-6">Pilih paket terlebih dahulu, kemudian gunakan checklist pencairan untuk melengkapi data.</p><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar')">Pilih Paket</button></div></div>`; 
-                            break;
-                        case 'pengaturan': CustomViews.renderSettings(this.routerView); break;
-                        
-                        case 'dokumen-sistem': case 'dokumen-pendukung': case 'dokumen-spse': case 'dokumen-arsip':
-                            this.routerView.innerHTML = `<div class="p-6 h-full flex flex-col"><h1 class="text-2xl font-bold mb-4">Manajemen Dokumen (Global)</h1><div class="card p-8 flex-1 flex flex-col items-center justify-center text-muted"><i class="ph ph-files text-5xl mb-4"></i><p>Pilih paket pengadaan di "Daftar Paket" dan buka Workspace tab "Dokumen" untuk Document Dependency Engine.</p><button class="btn btn-primary mt-4" onclick="app.navigate('pengadaan-daftar')">Ke Daftar Paket</button></div></div>`; 
-                            break;
-                        default: 
-                            this.routerView.innerHTML = `<div class="empty-state"><i class="ph ph-hammer text-4xl mb-4"></i><h2 class="text-lg font-bold text-main">Halaman Belum Tersedia</h2></div>`;
-                    }
-                }, 150);
-            }
-
-            editRekening(id = null) {
-                const item = id ? DB.getById('master_rekening', id) : {kode:'', uraian:'', pagu:0, jenis:'Detail'};
-                
-                const body = `
-                    <form id="form-rekening" class="flex flex-col gap-4">
-                        <div class="bg-info-50 p-3 rounded text-sm text-info-700 border border-info-200">
-                            <b>Catatan SIPD:</b> Pagu hanya boleh diinput pada level paling bawah (Sub Rincian Objek). Level di atasnya (Program, Kegiatan, Jenis Belanja) adalah Header.
-                        </div>
-                        
-                        <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Jenis Rekening</label>
-                            <select name="jenis" class="form-control" onchange="
-                                const paguInput = document.getElementById('input-pagu');
-                                if(this.value === 'Header') {
-                                    paguInput.disabled = true;
-                                    paguInput.value = '0';
-                                    paguInput.classList.add('bg-gray-100');
-                                } else {
-                                    paguInput.disabled = false;
-                                    paguInput.classList.remove('bg-gray-100');
-                                }
-                            ">
-                                <option value="Detail" ${item.jenis==='Detail'?'selected':''}>Detail / Sub Rincian (Bisa diisi Pagu)</option>
-                                <option value="Header" ${item.jenis==='Header'?'selected':''}>Header / Induk (Pagu Rekapitulasi Otomatis)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Kode Rekening (Sesuai DPA)</label>
-                            <input type="text" name="kode" class="form-control font-mono" value="${item.kode}" placeholder="Contoh: 5.02.03.2.01.0007.5.1.02.01.0001" required>
-                            <small class="text-muted text-xs">Gunakan tanda titik (.) sebagai pemisah level hierarki.</small>
-                        </div>
-
-                        <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Uraian Program/Kegiatan/Belanja</label>
-                            <textarea name="uraian" class="form-control" required rows="2" placeholder="Contoh: Belanja Bahan-Bahan Bangunan dan Konstruksi">${item.uraian}</textarea>
-                        </div>
-
-                        <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Pagu Anggaran (Rp)</label>
-                            <input type="text" id="input-pagu" name="pagu" class="form-control money-input font-bold ${item.jenis==='Header'?'bg-gray-100':''}" value="${Utils.formatNumber(item.pagu)}" oninput="this.value = Utils.formatNumber(String(this.value).replace(/\\D/g, ''))" ${item.jenis==='Header'?'disabled':''}>
-                        </div>
-                    </form>
-                `;
-                DOM.openModal(id ? 'Edit Master Kode & Rekening' : 'Tambah Master Kode & Rekening', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveRekening('${id||''}')"><i class="ph ph-floppy-disk"></i> Simpan Data</button>`);
-            }
-
-            saveRekening(id) {
-                const data = DOM.getFormData('form-rekening');
-                
-                // Pastikan jika Header, pagu dipaksa 0
-                data.pagu = data.jenis === 'Header' ? 0 : (Number(String(data.pagu).replace(/\D/g, '')) || 0);
-                
-                // Otomatis membuat parent_id dengan memotong kode terakhir
-                // Contoh: dari "5.02.03.2.01" menjadi "5.02.03.2"
-                const kodeParts = data.kode.split('.');
-                if (kodeParts.length > 1) {
-                    kodeParts.pop(); // Buang segmen terakhir
-                    data.parent_id = kodeParts.join('.');
-                } else {
-                    data.parent_id = null; // Ini level paling atas (misal cuma "5")
-                }
-
-                if (id) {
-                    DB.update('master_rekening', id, data);
-                } else {
-                    DB.insert('master_rekening', data);
-                }
-                
-                DOM.closeModal(); 
-                this.notify('Data Master Rekening berhasil disimpan', 'success'); 
-                this.reRenderCurrentView();
-            }
-            deleteRekening(id) {
-                // Meminta konfirmasi berlapis untuk menghindari hapus tidak sengaja
-                if(confirm('Apakah Anda yakin ingin menghapus rekening ini?\n\nPeringatan: Menghapus level "Header" TIDAK akan otomatis menghapus anak-anaknya di Supabase. Data yang dihapus tidak dapat dikembalikan.')) {
-                    
-                    // Eksekusi fungsi DB.delete (sudah akan otomatis ter-sync ke Supabase berkat method _sync)
-                    DB.delete('master_rekening', id);
-                    
-                    this.notify('Rekening berhasil dihapus dari sistem', 'success');
-                    
-                    // Render ulang tabel matriks
-                    this.reRenderCurrentView();
-                }
-            }
-exportRekening() {
-                const rekenings = DB.get('master_rekening').sort((a,b) => a.kode.localeCompare(b.kode));
-                const data = rekenings.map(r => ({
-                    "Kode Rekening": r.kode || '',
-                    "Uraian": r.uraian || '',
-                    "Jenis": r.jenis || 'Detail',
-                    "Pagu": Number(r.pagu) || 0
-                }));
-                
-                const ws = XLSX.utils.json_to_sheet(data);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Master Rekening");
-                XLSX.writeFile(wb, "Export_Master_Rekening_DPA.xlsx");
-            }
-            printPaguReport() {
-                // 1. Ambil & Hitung Data (Sama seperti renderPagu)
-                let rekenings = [...DB.get('master_rekening')].sort((a,b) => a.kode.localeCompare(b.kode));
-                let pencairanHead = DB.get('pencairan') || [];
-                let pencairanItems = DB.get('pencairan_items') || [];
-                let map = {};
-                
-                rekenings.forEach(r => {
-                    map[r.kode] = { ...r, pagu_calc: r.jenis === 'Detail' ? (Number(r.pagu) || 0) : 0, realisasi_total: 0, realisasi_bulan: {} };
-                    for(let i = 1; i <= 12; i++) map[r.kode].realisasi_bulan[i] = { LS: 0, GU: 0, TU: 0, TOTAL: 0 };
-                });
-
+            // ==========================================
+            // LOGIKA FORM PENCAIRAN CERDAS
+            // ==========================================
+            formPencairan() {
+                const rekenings = DB.get('master_rekening') || [];
+                const packages = DB.get('paket') || [];
+                const penyedias = DB.get('penyedia') || [];
+                const masterPajak = DB.get('master_pajak') || [];
+
+                // Kalkulasi Sisa Pagu Dinamis
+                const pencairanHead = DB.get('pencairan') || [];
+                const pencairanItems = DB.get('pencairan_items') || [];
+                let realisasiMap = {};
                 pencairanItems.forEach(item => {
-                    if (map[item.rekening_kode]) {
-                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
-                        if (head && (head.status === 'FINAL' || head.status === 'SELESAI' || head.status === 'DRAFT')) {
-                            const date = new Date(head.tanggal);
-                            const month = date.getMonth() + 1;
-                            const jenis = head.jenis_pencairan;
-                            const amount = Number(item.jumlah) || 0;
-                            if (map[item.rekening_kode].realisasi_bulan[month]) {
-                                map[item.rekening_kode].realisasi_bulan[month][jenis] += amount;
-                                map[item.rekening_kode].realisasi_bulan[month].TOTAL += amount;
-                                map[item.rekening_kode].realisasi_total += amount;
-                            }
-                        }
+                    const head = pencairanHead.find(h => h.id === item.pencairan_id);
+                    if (head && ['FINAL', 'SELESAI', 'DRAFT'].includes(String(head.status).toUpperCase())) {
+                        realisasiMap[item.rekening_id] = (realisasiMap[item.rekening_id] || 0) + (Number(item.subtotal) || Number(item.total) || 0);
                     }
                 });
 
-                let codes = Object.keys(map).sort((a,b) => b.length - a.length);
-                codes.forEach(code => {
-                    let parentCode = null; let maxLen = 0;
-                    for (let possibleParent of codes) {
-                        if (possibleParent.length < code.length && code.startsWith(possibleParent + '.')) {
-                            if (possibleParent.length > maxLen) { maxLen = possibleParent.length; parentCode = possibleParent; }
-                        }
-                    }
-                    if (parentCode && map[parentCode]) {
-                        map[parentCode].pagu_calc += map[code].pagu_calc;
-                        map[parentCode].realisasi_total += map[code].realisasi_total;
-                        for(let i = 1; i <= 12; i++) {
-                            map[parentCode].realisasi_bulan[i].LS += map[code].realisasi_bulan[i].LS;
-                            map[parentCode].realisasi_bulan[i].GU += map[code].realisasi_bulan[i].GU;
-                            map[parentCode].realisasi_bulan[i].TU += map[code].realisasi_bulan[i].TU;
-                            map[parentCode].realisasi_bulan[i].TOTAL += map[code].realisasi_bulan[i].TOTAL;
-                        }
-                    }
-                });
-
-                const getStyleByLevel = (kode) => {
-                    const parts = kode.split('.');
-                    if (parts.length <= 5) return 'font-weight: bold; background-color: #fef08a;'; 
-                    if (parts.length === 6) return 'font-weight: bold; background-color: #facc15;'; 
-                    if (parts.length === 8) return 'font-weight: bold; background-color: #ffffff;'; 
-                    if (parts.length >= 12) return 'background-color: #e0f2fe;'; 
-                    return 'background-color: #ffffff;'; 
-                };
-
-                // 2. Bentuk Baris HTML Khusus Cetak
-                let rows = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map((r) => {
-                    const sisa = r.pagu_calc - r.realisasi_total;
-                    const style = getStyleByLevel(r.kode);
-                    let monthCols = '';
-                    for(let i = 1; i <= 12; i++) {
-                        monthCols += `
-                            <td style="text-align: right;">${r.realisasi_bulan[i].LS > 0 ? Utils.formatNumber(r.realisasi_bulan[i].LS) : ''}</td>
-                            <td style="text-align: right;">${r.realisasi_bulan[i].GU > 0 ? Utils.formatNumber(r.realisasi_bulan[i].GU) : ''}</td>
-                            <td style="text-align: right;">${r.realisasi_bulan[i].TU > 0 ? Utils.formatNumber(r.realisasi_bulan[i].TU) : ''}</td>
-                            <td style="text-align: right; background-color: rgba(0,0,0,0.04); font-weight: bold;">${r.realisasi_bulan[i].TOTAL > 0 ? Utils.formatNumber(r.realisasi_bulan[i].TOTAL) : ''}</td>
-                        `;
-                    }
-                    return `
-                    <tr style="${style}">
-                        <td style="white-space: nowrap;">${r.kode}</td>
-                        <td style="min-width: 250px;">${r.uraian}</td>
-                        <td style="text-align: right; font-weight: bold; white-space: nowrap;">${Utils.formatNumber(r.pagu_calc)}</td>
-                        ${monthCols}
-                        <td style="text-align: right; font-weight: bold; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
-                        <td style="text-align: right; font-weight: bold; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
-                    </tr>`;
+                // Formatting Dropdown Rekening (Menyembunyikan Kode, Menampilkan Sub Kegiatan)
+                const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => {
+                    const subKode = r.kode.split('.').slice(0, 6).join('.');
+                    const subRecord = rekenings.find(sub => sub.kode === subKode);
+                    const namaSub = subRecord ? subRecord.uraian : 'Tanpa Sub Kegiatan';
+                    
+                    const pagu = Number(r.pagu) || 0;
+                    const realisasi = realisasiMap[r.id] || 0;
+                    const sisaPagu = pagu - realisasi;
+                    
+                    return `<option value="${r.id}" data-sisa="${sisaPagu}">${namaSub} - ${r.uraian} (Sisa: ${Utils.formatNumber(sisaPagu)})</option>`;
                 }).join('');
 
-                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                let monthHeaders1 = months.map(m => `<th colspan="4" style="text-align: center;">${m}</th>`).join('');
-                let monthHeaders2 = months.map(m => `
-                    <th style="text-align: right; font-size: 8px;">LS</th>
-                    <th style="text-align: right; font-size: 8px;">GU</th>
-                    <th style="text-align: right; font-size: 8px;">TU</th>
-                    <th style="text-align: right; font-size: 8px; background-color: rgba(0,0,0,0.04);">Tot</th>
-                `).join('');
+                // Formatting Dropdown Penyedia (Penerima)
+                const optsPenyedia = penyedias.map(p => 
+                    `<option value="${p.id}" data-bank="${p.bank}" data-norek="${p.no_rekening}">${p.name} - ${p.direktur}</option>`
+                ).join('');
 
-                // 3. Cetak Menggunakan printDocument
-                const content = `
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <h1 style="margin:0; font-size: 18px;">LAPORAN PAGU DAN REALISASI ANGGARAN (DPA)</h1>
-                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #555;">Tahun Anggaran Berjalan</p>
+                // Formatting Dropdown Pajak
+                const optsPajak = masterPajak.map(p => 
+                    `<option value="${p.id}" data-ppn="${p.ppn}" data-tarif="${p.tarif}" data-dasar="${p.dasar_hitung}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`
+                ).join('');
+
+                // Formatting Dropdown Paket
+                const optsPaket = packages.map(p => {
+                    const t = this.calculatePackageTotals(p);
+                    const nego = p.pembulatan_negosiasi || t.negosiasi || 0;
+                    return `<option value="${p.id}" data-nilai="${nego}">${p.name}</option>`;
+                }).join('');
+
+                const body = `
+                    <div class="card p-4 mb-4 border border-primary-200">
+                        <h3 class="font-bold mb-3">1. Jenis Pengajuan</h3>
+                        <div class="flex gap-4 mb-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="jenis_input" value="non_paket" checked onchange="app.toggleJenisInput()"> Non-Paket (Input Mandiri)
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="jenis_input" value="paket" onchange="app.toggleJenisInput()"> Paket Pekerjaan
+                            </label>
+                        </div>
+                        
+                        <div id="wrapper-paket" class="hidden form-group mb-0">
+                            <label class="form-label">Pilih Paket Pekerjaan</label>
+                            <select id="pilih_paket" class="form-control" onchange="app.autofillDariPaket()">
+                                <option value="">-- Pilih Paket --</option>
+                                ${optsPaket}
+                            </select>
+                        </div>
                     </div>
-                    <table class="print-table">
-                        <thead>
-                            <tr>
-                                <th rowspan="2" style="width: 120px;">Kode Rekening</th>
-                                <th rowspan="2">Uraian</th>
-                                <th rowspan="2" style="text-align: right;">Pagu Anggaran</th>
-                                ${monthHeaders1}
-                                <th rowspan="2" style="text-align: right;">Total Realisasi</th>
-                                <th rowspan="2" style="text-align: right;">Sisa Anggaran</th>
-                            </tr>
-                            <tr>${monthHeaders2}</tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                `;
 
-                // Custom Style untuk memaksa margin kecil, landscape, dan font kecil agar muat
-                const customStyle = `
-                    @page { size: landscape; margin: 10mm; }
-                    body { font-family: 'Times New Roman', Times, serif; font-size: 9px; }
-                    .print-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                    .print-table th, .print-table td { border: 1px dashed #000; padding: 4px; }
-                    .print-table th { background-color: #f3f4f6; font-weight: bold; }
-                `;
+                    <div class="card p-4">
+                        <h3 class="font-bold mb-3">2. Rincian Tagihan & Pajak</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="form-group">
+                                <label class="form-label">Rekening Belanja</label>
+                                <select id="input_rekening" class="form-control" onchange="app.hitungPajakPencairan()">
+                                    <option value="">-- Pilih Rekening --</option>
+                                    ${optsRekening}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Penerima (Referensi Penyedia)</label>
+                                <select id="input_penerima" class="form-control" onchange="app.updateInfoPenerima()">
+                                    <option value="">-- Pilih Penerima --</option>
+                                    ${optsPenyedia}
+                                </select>
+                                <div id="info_bank" class="text-xs text-muted mt-1"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Nilai Tagihan (Termasuk PPN jika ada)</label>
+                                <input type="text" inputmode="numeric" id="input_tagihan" class="form-control money-input font-bold" placeholder="0" oninput="app.hitungPajakPencairan()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Profil Pajak</label>
+                                <select id="input_pajak" class="form-control" onchange="app.hitungPajakPencairan()">
+                                    <option value="">-- Pilih Profil Pajak --</option>
+                                    ${optsPajak}
+                                </select>
+                            </div>
+                        </div>
 
-                this.printDocument('Laporan Matriks DPA', content, customStyle);
+                        <!-- Hasil Kalkulator Otomatis -->
+                        <div class="bg-gray-50 border p-4 rounded mt-4">
+                            <h4 class="font-bold text-sm mb-3 text-center text-primary-700 uppercase tracking-wider">Ringkasan Perhitungan Pembayaran</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                                <div class="bg-white p-2 rounded border">
+                                    <span class="block text-muted text-xs">DPP</span>
+                                    <span id="calc_dpp" class="font-bold">0</span>
+                                </div>
+                                <div class="bg-white p-2 rounded border">
+                                    <span class="block text-muted text-xs">PPN (11%)</span>
+                                    <span id="calc_ppn" class="font-bold text-blue-600">0</span>
+                                </div>
+                                <div class="bg-white p-2 rounded border">
+                                    <span class="block text-muted text-xs">PPh (Potongan)</span>
+                                    <span id="calc_pph" class="font-bold text-danger">0</span>
+                                </div>
+                                <div class="bg-white p-2 rounded border bg-danger-50 border-danger-200">
+                                    <span class="block text-muted text-xs">Total Potongan</span>
+                                    <span id="calc_potongan" class="font-bold text-danger">0</span>
+                                </div>
+                                <div class="bg-white p-2 rounded border bg-success-50 border-success-200">
+                                    <span class="block text-muted text-xs">Jumlah Dibayarkan</span>
+                                    <span id="calc_dibayarkan" class="font-bold text-success text-lg">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                DOM.openModal('Form Pengajuan Pencairan', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.savePencairan()">Buat Pengajuan</button>`);
+                
+                // Attach event listener for money formatter inside modal
+                document.getElementById('input_tagihan').addEventListener('input', function(e) {
+                    let val = String(e.target.value).replace(/\D/g, '');
+                    e.target.value = Utils.formatNumber(val);
+                });
             }
+
+            toggleJenisInput() {
+                const isPaket = document.querySelector('input[name="jenis_input"]:checked').value === 'paket';
+                const wrapperPaket = document.getElementById('wrapper-paket');
+                const inputTagihan = document.getElementById('input_tagihan');
+                
+                if (isPaket) {
+                    wrapperPaket.classList.remove('hidden');
+                    inputTagihan.setAttribute('readonly', true);
+                    inputTagihan.classList.add('bg-gray-100');
+                } else {
+                    wrapperPaket.classList.add('hidden');
+                    document.getElementById('pilih_paket').value = '';
+                    inputTagihan.removeAttribute('readonly');
+                    inputTagihan.classList.remove('bg-gray-100');
+                    inputTagihan.value = '';
+                    this.hitungPajakPencairan();
+                }
+            }
+
+            autofillDariPaket() {
+                const selectPaket = document.getElementById('pilih_paket');
+                if (!selectPaket.value) return;
+                
+                const nilaiNegosiasi = selectPaket.options[selectPaket.selectedIndex].getAttribute('data-nilai');
+                document.getElementById('input_tagihan').value = Utils.formatNumber(nilaiNegosiasi);
+                
+                // Cari juga penyedia dari paket kalau ada
+                const pkg = DB.getById('paket', selectPaket.value);
+                if (pkg && pkg.supplier_id) {
+                    document.getElementById('input_penerima').value = pkg.supplier_id;
+                    this.updateInfoPenerima();
+                }
+                
+                this.hitungPajakPencairan();
+            }
+
+            updateInfoPenerima() {
+                const selectPenerima = document.getElementById('input_penerima');
+                const infoBank = document.getElementById('info_bank');
+                if (selectPenerima.value) {
+                    const bank = selectPenerima.options[selectPenerima.selectedIndex].getAttribute('data-bank') || '-';
+                    const norek = selectPenerima.options[selectPenerima.selectedIndex].getAttribute('data-norek') || '-';
+                    infoBank.innerHTML = `<i class="ph ph-bank"></i> ${bank} - ${norek}`;
+                } else {
+                    infoBank.innerHTML = '';
+                }
+            }
+
+            hitungPajakPencairan() {
+                const rekSelect = document.getElementById('input_rekening');
+                const tagihanInput = document.getElementById('input_tagihan');
+                const pajakSelect = document.getElementById('input_pajak');
+                
+                let nilaiTagihan = parseFloat(String(tagihanInput.value).replace(/\D/g, '')) || 0;
+                
+                // 1. Validasi Sisa Pagu
+                if (rekSelect.value && nilaiTagihan > 0) {
+                    const sisaPagu = parseFloat(rekSelect.options[rekSelect.selectedIndex].getAttribute('data-sisa'));
+                    if (nilaiTagihan > sisaPagu) {
+                        alert(`Peringatan: Nilai tagihan (Rp ${Utils.formatNumber(nilaiTagihan)}) melebihi Sisa Pagu (Rp ${Utils.formatNumber(sisaPagu)}). Sistem membatasi ke maksimal sisa pagu.`);
+                        tagihanInput.value = Utils.formatNumber(sisaPagu);
+                        nilaiTagihan = sisaPagu;
+                    }
+                }
+
+                // 2. Variabel Kalkulasi
+                let dpp = 0;
+                let ppn = 0;
+                let pph = 0;
+
+                // 3. Proses Perhitungan Pajak
+                if (pajakSelect.value && nilaiTagihan > 0) {
+                    const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
+                    const isPPN = optPajak.getAttribute('data-ppn') === 'true';
+                    const tarifPPh = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
+                    const dasarHitung = optPajak.getAttribute('data-dasar'); 
+
+                    // Langkah 1 & 2: Hitung DPP dan PPN
+                    if (isPPN) {
+                        dpp = Math.round(nilaiTagihan / 1.11);
+                        ppn = nilaiTagihan - dpp;
+                    } else {
+                        dpp = nilaiTagihan;
+                        ppn = 0;
+                    }
+
+                    // Langkah 3: Hitung PPh berdasarkan Dasar Hitung
+                    const basisPPh = (dasarHitung === 'DPP') ? dpp : nilaiTagihan; 
+                    pph = Math.round(basisPPh * (tarifPPh / 100));
+                }
+
+                // Langkah 4 & 5: Hitung Potongan dan Jumlah Dibayar
+                const totalPotongan = pph; // PPN dibayarkan ke rekanan, jadi tidak dipotong dari pencairan net
+                const jumlahDibayarkan = nilaiTagihan - totalPotongan;
+
+                // 6. Update UI
+                document.getElementById('calc_dpp').innerText = Utils.formatNumber(dpp);
+                document.getElementById('calc_ppn').innerText = Utils.formatNumber(ppn);
+                document.getElementById('calc_pph').innerText = Utils.formatNumber(pph);
+                document.getElementById('calc_potongan').innerText = Utils.formatNumber(totalPotongan);
+                document.getElementById('calc_dibayarkan').innerText = Utils.formatNumber(jumlahDibayarkan);
+            }
+
+            savePencairan() {
+                const isPaket = document.querySelector('input[name="jenis_input"]:checked').value === 'paket';
+                const paketId = document.getElementById('pilih_paket').value;
+                const rekeningId = document.getElementById('input_rekening').value;
+                const penyediaId = document.getElementById('input_penerima').value;
+                const tagihan = parseFloat(String(document.getElementById('input_tagihan').value).replace(/\D/g, '')) || 0;
+                const pajakId = document.getElementById('input_pajak').value;
+
+                if (!rekeningId || !penyediaId || tagihan <= 0) {
+                    return this.notify('Harap lengkapi Rekening, Penerima, dan Nilai Tagihan', 'error');
+                }
+
+                // Ambil kalkulasi dari UI
+                const ppn = parseFloat(document.getElementById('calc_ppn').innerText.replace(/\D/g, '')) || 0;
+                const pph = parseFloat(document.getElementById('calc_pph').innerText.replace(/\D/g, '')) || 0;
+                const totalPotongan = parseFloat(document.getElementById('calc_potongan').innerText.replace(/\D/g, '')) || 0;
+                const jumlahDibayarkan = parseFloat(document.getElementById('calc_dibayarkan').innerText.replace(/\D/g, '')) || 0;
+
+                // Ambil metadata dari select
+                const selRek = document.getElementById('input_rekening');
+                const namaSubKeg = selRek.options[selRek.selectedIndex].text.split('-')[0].trim();
+                
+                const selPenyedia = document.getElementById('input_penerima');
+                const namaPenerima = selPenyedia.options[selPenyedia.selectedIndex].text.split('-')[0].trim();
+                const bankPenerima = selPenyedia.options[selPenyedia.selectedIndex].getAttribute('data-bank');
+                const rekPenerima = selPenyedia.options[selPenyedia.selectedIndex].getAttribute('data-norek');
+
+                const nextNo = String(DB.get('pencairan').length + 1).padStart(3, '0');
+                const nomorStr = `${nextNo}/SPP-LS/BKAD/2026`; 
+
+                // Header Pencairan
+                const head = { 
+                    nomor: nomorStr, 
+                    tanggal: new Date().toISOString().split('T')[0], 
+                    bulan: 'Juni', 
+                    kegiatan: 'Pengelolaan Barang Milik Daerah', 
+                    sub_kegiatan: namaSubKeg, 
+                    jenis: 'LS', 
+                    status: 'DRAFT',
+                    package_id: isPaket ? paketId : null,
+                    total: tagihan
+                };
+                const res = DB.insert('pencairan', head);
+                
+                // Tentukan field pajak spesifik berdasarkan master (jika ada)
+                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
+                if (pajakId) {
+                    const selPajakText = document.getElementById('input_pajak').options[document.getElementById('input_pajak').selectedIndex].text.toUpperCase();
+                    if (selPajakText.includes('21')) pph21 = pph;
+                    else if (selPajakText.includes('22')) pph22 = pph;
+                    else if (selPajakText.includes('23')) pph23 = pph;
+                    else if (selPajakText.includes('4 AYAT')) pph42 = pph;
+                }
+
+                // Item Pencairan Relasional
+                const item = { 
+                    pencairan_id: res.id, 
+                    rekening_id: rekeningId, 
+                    uraian: 'Pembayaran Tagihan Pihak Ketiga',
+                    qty: 1,
+                    harga: tagihan,
+                    subtotal: tagihan, // DPP + PPN
+                    pajak_id: pajakId || null,
+                    nilai_pajak: totalPotongan,
+                    pajak_ppn: ppn, // Disimpan terpisah untuk Kartu Kendali
+                    pajak_pph21: pph21,
+                    pajak_pph22: pph22,
+                    pajak_pph23: pph23,
+                    pajak_pph42: pph42,
+                    total: jumlahDibayarkan
+                };
+                DB.insert('pencairan_items', item);
+                
+                DOM.closeModal(); 
+                this.notify('Pengajuan Pencairan berhasil dibuat', 'success'); 
+                this.reRenderCurrentView();
+            }
+
             printKendali() {
                 const subKode = document.getElementById('kendali-sub').value;
                 const bulan = parseInt(document.getElementById('kendali-bulan').value);
@@ -3354,7 +2807,6 @@ exportRekening() {
                 const pencairanItems = DB.get('pencairan_items') || [];
                 const masterPajak = DB.get('master_pajak') || [];
                 
-                // 1. Inisialisasi Struktur Data untuk Matriks Rekening
                 let map = {};
                 rekenings.forEach(r => {
                     map[r.kode] = { 
@@ -3364,17 +2816,15 @@ exportRekening() {
                     };
                 });
 
-                // Inisialisasi Data Pajak
                 let pajak = {
                     ppn: { lalu: 0, ini: 0 }, pph21: { lalu: 0, ini: 0 }, pph22: { lalu: 0, ini: 0 },
                     pph23: { lalu: 0, ini: 0 }, pph42: { lalu: 0, ini: 0 }
                 };
 
-                // 2. Kalkulasi Realisasi dan Pajak dari Pencairan (Relational Check)
                 pencairanItems.forEach(item => {
-                    // Cari Kode Rekening berdasarkan rekening_id (Foreign Key)
+                    // Cari Kode Rekening berdasarkan rekening_id
                     const rekMaster = DB.getById('master_rekening', item.rekening_id);
-                    if (!rekMaster) return; // Lewati jika rekening terhapus/tidak valid
+                    if (!rekMaster) return; 
                     const rekKode = rekMaster.kode;
 
                     if (map[rekKode]) {
@@ -3384,45 +2834,59 @@ exportRekening() {
                             const itemBulan = date.getMonth() + 1;
                             const isLalu = itemBulan < bulan;
                             const isIni = itemBulan === bulan;
-                            const jenis = (head.jenis || '').toUpperCase();
+                            const jenis = (head.jenis || head.jenis_pencairan || '').toUpperCase();
                             
-                            // Gunakan subtotal (atau total jika subtotal kosong)
                             const amount = Number(item.subtotal) || Number(item.total) || 0;
 
                             if (isLalu || isIni) {
-                                // Distribusi ke Nilai SPJ
                                 if (jenis === 'LS') {
                                     if (isLalu) map[rekKode].ls_lalu += amount;
                                     if (isIni) map[rekKode].ls_ini += amount;
                                 } else if (jenis === 'TU') {
                                     if (isLalu) map[rekKode].tu_lalu += amount;
                                     if (isIni) map[rekKode].tu_ini += amount;
-                                } else { // Default to UP/GU
+                                } else { 
                                     if (isLalu) map[rekKode].gu_lalu += amount;
                                     if (isIni) map[rekKode].gu_ini += amount;
                                 }
 
-                                // Distribusi ke Nilai Pajak berdasarkan pajak_id (Foreign Key)
                                 if (item.pajak_id) {
                                     const taxRecord = masterPajak.find(p => p.id === item.pajak_id);
                                     if (taxRecord) {
-                                        const taxName = (taxRecord.nama || '').toUpperCase();
+                                        const taxName = (taxRecord.jenis_pph || taxRecord.profil || '').toUpperCase();
                                         const taxValue = Number(item.nilai_pajak) || 0;
+                                        const taxPPN = Number(item.pajak_ppn) || 0;
 
                                         if (isLalu) {
-                                            if (taxName.includes('PPN')) pajak.ppn.lalu += taxValue;
-                                            else if (taxName.includes('21')) pajak.pph21.lalu += taxValue;
+                                            pajak.ppn.lalu += taxPPN;
+                                            if (taxName.includes('21')) pajak.pph21.lalu += taxValue;
                                             else if (taxName.includes('22')) pajak.pph22.lalu += taxValue;
                                             else if (taxName.includes('23')) pajak.pph23.lalu += taxValue;
                                             else if (taxName.includes('4 AYAT 2') || taxName.includes('4(2)')) pajak.pph42.lalu += taxValue;
                                         }
                                         if (isIni) {
-                                            if (taxName.includes('PPN')) pajak.ppn.ini += taxValue;
-                                            else if (taxName.includes('21')) pajak.pph21.ini += taxValue;
+                                            pajak.ppn.ini += taxPPN;
+                                            if (taxName.includes('21')) pajak.pph21.ini += taxValue;
                                             else if (taxName.includes('22')) pajak.pph22.ini += taxValue;
                                             else if (taxName.includes('23')) pajak.pph23.ini += taxValue;
                                             else if (taxName.includes('4 AYAT 2') || taxName.includes('4(2)')) pajak.pph42.ini += taxValue;
                                         }
+                                    }
+                                } else {
+                                    // Fallback kalau pakai cara lama yang disisipkan di kolom langsung
+                                    if(isLalu) {
+                                        pajak.ppn.lalu += Number(item.pajak_ppn) || 0;
+                                        pajak.pph21.lalu += Number(item.pajak_pph21) || 0;
+                                        pajak.pph22.lalu += Number(item.pajak_pph22) || 0;
+                                        pajak.pph23.lalu += Number(item.pajak_pph23) || 0;
+                                        pajak.pph42.lalu += Number(item.pajak_pph42) || 0;
+                                    }
+                                    if(isIni) {
+                                        pajak.ppn.ini += Number(item.pajak_ppn) || 0;
+                                        pajak.pph21.ini += Number(item.pajak_pph21) || 0;
+                                        pajak.pph22.ini += Number(item.pajak_pph22) || 0;
+                                        pajak.pph23.ini += Number(item.pajak_pph23) || 0;
+                                        pajak.pph42.ini += Number(item.pajak_pph42) || 0;
                                     }
                                 }
                             }
@@ -3430,7 +2894,6 @@ exportRekening() {
                     }
                 });
 
-                // 3. Roll-up Data (Dari Rekening Anak ke Induk)
                 let codes = Object.keys(map).sort((a,b) => b.length - a.length);
                 codes.forEach(code => {
                     let parentCode = null; let maxLen = 0;
@@ -3450,11 +2913,9 @@ exportRekening() {
                     }
                 });
 
-                // 4. Pembentukan Baris Tabel Kendali
                 let sumPagu = 0, sumLSlalu = 0, sumLSini = 0, sumGUlalu = 0, sumGUini = 0, sumTUlalu = 0, sumTUini = 0, sumTotSPJ = 0;
 
                 const rowsHtml = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map(r => {
-                    // Hanya tambahkan ke subtotal utama jika levelnya tepat di bawah Sub Kegiatan (Level 7)
                     if (r.kode.split('.').length === 7) {
                         sumPagu += r.pagu_calc;
                         sumLSlalu += r.ls_lalu; sumLSini += r.ls_ini;
@@ -3492,7 +2953,6 @@ exportRekening() {
                 const grandSPJ = totLSSd + totGUSd + totTUSd;
                 const fZ = (val) => val === 0 ? '-' : Utils.formatNumber(val);
 
-                // 5. Tabel Pajak HTML
                 const pTax = (nama, pObj, num) => {
                     const sdPenerimaan = pObj.lalu + pObj.ini;
                     const setorLalu = pObj.lalu; 
@@ -3515,7 +2975,6 @@ exportRekening() {
                 const totTaxIni = pajak.ppn.ini + pajak.pph21.ini + pajak.pph22.ini + pajak.pph23.ini + pajak.pph42.ini;
                 const sdTotTax = totTaxLalu + totTaxIni;
 
-                // 6. Template HTML untuk Dicetak
                 const content = `
                     <div class="header">
                         <h2>KOTA BOGOR<br>BADAN KEUANGAN DAN ASET DAERAH<br>KARTU KENDALI KEGIATAN</h2>
@@ -3632,6 +3091,100 @@ exportRekening() {
                 this.printDocument('Kartu Kendali', content, customStyle);
             }
 
+            // ==========================================
+            // LOGIKA DOKUMEN DEPENDENCY ENGINE (Word)
+            // ==========================================
+            
+            editRekening(id = null) {
+                const item = id ? DB.getById('master_rekening', id) : {kode:'', uraian:'', pagu:0, jenis:'Detail'};
+                
+                const body = `
+                    <form id="form-rekening" class="flex flex-col gap-4">
+                        <div class="bg-info-50 p-3 rounded text-sm text-info-700 border border-info-200">
+                            <b>Catatan SIPD:</b> Pagu hanya boleh diinput pada level paling bawah (Sub Rincian Objek). Level di atasnya (Program, Kegiatan, Jenis Belanja) adalah Header.
+                        </div>
+                        
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Jenis Rekening</label>
+                            <select name="jenis" class="form-control" onchange="
+                                const paguInput = document.getElementById('input-pagu');
+                                if(this.value === 'Header') {
+                                    paguInput.disabled = true;
+                                    paguInput.value = '0';
+                                    paguInput.classList.add('bg-gray-100');
+                                } else {
+                                    paguInput.disabled = false;
+                                    paguInput.classList.remove('bg-gray-100');
+                                }
+                            ">
+                                <option value="Detail" ${item.jenis==='Detail'?'selected':''}>Detail / Sub Rincian (Bisa diisi Pagu)</option>
+                                <option value="Header" ${item.jenis==='Header'?'selected':''}>Header / Induk (Pagu Rekapitulasi Otomatis)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Kode Rekening (Sesuai DPA)</label>
+                            <input type="text" name="kode" class="form-control font-mono" value="${item.kode}" placeholder="Contoh: 5.02.03.2.01.0007.5.1.02.01.0001" required>
+                            <small class="text-muted text-xs">Gunakan tanda titik (.) sebagai pemisah level hierarki.</small>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Uraian Program/Kegiatan/Belanja</label>
+                            <textarea name="uraian" class="form-control" required rows="2" placeholder="Contoh: Belanja Bahan-Bahan Bangunan dan Konstruksi">${item.uraian}</textarea>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label font-bold text-gray-700">Pagu Anggaran (Rp)</label>
+                            <input type="text" id="input-pagu" name="pagu" class="form-control money-input font-bold ${item.jenis==='Header'?'bg-gray-100':''}" value="${Utils.formatNumber(item.pagu)}" oninput="this.value = Utils.formatNumber(String(this.value).replace(/\\D/g, ''))" ${item.jenis==='Header'?'disabled':''}>
+                        </div>
+                    </form>
+                `;
+                DOM.openModal(id ? 'Edit Master Kode & Rekening' : 'Tambah Master Kode & Rekening', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveRekening('${id||''}')"><i class="ph ph-floppy-disk"></i> Simpan Data</button>`);
+            }
+
+            saveRekening(id) {
+                const data = DOM.getFormData('form-rekening');
+                data.pagu = data.jenis === 'Header' ? 0 : (Number(String(data.pagu).replace(/\D/g, '')) || 0);
+                
+                const kodeParts = data.kode.split('.');
+                if (kodeParts.length > 1) {
+                    kodeParts.pop(); 
+                    data.parent_id = kodeParts.join('.');
+                } else {
+                    data.parent_id = null; 
+                }
+
+                if (id) {
+                    DB.update('master_rekening', id, data);
+                } else {
+                    DB.insert('master_rekening', data);
+                }
+                
+                DOM.closeModal(); 
+                this.notify('Data Master Rekening berhasil disimpan', 'success'); 
+                this.reRenderCurrentView();
+            }
+            deleteRekening(id) {
+                if(confirm('Apakah Anda yakin ingin menghapus rekening ini?\n\nPeringatan: Menghapus level "Header" TIDAK akan otomatis menghapus anak-anaknya di Supabase. Data yang dihapus tidak dapat dikembalikan.')) {
+                    DB.delete('master_rekening', id);
+                    this.notify('Rekening berhasil dihapus dari sistem', 'success');
+                    this.reRenderCurrentView();
+                }
+            }
+            exportRekening() {
+                const rekenings = DB.get('master_rekening').sort((a,b) => a.kode.localeCompare(b.kode));
+                const data = rekenings.map(r => ({
+                    "Kode Rekening": r.kode || '',
+                    "Uraian": r.uraian || '',
+                    "Jenis": r.jenis || 'Detail',
+                    "Pagu": Number(r.pagu) || 0
+                }));
+                
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Master Rekening");
+                XLSX.writeFile(wb, "Export_Master_Rekening_DPA.xlsx");
+            }
             downloadTemplateRekening() {
                 const ws = XLSX.utils.aoa_to_sheet([
                     ["Kode Rekening", "Uraian", "Jenis", "Pagu"],
@@ -3648,7 +3201,6 @@ exportRekening() {
                 const file = event.target.files[0];
                 if(!file) return;
                 
-                // Menampilkan loader jika dirasa prosesnya agak lama
                 this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Mengimpor & Menyinkronkan data dengan Supabase...</p></div>`;
 
                 const reader = new FileReader();
@@ -3662,18 +3214,16 @@ exportRekening() {
                         const existingData = DB.get('master_rekening');
                         
                         rows.forEach(r => {
-                            if(!r["Kode Rekening"] || !r["Uraian"]) return; // Skip baris kosong
+                            if(!r["Kode Rekening"] || !r["Uraian"]) return; 
                             
                             const kodeStr = String(r["Kode Rekening"]).trim();
                             const paguVal = Number(r["Pagu"]) || 0;
                             
-                            // Deteksi cerdas: Jika user tidak mengisi "Jenis", kita tebak dari panjang/pagu
                             let jenisVal = r["Jenis"] ? String(r["Jenis"]).trim() : '';
                             if (!jenisVal) {
                                 jenisVal = paguVal > 0 ? 'Detail' : 'Header';
                             }
                             
-                            // Kalkulasi otomatis parent_id
                             const kodeParts = kodeStr.split('.');
                             let parentId = null;
                             if (kodeParts.length > 1) {
@@ -3684,19 +3234,16 @@ exportRekening() {
                             const payload = {
                                 kode: kodeStr,
                                 uraian: String(r["Uraian"]).trim(),
-                                pagu: jenisVal === 'Header' ? 0 : paguVal, // Keamanan ekstra
+                                pagu: jenisVal === 'Header' ? 0 : paguVal,
                                 jenis: jenisVal,
                                 parent_id: parentId
                             };
                             
-                            // Cek apakah kode rekening sudah ada di database lokal
                             const existing = existingData.find(ex => ex.kode === kodeStr);
                             
                             if (existing) {
-                                // Jika ada, UPDATE
                                 DB.update('master_rekening', existing.id, payload);
                             } else {
-                                // Jika belum ada, INSERT
                                 DB.insert('master_rekening', payload);
                             }
                         });
@@ -3712,50 +3259,15 @@ exportRekening() {
                 };
                 reader.readAsArrayBuffer(file);
             }
-            formPencairan() {
-                const rek = DB.get('master_rekening').filter(r => r.jenis === 'Detail');
-                const opts = rek.map(r => `<option value="${r.kode}">${r.kode} - ${r.uraian}</option>`).join('');
-                
-                const body = `
-                    <form id="form-si">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="form-group"><label class="form-label">No Pengajuan</label><input type="text" name="nomor" class="form-control" value="01/SPP-LS/BKAD/2026" required></div>
-                            <div class="form-group"><label class="form-label">Tanggal</label><input type="date" name="tanggal" class="form-control" value="${new Date().toISOString().split('T')[0]}" required></div>
-                            <div class="form-group"><label class="form-label">Jenis</label><select name="jenis_pencairan" class="form-control"><option value="LS">LS</option><option value="UP/GU">UP/GU</option><option value="TU">TU</option></select></div>
-                            <div class="form-group"><label class="form-label">Sub Kegiatan</label><input type="text" name="sub_kegiatan" class="form-control" value="Pengamanan Barang Milik Daerah" required></div>
-                            
-                            <div class="form-group col-span-2 border-t pt-4 mt-2"><h4 class="font-bold text-sm mb-2">Item Pertama (Bisa ditambah nanti di edit)</h4></div>
-                            <div class="form-group col-span-2"><label class="form-label">Rekening</label><select name="rekening_kode" class="form-control">${opts}</select></div>
-                            <div class="form-group col-span-2"><label class="form-label">Keperluan</label><input type="text" name="keperluan" class="form-control" value="Biaya klaim asuransi kendaraan"></div>
-                            <div class="form-group"><label class="form-label">Penerima</label><input type="text" name="nama_penerima" class="form-control" value="CV. Hanggar Autoworks"></div>
-                            <div class="form-group"><label class="form-label">Bank & Rekening</label><div class="flex gap-2"><input type="text" name="nama_bank" class="form-control w-1/3" value="BCA"><input type="text" name="rekening_bank" class="form-control w-2/3" value="6010557575"></div></div>
-                            <div class="form-group col-span-2"><label class="form-label">Jumlah (Rp)</label><input type="text" name="jumlah" class="form-control money-input" value="3500000" oninput="this.value = Utils.formatNumber(String(this.value).replace(/\\D/g, ''))"></div>
-                        </div>
-                    </form>
-                `;
-                DOM.openModal('Buat Pengajuan Pencairan', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.savePencairan()">Buat</button>`);
-            }
 
-            savePencairan() {
-                const data = DOM.getFormData('form-si');
-                const head = { nomor: data.nomor, tanggal: data.tanggal, bulan: 'Juni', kegiatan: 'Pengelolaan Barang Milik Daerah', sub_kegiatan: data.sub_kegiatan, jenis_pencairan: data.jenis_pencairan, status: 'DRAFT' };
-                const res = DB.insert('pencairan', head);
-                
-                const item = { pencairan_id: res.id, rekening_kode: data.rekening_kode, keperluan: data.keperluan, nama_penerima: data.nama_penerima, nama_bank: data.nama_bank, rekening_bank: data.rekening_bank, jumlah: Number(String(data.jumlah).replace(/\D/g, '')) || 0, pajak_pph21: 0, pajak_ppn: 0 };
-                DB.insert('pencairan_items', item);
-                
-                DOM.closeModal(); this.notify('Pengajuan dibuat', 'success'); this.reRenderCurrentView();
-            }
-
-          calculateDocumentMeta(pkg, doc) {
+            calculateDocumentMeta(pkg, doc) {
                 const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
                 
-                // 1. Tarik tanggal dari Engine Jadwal Cerdas (otomatis mendeteksi override manual)
+                // 1. Tarik tanggal dari Engine Jadwal Cerdas
                 const { dates } = this.calculateAllScheduleDates(pkg);
                 
                 let calcDate = ''; 
                 
-                // 2. Petakan dokumen khusus atau cari kecocokan dari hasil engine
                 if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
                     calcDate = pkg.tgl_mulai;
                 } else if ((doc === 'BAST' || doc === 'BAP') && pkg.tgl_selesai) {
@@ -3772,14 +3284,10 @@ exportRekening() {
                     }
                 }
                 
-                // Fallback terakhir jika masih kosong
-                if (!calcDate) {
-                    calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
-                }
-                
+                if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
                 const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
 
-                // 3. Logika Penomoran Dokumen (Tetap mempertahankan fitur fallback penomoran)
+                // 2. Logika Penomoran Dokumen
                 const aliases = {
                     'BA Reviu Dok Persiapan':'BA_REVIU', 'BA Reviu Dokumen Persiapan':'BA_REVIU',
                     'Undangan Penandatanganan Kontrak':'UND_KONTRAK', 'Undangan Pengadaan Langsung':'UND_PENGADAAN',
@@ -3900,7 +3408,7 @@ exportRekening() {
                 t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
                 setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
-            // PASTIKAN FUNGSI INI ADA DI DALAM CLASS APP
+
             calculateAllScheduleDates(pkg) {
                 const rules = DB.get('waktu') || [];
                 const holidays = (DB.get('libur') || []).map(l => l.date);
@@ -3951,129 +3459,101 @@ exportRekening() {
                 return { dates, calculated };
             }
             
-        // FUNGSI BARU: Menampilkan Modal Edit Manual Jadwal
-    editManualJadwal(pkgId, type = 'doc') {
-        const pkg = DB.getById('paket', pkgId);
-        if (!pkg) return;
+            editManualJadwal(pkgId, type = 'doc') {
+                const pkg = DB.getById('paket', pkgId);
+                if (!pkg) return;
 
-        // Ambil jadwal yang sudah dihitung oleh engine
-        const { calculated } = this.calculateAllScheduleDates(pkg); 
-        
-        let html = `<div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">`;
-        html += `<p class="text-sm text-gray-500 mb-4">Ubah tanggal di bawah ini untuk melakukan override manual. Kosongkan untuk kembali ke perhitungan otomatis.</p>`;
-        
-        calculated.forEach(r => {
-            // Cek apakah ada override yang tersimpan
-            const overrideVal = (pkg.jadwal_override && pkg.jadwal_override[`${type}_${r.id}`]) || '';
-            
-            html += `
-                <div class="flex flex-col gap-1 border-b pb-2">
-                    <label class="text-sm font-semibold text-gray-700">${r.name}</label>
-                    <div class="flex gap-2 items-center">
-                        <input type="date" id="override_${type}_${r.id}" class="input w-full" value="${overrideVal || r.calculatedDate}">
-                        ${overrideVal 
-                            ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` 
-                            : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
-                    </div>
-                </div>
-            `;
-        });
+                const { calculated } = this.calculateAllScheduleDates(pkg); 
+                
+                let html = `<div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">`;
+                html += `<p class="text-sm text-gray-500 mb-4">Ubah tanggal di bawah ini untuk melakukan override manual. Kosongkan untuk kembali ke perhitungan otomatis.</p>`;
+                
+                calculated.forEach(r => {
+                    const overrideVal = (pkg.jadwal_override && pkg.jadwal_override[`${type}_${r.id}`]) || '';
+                    
+                    html += `
+                        <div class="flex flex-col gap-1 border-b pb-2">
+                            <label class="text-sm font-semibold text-gray-700">${r.name}</label>
+                            <div class="flex gap-2 items-center">
+                                <input type="date" id="override_${type}_${r.id}" class="form-control w-full" value="${overrideVal || r.calculatedDate}">
+                                ${overrideVal 
+                                    ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` 
+                                    : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
+                            </div>
+                        </div>
+                    `;
+                });
 
-        html += `</div>
-        <div class="mt-6 flex justify-end gap-2 pt-4 border-t">
-            <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
-            <button class="btn btn-primary" onclick="app.saveManualJadwal('${pkgId}', '${type}')">Simpan Jadwal</button>
-        </div>`;
+                html += `</div>
+                <div class="mt-6 flex justify-end gap-2 pt-4 border-t">
+                    <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
+                    <button class="btn btn-primary" onclick="app.saveManualJadwal('${pkgId}', '${type}')">Simpan Jadwal</button>
+                </div>`;
 
-        DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses'}`, html);
-    }
-
-    // FUNGSI BARU: Menyimpan perubahan jadwal ke database
-    saveManualJadwal(pkgId, type) {
-        const pkg = DB.getById('paket', pkgId);
-        if (!pkg) return;
-        
-        if (!pkg.jadwal_override) pkg.jadwal_override = {};
-        
-        // Ambil data dari state jadwal (waktu / jadwal_proses)
-        const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || []; 
-        
-        rules.forEach(r => {
-            const inputEl = document.getElementById(`override_${type}_${r.id}`);
-            if (inputEl) {
-                const newVal = inputEl.value;
-                // Ambil nilai auto sebagai perbandingan sederhana
-                const { calculated } = this.calculateAllScheduleDates(pkg);
-                const autoDate = calculated.find(c => c.id === r.id)?.calculatedDate;
-
-                // Jika nilainya diisi dan berbeda dari perhitungan auto, simpan sebagai override
-                if (newVal && newVal !== autoDate) {
-                     pkg.jadwal_override[`${type}_${r.id}`] = newVal;
-                } else {
-                     // Hapus override jika kosong atau kembali ke nilai auto
-                     delete pkg.jadwal_override[`${type}_${r.id}`];
-                }
+                DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses'}`, html);
             }
-        });
-        
-        // Simpan ke Supabase/LocalDB
-        DB.update('paket', pkgId, { jadwal_override: pkg.jadwal_override });
-        
-        DOM.closeModal();
-        this.notify('Jadwal berhasil diperbarui', 'success');
-        this.reRenderCurrentView();
-    }
+
+            saveManualJadwal(pkgId, type) {
+                const pkg = DB.getById('paket', pkgId);
+                if (!pkg) return;
+                
+                if (!pkg.jadwal_override) pkg.jadwal_override = {};
+                
+                const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || []; 
+                
+                rules.forEach(r => {
+                    const inputEl = document.getElementById(`override_${type}_${r.id}`);
+                    if (inputEl) {
+                        const newVal = inputEl.value;
+                        const { calculated } = this.calculateAllScheduleDates(pkg);
+                        const autoDate = calculated.find(c => c.id === r.id)?.calculatedDate;
+
+                        if (newVal && newVal !== autoDate) {
+                             pkg.jadwal_override[`${type}_${r.id}`] = newVal;
+                        } else {
+                             delete pkg.jadwal_override[`${type}_${r.id}`];
+                        }
+                    }
+                });
+                
+                DB.update('paket', pkgId, { jadwal_override: pkg.jadwal_override });
+                DOM.closeModal();
+                this.notify('Jadwal berhasil diperbarui', 'success');
+                this.reRenderCurrentView();
+            }
+
             async saveChecklistChanges(pkgId) {
                 const rows = document.querySelectorAll('tr[data-docid]');
-                
                 for (let row of rows) {
                     const docId = row.getAttribute('data-docid');
-                    const numInput = row.querySelector('.chk-num-input').value;
+                    const numInput = row.querySelector('.chk-master-input').value;
                     const dateInput = row.querySelector('.chk-date-input').value;
 
-                    // Update langsung ke tabel package_documents di Supabase & cache lokal
                     DB.update('package_documents', docId, {
                         document_number: numInput,
                         document_date: dateInput
                     });
                 }
-
                 this.notify('Checklist, nomor, dan tanggal dokumen berhasil disimpan ke database!', 'success');
                 this.reRenderCurrentView();
             }
+
             resetDocumentNumber(docId, docName) {
-                // Berikan konfirmasi ke pengguna sebelum menghapus nomor manual
-                if (!confirm(`Kembalikan nomor dokumen ${docName} ke format penomoran otomatis?`)) {
-                    return;
-                }
-
-                // Ubah document_number menjadi null di database
-                // agar sistem otomatis menggunakan rumus dari calculateDocumentMeta
-                DB.update('package_documents', docId, {
-                    document_number: null
-                });
-
+                if (!confirm(`Kembalikan nomor dokumen ${docName} ke format penomoran otomatis?`)) return;
+                DB.update('package_documents', docId, { document_number: null });
                 this.notify(`Nomor dokumen ${docName} berhasil direset.`, 'success');
                 this.reRenderCurrentView();
             }
+
             resetDocumentDate(docId, docName) {
-                // Konfirmasi sebelum mereset tanggal
-                if (!confirm(`Kembalikan tanggal dokumen ${docName} ke perhitungan jadwal otomatis?`)) {
-                    return;
-                }
-
-                // Kosongkan field document_date di database
-                DB.update('package_documents', docId, {
-                    document_date: null
-                });
-
+                if (!confirm(`Kembalikan tanggal dokumen ${docName} ke perhitungan jadwal otomatis?`)) return;
+                DB.update('package_documents', docId, { document_date: null });
                 this.notify(`Tanggal dokumen ${docName} berhasil direset ke jadwal Master Waktu.`, 'success');
                 this.reRenderCurrentView();
             }
+
             togglePinPackage(pkgId) {
-                if (!DB.cache['pinned_packages']) {
-                    DB.cache['pinned_packages'] = [];
-                }
+                if (!DB.cache['pinned_packages']) DB.cache['pinned_packages'] = [];
                 const index = DB.cache['pinned_packages'].indexOf(pkgId);
                 if (index > -1) {
                     DB.cache['pinned_packages'].splice(index, 1);
@@ -4082,11 +3562,7 @@ exportRekening() {
                     DB.cache['pinned_packages'].push(pkgId);
                     this.notify('Paket berhasil disematkan', 'success');
                 }
-                
-                try {
-                    localStorage.setItem('pf_pinned', JSON.stringify(DB.cache['pinned_packages']));
-                } catch(e) {}
-                
+                try { localStorage.setItem('pf_pinned', JSON.stringify(DB.cache['pinned_packages'])); } catch(e) {}
                 this.reRenderCurrentView();
             }
         }
