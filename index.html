@@ -2434,7 +2434,7 @@
                             pkg.personnel.push(newPersonnel);
                         });
 
-                        // Simpan ke database Supabase tabel package_personnel
+                        // Sinkronisasi database Supabase tabel package_personnel
                         if (pkg.personnel.length > 0) {
                             await fetch(`${SUPABASE_URL}package_personnel?package_id=eq.${packageId}`, {
                                 method: 'DELETE',
@@ -2465,6 +2465,7 @@
                 };
                 reader.readAsArrayBuffer(file);
             }
+            // ----------------------------------------
 
       async addPersonnelRow(packageId) {
                 const pkg = DB.getById('paket', packageId);
