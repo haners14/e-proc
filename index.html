@@ -508,45 +508,47 @@
                     delete cpy.id;
 
                    if (payload.items !== undefined) {
-                        const itemsToInsert = payload.items.map((item, idx) => {
-                            return { 
-                                ...item, 
-                                id: item.id || Utils.generateId(), 
-                                package_id: id, 
-                                urutan: idx,
-                                sat: item.sat || '',
-                                vol_hps: Number(item.vol_hps) || 0,
-                                harga_hps: Number(item.harga_hps) || 0,
-                                vol_pen: Number(item.vol_pen) || 0,
-                                harga_pen: Number(item.harga_pen) || 0,
-                                vol_neg: Number(item.vol_neg) || 0,
-                                harga_neg: Number(item.harga_neg) || 0,
-                                pajak: Number(item.pajak) || 0
-                            };
-                        });
+                            const itemsToInsert = payload.items.map((item, idx) => {
+                                return { 
+                                    id: item.id || Utils.generateId(), 
+                                    package_id: id, 
+                                    uraian: item.uraian || '',
+                                    sat: item.sat || '',
+                                    vol_hps: Number(item.vol_hps) || 0,
+                                    harga_hps: Number(item.harga_hps) || 0,
+                                    vol_pen: Number(item.vol_pen) || 0,
+                                    harga_pen: Number(item.harga_pen) || 0,
+                                    vol_neg: Number(item.vol_neg) || 0,
+                                    harga_neg: Number(item.harga_neg) || 0,
+                                    pajak: Number(item.pajak) || 0,
+                                    is_header: Boolean(item.is_header),
+                                    urutan: idx,
+                                    sort_order: idx
+                                };
+                            });
 
-                       (async () => {
-                            try {
-                                await fetch(`${SUPABASE_URL}package_items?package_id=eq.${id}`, { 
-                                    method: 'DELETE', 
-                                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } 
-                                });
-                                if(itemsToInsert.length > 0) {
-                                    const res = await fetch(`${SUPABASE_URL}package_items`, { 
-                                        method: 'POST', 
-                                        headers: { 
-                                            'apikey': SUPABASE_KEY, 
-                                            'Authorization': `Bearer ${SUPABASE_KEY}`, 
-                                            'Content-Type': 'application/json',
-                                            'Prefer': 'resolution=merge-duplicates' // <-- Tambahkan baris ini untuk mengatasi konflik 409
-                                        }, 
-                                        body: JSON.stringify(itemsToInsert) 
+                            (async () => {
+                                try {
+                                    await fetch(`${SUPABASE_URL}package_items?package_id=eq.${id}`, { 
+                                        method: 'DELETE', 
+                                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } 
                                     });
-                                }
-                            } catch (e) { console.error(e); }
-                        })();
-                        delete cpy.items;
-                    }
+                                    if(itemsToInsert.length > 0) {
+                                        await fetch(`${SUPABASE_URL}package_items`, { 
+                                            method: 'POST', 
+                                            headers: { 
+                                                'apikey': SUPABASE_KEY, 
+                                                'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                                                'Content-Type': 'application/json',
+                                                'Prefer': 'resolution=merge-duplicates'
+                                            }, 
+                                            body: JSON.stringify(itemsToInsert) 
+                                        });
+                                    }
+                                } catch (e) { console.error(e); }
+                            })();
+                            delete cpy.items;
+                        }
 
                     if (payload.personnel !== undefined) {
                         const personnelToInsert = payload.personnel.map(item => {
