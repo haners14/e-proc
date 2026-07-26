@@ -2348,7 +2348,8 @@
                 this.init(); 
             }
 
-         async addPersonnelRow(packageId) {
+        async addPersonnelRow(packageId) {
+                // Simpan posisi scroll saat ini dari kontainer scroll utama aplikasi
                 const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
                 const scrollPos = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
                 
@@ -2358,7 +2359,6 @@
                 if (!pkg.personnel) pkg.personnel = [];
                 const newIdx = pkg.personnel.length;
 
-                // Pastikan properti murni sesuai kolom SQL tabel package_personnel
                 const newPersonnel = {
                     id: Utils.generateId(),
                     package_id: packageId,
@@ -2391,13 +2391,15 @@
                 DB.update('paket', packageId, { personnel: pkg.personnel });
                 this.reRenderCurrentView();
                 
+                // Kembalikan posisi scroll setelah DOM selesai dirender ulang
                 setTimeout(() => {
                     if (scrollContainer === window) window.scrollTo(0, scrollPos);
                     else scrollContainer.scrollTop = scrollPos;
-                }, 50);
+                }, 60);
             }
 
             async removePersonnelRow(packageId, index) {
+                // Simpan posisi scroll saat ini sebelum baris dihapus/dirender ulang
                 const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
                 const scrollPos = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
                 
@@ -2424,10 +2426,11 @@
                 DB.update('paket', packageId, { personnel: pkg.personnel });
                 this.reRenderCurrentView();
                 
+                // Kembalikan posisi scroll setelah render selesai
                 setTimeout(() => {
                     if (scrollContainer === window) window.scrollTo(0, scrollPos);
                     else scrollContainer.scrollTop = scrollPos;
-                }, 50);
+                }, 60);
             }
             
           reRenderCurrentView() {
