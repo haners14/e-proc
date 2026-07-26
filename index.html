@@ -2369,6 +2369,26 @@
                 this.init(); 
             }
 
+            copyTemplate(id) {
+                const templateList = DB.get('template');
+                const target = templateList.find(t => String(t.id) === String(id));
+                if (!target) return this.notify('Template tidak ditemukan', 'error');
+
+                const newTemplate = {
+                    id: Utils.generateId(),
+                    code: `${target.code}_COPY`,
+                    name: `${target.name} (Copy)`,
+                    type: target.type || 'Umum',
+                    file_url: target.file_url || '',
+                    filename: target.filename || '',
+                    last_updated: new Date().toISOString()
+                };
+
+                // Masukkan ke cache lokal dan sinkronkan ke Supabase
+                DB.insert('template', newTemplate);
+                this.notify('Template berhasil disalin. Silakan sesuaikan jenis dan kodenya.', 'success');
+                this.reRenderCurrentView();
+            }
             exportPersonnel(packageId) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.personnel || pkg.personnel.length === 0) {
