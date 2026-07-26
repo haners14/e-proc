@@ -2325,7 +2325,8 @@
                 this.init(); 
             }
 
-            addPersonnelRow(packageId) {
+           addPersonnelRow(packageId) {
+                const scrollPos = window.scrollY; // Catat posisi scroll saat ini
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg) return;
                 if (!pkg.personnel) pkg.personnel = [];
@@ -2342,15 +2343,18 @@
 
                 DB.update('paket', packageId, { personnel: pkg.personnel });
                 this.reRenderCurrentView();
+                window.scrollTo(0, scrollPos); // Kembalikan posisi scroll
             }
 
             removePersonnelRow(packageId, index) {
+                const scrollPos = window.scrollY; // Catat posisi scroll saat ini
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.personnel) return;
                 
                 pkg.personnel.splice(index, 1);
                 DB.update('paket', packageId, { personnel: pkg.personnel });
                 this.reRenderCurrentView();
+                window.scrollTo(0, scrollPos); // Kembalikan posisi scroll
             }
             
           reRenderCurrentView() {
