@@ -2348,11 +2348,7 @@
                 this.init(); 
             }
 
-        async addPersonnelRow(packageId) {
-                // Simpan posisi scroll saat ini dari kontainer scroll utama aplikasi
-                const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
-                const scrollPos = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
-                
+       async addPersonnelRow(packageId) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg) return;
                 
@@ -2373,6 +2369,7 @@
 
                 pkg.personnel.push(newPersonnel);
 
+                // Simpan ke Supabase di latar belakang
                 try {
                     await fetch(`${SUPABASE_URL}package_personnel`, {
                         method: 'POST',
@@ -2389,20 +2386,49 @@
                 }
 
                 DB.update('paket', packageId, { personnel: pkg.personnel });
-                this.reRenderCurrentView();
-                
-                // Kembalikan posisi scroll setelah DOM selesai dirender ulang
-                setTimeout(() => {
-                    if (scrollContainer === window) window.scrollTo(0, scrollPos);
-                    else scrollContainer.scrollTop = scrollPos;
-                }, 60);
+
+                // --- MANIPULASI DOM LOKAL (TANPA RE-RENDER HALAMAN) ---
+                const tbody = document.querySelector('#table-personnel tbody');
+                if (tbody) {
+                    // Hapus baris kosong "Belum ada persyaratan" jika ada
+                    const emptyRow = tbody.querySelector('td[colspan]');
+                    if (emptyRow) emptyRow.closest('tr').remove();
+
+                    const index = pkg.personnel.length - 1;
+                    const tr = document.createElement('tr');
+                    tr.setAttribute('data-index', index);
+                    tr.innerHTML = `
+                        <td class="cell-readonly text-center">${index + 1}</td>
+                        <td><input type="text" class="cell-input prs-input" data-field="jabatan" value="" placeholder="Cth: Team Leader"></td>
+                        <td><input type="text" class="cell-input prs-input" data-field="pendidikan" value="" placeholder="Cth: S1 Teknik Sipil"></td>
+                        <td><input type="number" class="cell-input prs-input text-center" data-field="pengalaman" value="" placeholder="Tahun"></td>
+                        <td><input type="text" class="cell-input prs-input" data-field="sertifikat" value="" placeholder="Cth: SKA Ahli Madya"></td>
+                        <td class="text-center"><input type="number" class="cell-input prs-input text-center" data-field="jumlah" value="1"></td>
+                        <td class="text-center"><input type="number" class="cell-input prs-input text-center" data-field="orang_bulan" value="1"></td>
+                        <td><button type="button" class="btn btn-ghost btn-sm text-danger" onclick="app.removePersonnelRow('${packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    // Pasang event listener untuk auto-save pada input baris baru
+                    tr.querySelectorAll('.prs-input').forEach(inp => {
+                        inp.addEventListener('change', (e) => {
+                            const trEl = e.target.closest('tr');
+                            const idx = parseInt(trEl.dataset.index);
+                            const field = e.target.dataset.field;
+                            let val = e.target.value;
+                            if(e.target.type === 'number') val = Number(val) || 0;
+                            
+                            let personnelList = DB.getById('paket', packageId).personnel || [];
+                            if (personnelList[idx]) {
+                                personnelList[idx][field] = val;
+                                DB.update('paket', packageId, { personnel: personnelList });
+                            }
+                        });
+                    });
+                }
             }
 
             async removePersonnelRow(packageId, index) {
-                // Simpan posisi scroll saat ini sebelum baris dihapus/dirender ulang
-                const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
-                const scrollPos = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
-                
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.personnel || !pkg.personnel[index]) return;
                 
@@ -2424,13 +2450,17 @@
                 }
 
                 DB.update('paket', packageId, { personnel: pkg.personnel });
-                this.reRenderCurrentView();
                 
-                // Kembalikan posisi scroll setelah render selesai
+                // Untuk penghapusan, kita render ulang tapi kunci posisi scroll kontainer agar tidak lari ke atas
+                const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area');
+                const scrollPos = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
+
+                this.reRenderCurrentView();
+
                 setTimeout(() => {
-                    if (scrollContainer === window) window.scrollTo(0, scrollPos);
-                    else scrollContainer.scrollTop = scrollPos;
-                }, 60);
+                    if (scrollContainer) scrollContainer.scrollTop = scrollPos;
+                    else window.scrollTo(0, scrollPos);
+                }, 40);
             }
             
           reRenderCurrentView() {
