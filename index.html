@@ -2177,6 +2177,8 @@
                                 </div>
                             </fieldset>
 
+                            
+
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">2. Ruang Lingkup & Pelaksanaan</legend>
                                 <div class="form-group"><label class="form-label">Ruang Lingkup</label><textarea name="ruang_lingkup" class="form-control" rows="3">${p.ruang_lingkup || ''}</textarea></div>
@@ -2187,30 +2189,41 @@
                             </fieldset>
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
-                                <legend class="font-semibold text-sm px-2 flex justify-between w-full pr-4 items-center">
-                                    <span class="text-primary-700">3. Tenaga Ahli Penyedia</span>
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="app.addPersonnelRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Personil</button>
-                                </legend>
-                                <div class="spreadsheet-container mt-2">
-                                    <table class="spreadsheet" id="table-personnel">
-                                        <thead>
-                                            <tr>
-                                                <th style="width:40px">No</th>
-                                                <th>Posisi / Jabatan</th>
-                                                <th>Pendidikan Minimal</th>
-                                                <th>Pengalaman (Thn)</th>
-                                                <th>Keahlian / Sertifikat</th>
-                                                <th style="width:70px">Jumlah</th>
-                                                <th style="width:70px">OB</th>
-                                                <th style="width:50px"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${trs || '<tr><td colspan="8" class="text-center text-muted py-4 border-b-0">Belum ada persyaratan tenaga ahli.</td></tr>'}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </fieldset>
+    <legend class="font-semibold text-sm px-2 flex justify-between w-full pr-4 items-center">
+        <span class="text-primary-700">3. Tenaga Ahli Penyedia</span>
+        <div class="flex gap-2">
+            <!-- Hidden file input untuk proses import excel tenaga ahli -->
+            <input type="file" id="import-personnel-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importPersonnel(event, '${this.packageId}')">
+            
+            <!-- Tombol Aksi Excel Tenaga Ahli -->
+            <button type="button" class="btn btn-outline btn-sm" onclick="app.downloadTemplatePersonnel()"><i class="ph ph-download"></i> Template</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('import-personnel-excel').click()"><i class="ph ph-upload"></i> Import</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="app.exportPersonnel('${this.packageId}')"><i class="ph ph-export"></i> Export</button>
+            
+            <!-- Tombol Tambah Baris Manual -->
+            <button type="button" class="btn btn-outline btn-sm" onclick="app.addPersonnelRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Personil</button>
+        </div>
+    </legend>
+    <div class="spreadsheet-container mt-2">
+        <table class="spreadsheet" id="table-personnel">
+            <thead>
+                <tr>
+                    <th style="width:40px">No</th>
+                    <th>Posisi / Jabatan</th>
+                    <th>Pendidikan Minimal</th>
+                    <th>Pengalaman (Thn)</th>
+                    <th>Keahlian / Sertifikat</th>
+                    <th style="width:70px">Jumlah</th>
+                    <th style="width:70px">OB</th>
+                    <th style="width:50px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                ${trs || '<tr><td colspan="8" class="text-center text-muted py-4 border-b-0">Belum ada persyaratan tenaga ahli.</td></tr>'}
+            </tbody>
+        </table>
+    </div>
+</fieldset>
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">4. Pelaporan & Hasil Akhir</legend>
@@ -2354,6 +2367,103 @@
                 this.routerView = document.getElementById('router-view'); 
                 this.currentRoute = ''; 
                 this.init(); 
+            }
+
+            exportPersonnel(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg || !pkg.personnel || pkg.personnel.length === 0) {
+                    return this.notify('Tidak ada data tenaga ahli untuk diexport', 'error');
+                }
+
+                const data = pkg.personnel.map((p, idx) => ({
+                    "No": idx + 1,
+                    "Posisi / Jabatan": p.jabatan || '',
+                    "Pendidikan Minimal": p.pendidikan || '',
+                    "Pengalaman (Thn)": p.pengalaman || '',
+                    "Keahlian / Sertifikat": p.sertifikat || '',
+                    "Jumlah": p.jumlah || 1,
+                    "Orang Bulan (OB)": p.orang_bulan || 1
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Tenaga Ahli");
+                XLSX.writeFile(wb, `Tenaga_Ahli_${pkg.id}.xlsx`);
+            }
+
+            downloadTemplatePersonnel() {
+                const ws = XLSX.utils.aoa_to_sheet([
+                    ["Posisi / Jabatan", "Pendidikan Minimal", "Pengalaman (Thn)", "Keahlian / Sertifikat", "Jumlah", "Orang Bulan (OB)"],
+                    ["Team Leader", "S1 Teknik Sipil", 5, "SKA Ahli Madya", 1, 3],
+                    ["Ahli K3 Konstruksi", "S1 Teknik K3 / Sipil", 3, "Sertifikat Ahli K3", 1, 2]
+                ]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template Tenaga Ahli");
+                XLSX.writeFile(wb, "Template_Import_Tenaga_Ahli.xlsx");
+            }
+
+            async importPersonnel(event, packageId) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+                        const pkg = DB.getById('paket', packageId);
+                        if (!pkg) return;
+
+                        if (!pkg.personnel) pkg.personnel = [];
+
+                        rows.forEach((r, idx) => {
+                            const newPersonnel = {
+                                id: Utils.generateId(),
+                                package_id: packageId,
+                                jabatan: String(r["Posisi / Jabatan"] || '').trim(),
+                                pendidikan: String(r["Pendidikan Minimal"] || '').trim(),
+                                pengalaman: String(r["Pengalaman (Thn)"] || '').trim(),
+                                sertifikat: String(r["Keahlian / Sertifikat"] || '').trim(),
+                                jumlah: Number(r["Jumlah"]) || 1,
+                                orang_bulan: Number(r["Orang Bulan (OB)"]) || 1,
+                                urutan: pkg.personnel.length + idx
+                            };
+                            pkg.personnel.push(newPersonnel);
+                        });
+
+                        // Simpan ke database Supabase tabel package_personnel
+                        if (pkg.personnel.length > 0) {
+                            await fetch(`${SUPABASE_URL}package_personnel?package_id=eq.${packageId}`, {
+                                method: 'DELETE',
+                                headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                            });
+
+                            await fetch(`${SUPABASE_URL}package_personnel`, {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': SUPABASE_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'resolution=merge-duplicates'
+                                },
+                                body: JSON.stringify(pkg.personnel)
+                            });
+                        }
+
+                        DB.update('paket', packageId, { personnel: pkg.personnel });
+                        this.notify('Data tenaga ahli berhasil diimpor', 'success');
+                        this.reRenderCurrentView();
+                    } catch (err) {
+                        console.error(err);
+                        this.notify('Gagal memproses file Excel tenaga ahli', 'error');
+                    } finally {
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
             }
 
       async addPersonnelRow(packageId) {
