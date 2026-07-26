@@ -5578,20 +5578,23 @@ renderSignPage(container, itemId) {
                 DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses Pengadaan'}`, html, '', '700px');
             }
 
-           saveManualJadwal(pkgId, type) {
+          saveManualJadwal(pkgId, type) {
                 const pkg = DB.getById('paket', pkgId);
                 if (!pkg) return;
                 
+                // Tentukan key penyimpanan berdasarkan tipe (doc atau proc)
                 const targetKey = type === 'doc' ? 'jadwal_override' : 'jadwal_proses_override';
                 if (!pkg[targetKey]) pkg[targetKey] = {};
                 
                 const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || []; 
                 
                 rules.forEach(r => {
+                    // ID elemen HTML input disesuaikan dengan format saat render (override_proc_ID atau override_doc_ID)
                     const inputEl = document.getElementById(`override_${type}_${r.id}`);
                     if (inputEl) {
                         const newVal = inputEl.value;
                         if (newVal) {
+                            // Simpan langsung tanggal manual ke objek override dengan key yang sesuai
                             pkg[targetKey][`${type}_${r.id}`] = newVal;
                         } else {
                             delete pkg[targetKey][`${type}_${r.id}`];
@@ -5599,9 +5602,10 @@ renderSignPage(container, itemId) {
                     }
                 });
                 
+                // Update ke database dan simpan perubahan state paket
                 DB.update('paket', pkgId, { [targetKey]: pkg[targetKey] });
                 DOM.closeModal();
-                this.notify('Jadwal berhasil diperbarui secara manual', 'success');
+                this.notify('Jadwal manual berhasil disimpan', 'success');
                 this.reRenderCurrentView();
             }
 
