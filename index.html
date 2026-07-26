@@ -2325,36 +2325,81 @@
                 this.init(); 
             }
 
-           addPersonnelRow(packageId) {
-                const scrollPos = window.scrollY; // Catat posisi scroll saat ini
+           async addPersonnelRow(packageId) {
+                const scrollPos = window.scrollY;
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg) return;
-                if (!pkg.personnel) pkg.personnel = [];
                 
-                pkg.personnel.push({
+                if (!pkg.personnel) pkg.personnel = [];
+                const newIdx = pkg.personnel.length;
+
+                const newPersonnel = {
                     id: Utils.generateId(),
+                    package_id: packageId,
                     jabatan: '',
                     pendidikan: '',
-                    pengalaman: 0,
+                    pengalaman: '',
                     sertifikat: '',
                     jumlah: 1,
-                    orang_bulan: 1
-                });
+                    orang_bulan: 1,
+                    urutan: newIdx
+                };
+
+                pkg.personnel.push(newPersonnel);
+
+                // Kirim langsung ke tabel Supabase package_personnel
+                try {
+                    await fetch(`${SUPABASE_URL}package_personnel`, {
+                        method: 'POST',
+                        headers: { 
+                            'apikey': SUPABASE_KEY, 
+                            'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                            'Content-Type': 'application/json',
+                            'Prefer': 'resolution=merge-duplicates'
+                        },
+                        body: JSON.stringify(newPersonnel)
+                    });
+                } catch (e) {
+                    console.error('Gagal menambah personnel ke database:', e);
+                }
 
                 DB.update('paket', packageId, { personnel: pkg.personnel });
                 this.reRenderCurrentView();
-                window.scrollTo(0, scrollPos); // Kembalikan posisi scroll
-            }
-
-            removePersonnelRow(packageId, index) {
-                const scrollPos = window.scrollY; // Catat posisi scroll saat ini
-                const pkg = DB.getById('paket', packageId);
-                if (!pkg || !pkg.personnel) return;
                 
+                setTimeout(() => {
+                    window.scrollTo(0, scrollPos);
+                }, 50);
+            },
+
+            async removePersonnelRow(packageId, index) {
+                const scrollPos = window.scrollY;
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg || !pkg.personnel || !pkg.personnel[index]) return;
+                
+                const targetId = pkg.personnel[index].id;
                 pkg.personnel.splice(index, 1);
+
+                // Hapus baris dari tabel Supabase package_personnel berdasarkan id
+                try {
+                    if (targetId) {
+                        await fetch(`${SUPABASE_URL}package_personnel?id=eq.${targetId}`, {
+                            method: 'DELETE',
+                            headers: { 
+                                'apikey': SUPABASE_KEY, 
+                                'Authorization': `Bearer ${SUPABASE_KEY}` 
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Gagal menghapus personnel dari database:', e);
+                }
+
                 DB.update('paket', packageId, { personnel: pkg.personnel });
                 this.reRenderCurrentView();
-                window.scrollTo(0, scrollPos); // Kembalikan posisi scroll
+                
+                setTimeout(() => {
+                    window.scrollTo(0, scrollPos);
+                }, 50);
             }
             
           reRenderCurrentView() {
