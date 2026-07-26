@@ -525,7 +525,7 @@
                             };
                         });
 
-                        (async () => {
+                       (async () => {
                             try {
                                 await fetch(`${SUPABASE_URL}package_items?package_id=eq.${id}`, { 
                                     method: 'DELETE', 
@@ -534,7 +534,12 @@
                                 if(itemsToInsert.length > 0) {
                                     const res = await fetch(`${SUPABASE_URL}package_items`, { 
                                         method: 'POST', 
-                                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' }, 
+                                        headers: { 
+                                            'apikey': SUPABASE_KEY, 
+                                            'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                                            'Content-Type': 'application/json',
+                                            'Prefer': 'resolution=merge-duplicates' // <-- Tambahkan baris ini untuk mengatasi konflik 409
+                                        }, 
                                         body: JSON.stringify(itemsToInsert) 
                                     });
                                 }
