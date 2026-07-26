@@ -1262,7 +1262,6 @@
                     return d;
                 });
                 
-                // Init TomSelect for Penyedia
                 if(this.activeTab === 'penyedia') {
                     setTimeout(() => {
                         if(document.getElementById('select-penyedia')) {
@@ -1271,7 +1270,8 @@
                                 sortField: { field: "text", direction: "asc" },
                                 onChange: (value) => {
                                     DB.update('paket', this.packageId, {supplier_id: value});
-                                    app.reRenderCurrentView();
+                                    // Perbaikan: render ulang workspace secara langsung
+                                    this.render(document.getElementById('router-view'));
                                 }
                             });
                         }
@@ -2318,7 +2318,71 @@
                 this.init(); 
             }
             
-          async init() {
+          reRenderCurrentView() {
+                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
+                    this.currentViewInstance.render(this.routerView);
+                } else if (this.crudEngine) {
+                    this.crudEngine.render(this.routerView);
+                } else {
+                    this.navigate(this.currentRoute);
+                }
+            }
+            
+            addHargaRow(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg) return;
+                if (!pkg.items) pkg.items = [];
+                
+                pkg.items.push({
+                    id: Utils.generateId(),
+                    uraian: '',
+                    sat: 'Ls',
+                    vol_hps: 1,
+                    harga_hps: 0,
+                    vol_pen: 0,
+                    harga_pen: 0,
+                    vol_neg: 0,
+                    harga_neg: 0,
+                    pajak: 11,
+                    is_header: false
+                });
+
+                DB.update('paket', packageId, { items: pkg.items });
+                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
+                    this.currentViewInstance.render(this.routerView);
+                }
+            }
+
+            addHargaHeader(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg) return;
+                if (!pkg.items) pkg.items = [];
+                
+                pkg.items.push({
+                    id: Utils.generateId(),
+                    uraian: 'HEADER BARU',
+                    is_header: true
+                });
+
+                DB.update('paket', packageId, { items: pkg.items });
+                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
+                    this.currentViewInstance.render(this.routerView);
+                }
+            }
+
+            removeHargaRow(packageId, index) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg || !pkg.items) return;
+                
+                pkg.items.splice(index, 1);
+                DB.update('paket', packageId, { items: pkg.items });
+                
+                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
+                    this.currentViewInstance.render(this.routerView);
+                }
+            }
+            
+            async init() {
                 await DB.init();
                 
                 // Isolasi tampilan khusus jika diakses melalui link header SPJ
