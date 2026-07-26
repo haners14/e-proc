@@ -452,8 +452,31 @@
                 const loader = document.getElementById('global-loader'); if(loader) loader.style.display = 'none';
                 const appRoot = document.getElementById('app-root'); if(appRoot) appRoot.style.display = 'flex';
             },
+// --- LETAKKAN DI SINI (SEJAJAR DENGAN FUNGSI DB LAINNYA) ---
+            async fetchPackageDetail(packageId) {
+                // 1. Ambil data utama dari tabel packages
+                const resPkg = await fetch(`${SUPABASE_URL}packages?id=eq.${packageId}`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                const pkgs = await resPkg.json();
+                if (pkgs.length === 0) return null;
+                let pkg = pkgs[0];
 
-           
+                // 2. Ambil data tenaga ahli dari tabel package_personnel
+                const resPersonnel = await fetch(`${SUPABASE_URL}package_personnel?package_id=eq.${packageId}&order=urutan.asc`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                pkg.personnel = await resPersonnel.json();
+
+                // 3. Ambil juga item harga jika diperlukan
+                const resItems = await fetch(`${SUPABASE_URL}package_items?package_id=eq.${packageId}&order=urutan.asc`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                pkg.items = await resItems.json();
+
+                return pkg;
+            },
+            // --------------------------           
             async _sync(method, localTable, payload = null, id = null) {
                 const sbTable = TABLE_MAP[localTable] || localTable;
                 let url = `${SUPABASE_URL}${sbTable}`;
