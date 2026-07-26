@@ -2395,7 +2395,7 @@
                     if (scrollContainer === window) window.scrollTo(0, scrollPos);
                     else scrollContainer.scrollTop = scrollPos;
                 }, 50);
-            },
+            }
 
             async removePersonnelRow(packageId, index) {
                 const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
