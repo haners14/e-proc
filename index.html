@@ -5578,11 +5578,12 @@ renderSignPage(container, itemId) {
                 DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses Pengadaan'}`, html, '', '700px');
             }
 
-            saveManualJadwal(pkgId, type) {
+           saveManualJadwal(pkgId, type) {
                 const pkg = DB.getById('paket', pkgId);
                 if (!pkg) return;
                 
-                if (!pkg.jadwal_override) pkg.jadwal_override = {};
+                const targetKey = type === 'doc' ? 'jadwal_override' : 'jadwal_proses_override';
+                if (!pkg[targetKey]) pkg[targetKey] = {};
                 
                 const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || []; 
                 
@@ -5590,20 +5591,17 @@ renderSignPage(container, itemId) {
                     const inputEl = document.getElementById(`override_${type}_${r.id}`);
                     if (inputEl) {
                         const newVal = inputEl.value;
-                        const { calculated } = this.calculateAllScheduleDates(pkg);
-                        const autoDate = calculated.find(c => c.id === r.id)?.calculatedDate;
-
-                        if (newVal && newVal !== autoDate) {
-                             pkg.jadwal_override[`${type}_${r.id}`] = newVal;
+                        if (newVal) {
+                            pkg[targetKey][`${type}_${r.id}`] = newVal;
                         } else {
-                             delete pkg.jadwal_override[`${type}_${r.id}`];
+                            delete pkg[targetKey][`${type}_${r.id}`];
                         }
                     }
                 });
                 
-                DB.update('paket', pkgId, { jadwal_override: pkg.jadwal_override });
+                DB.update('paket', pkgId, { [targetKey]: pkg[targetKey] });
                 DOM.closeModal();
-                this.notify('Jadwal berhasil diperbarui', 'success');
+                this.notify('Jadwal berhasil diperbarui secara manual', 'success');
                 this.reRenderCurrentView();
             }
 
