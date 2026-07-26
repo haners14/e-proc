@@ -477,15 +477,23 @@
                 return pkg;
             },
             // --------------------------           
-            async _sync(method, localTable, payload = null, id = null) {
-                const sbTable = TABLE_MAP[localTable] || localTable;
-                let url = `${SUPABASE_URL}${sbTable}`;
-                if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
-                
-                const options = { method, headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' } };
-                if (payload && method !== 'DELETE') options.body = JSON.stringify(payload);
-                try { await fetch(url, options); } catch(e) { console.error('Sync Error', e); }
-            },
+           async _sync(method, localTable, payload = null, id = null) {
+    const sbTable = TABLE_MAP[localTable] || localTable;
+    let url = `${SUPABASE_URL}${sbTable}`;
+    if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
+
+    const options = { 
+        method, 
+        headers: { 
+            'apikey': SUPABASE_KEY, 
+            'Authorization': `Bearer ${SUPABASE_KEY}`, 
+            'Content-Type': 'application/json', 
+            'Prefer': 'resolution=merge-duplicates' // <-- Ubah dari return=minimal ke merge-duplicates agar tidak error 409/400 saat upsert
+        } 
+    };
+    if (payload && method !== 'DELETE') options.body = JSON.stringify(payload);
+    try { await fetch(url, options); } catch(e) { console.error('Sync Error', e); }
+},
 
             get(table) { return this.cache[TABLE_MAP[table] || table] || []; },
             getById(table, id) { return this.get(table).find(i => String(i.id) === String(id)); },
@@ -558,15 +566,15 @@
                                     });
                                     if(itemsToInsert.length > 0) {
                                         await fetch(`${SUPABASE_URL}package_items`, { 
-                                            method: 'POST', 
-                                            headers: { 
-                                                'apikey': SUPABASE_KEY, 
-                                                'Authorization': `Bearer ${SUPABASE_KEY}`, 
-                                                'Content-Type': 'application/json',
-                                                'Prefer': 'resolution=merge-duplicates'
-                                            }, 
-                                            body: JSON.stringify(itemsToInsert) 
-                                        });
+                                    method: 'POST', 
+                                    headers: { 
+                                        'apikey': SUPABASE_KEY, 
+                                        'Authorization': `Bearer ${SUPABASE_KEY}`, 
+                                        'Content-Type': 'application/json',
+                                        'Prefer': 'resolution=merge-duplicates' // <-- Tambahkan baris ini untuk mencegah Conflict 409
+                                    }, 
+                                    body: JSON.stringify(itemsToInsert) 
+                                });
                                     }
                                 } catch (e) { console.error(e); }
                             })();
