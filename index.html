@@ -2348,14 +2348,17 @@
                 this.init(); 
             }
 
-           async addPersonnelRow(packageId) {
-                const scrollPos = window.scrollY;
+         async addPersonnelRow(packageId) {
+                const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
+                const scrollPos = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
+                
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg) return;
                 
                 if (!pkg.personnel) pkg.personnel = [];
                 const newIdx = pkg.personnel.length;
 
+                // Pastikan properti murni sesuai kolom SQL tabel package_personnel
                 const newPersonnel = {
                     id: Utils.generateId(),
                     package_id: packageId,
@@ -2370,7 +2373,6 @@
 
                 pkg.personnel.push(newPersonnel);
 
-                // Kirim langsung ke tabel Supabase package_personnel
                 try {
                     await fetch(`${SUPABASE_URL}package_personnel`, {
                         method: 'POST',
@@ -2390,19 +2392,21 @@
                 this.reRenderCurrentView();
                 
                 setTimeout(() => {
-                    window.scrollTo(0, scrollPos);
+                    if (scrollContainer === window) window.scrollTo(0, scrollPos);
+                    else scrollContainer.scrollTop = scrollPos;
                 }, 50);
-            }
+            },
 
             async removePersonnelRow(packageId, index) {
-                const scrollPos = window.scrollY;
+                const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area') || window;
+                const scrollPos = scrollContainer === window ? window.scrollY : scrollContainer.scrollTop;
+                
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.personnel || !pkg.personnel[index]) return;
                 
                 const targetId = pkg.personnel[index].id;
                 pkg.personnel.splice(index, 1);
 
-                // Hapus baris dari tabel Supabase package_personnel berdasarkan id
                 try {
                     if (targetId) {
                         await fetch(`${SUPABASE_URL}package_personnel?id=eq.${targetId}`, {
@@ -2421,7 +2425,8 @@
                 this.reRenderCurrentView();
                 
                 setTimeout(() => {
-                    window.scrollTo(0, scrollPos);
+                    if (scrollContainer === window) window.scrollTo(0, scrollPos);
+                    else scrollContainer.scrollTop = scrollPos;
                 }, 50);
             }
             
