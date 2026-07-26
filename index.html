@@ -5520,34 +5520,62 @@ renderSignPage(container, itemId) {
                 const pkg = DB.getById('paket', pkgId);
                 if (!pkg) return;
 
-                const { calculated } = this.calculateAllScheduleDates(pkg); 
-                
+                // Ambil aturan berdasarkan tipe: 'doc' untuk jadwal dokumen, 'proc' untuk jadwal proses pengadaan
+                const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || [];
+                const holidays = (DB.get('libur') || []).map(l => l.date);
+                const overrides = pkg.jadwal_proses_override || pkg.jadwal_override || {};
+
                 let html = `<div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">`;
-                html += `<p class="text-sm text-gray-500 mb-4">Ubah tanggal di bawah ini untuk melakukan override manual. Kosongkan untuk kembali ke perhitungan otomatis.</p>`;
+                html += `<p class="text-sm text-gray-500 mb-4">Ubah tanggal akhir pada tahapan di bawah ini untuk melakukan override manual. Kosongkan atau biarkan untuk mengikuti perhitungan otomatis.</p>`;
                 
-                calculated.forEach(r => {
-                    const overrideVal = (pkg.jadwal_override && pkg.jadwal_override[`${type}_${r.id}`]) || '';
-                    
-                    html += `
-                        <div class="flex flex-col gap-1 border-b pb-2">
-                            <label class="text-sm font-semibold text-gray-700">${r.name}</label>
-                            <div class="flex gap-2 items-center">
-                                <input type="date" id="override_${type}_${r.id}" class="form-control w-full" value="${overrideVal || r.calculatedDate}">
-                                ${overrideVal 
-                                    ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` 
-                                    : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
+                if (type === 'proc') {
+                    // Logika perhitungan otomatis untuk preview tanggal proses
+                    let base = pkg.tgl_awal || pkg.tgl_mulai;
+                    rules.forEach(r => {
+                        let autoEnd;
+                        if (overrides[`proc_${r.id}`]) {
+                            autoEnd = overrides[`proc_${r.id}`];
+                            base = autoEnd;
+                        } else {
+                            const start = Utils.addWorkingDays(base, r.start_after, holidays);
+                            autoEnd = Utils.addWorkingDays(start, r.duration, holidays);
+                            base = autoEnd;
+                        }
+
+                        const overrideVal = overrides[`proc_${r.id}`] || '';
+                        html += `
+                            <div class="flex flex-col gap-1 border-b pb-2">
+                                <label class="text-sm font-semibold text-gray-700">Proses: ${r.name} (Durasi: ${r.duration} hari kerja)</label>
+                                <div class="flex gap-2 items-center">
+                                    <input type="date" id="override_proc_${r.id}" class="form-control w-full" value="${overrideVal || autoEnd}">
+                                    ${overrideVal ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
+                                </div>
                             </div>
-                        </div>
-                    `;
-                });
+                        `;
+                    });
+                } else {
+                    const { calculated } = this.calculateAllScheduleDates(pkg);
+                    calculated.forEach(r => {
+                        const overrideVal = (pkg.jadwal_override && pkg.jadwal_override[`doc_${r.id}`]) || '';
+                        html += `
+                            <div class="flex flex-col gap-1 border-b pb-2">
+                                <label class="text-sm font-semibold text-gray-700">${r.name}</label>
+                                <div class="flex gap-2 items-center">
+                                    <input type="date" id="override_doc_${r.id}" class="form-control w-full" value="${overrideVal || r.calculatedDate}">
+                                    ${overrideVal ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
 
                 html += `</div>
                 <div class="mt-6 flex justify-end gap-2 pt-4 border-t">
                     <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
                     <button class="btn btn-primary" onclick="app.saveManualJadwal('${pkgId}', '${type}')">Simpan Jadwal</button>
-                </div>`;
+                `;
 
-                DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses'}`, html);
+                DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses Pengadaan'}`, html, '', '700px');
             }
 
             saveManualJadwal(pkgId, type) {
