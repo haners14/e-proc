@@ -786,6 +786,13 @@
                                <button class="btn btn-ghost btn-sm text-primary" title="Buka Workspace" onclick="app.navigate('workspace', '${item.id}')"><i class="ph ph-arrow-square-out"></i> Buka</button>
                                <button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
                                <button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
+                    } else if (this.schemaKey === 'template') {
+                        // --- MASUKKAN KODE INI KHUSUS UNTUK MASTER TEMPLATE ---
+                        act = `
+                            <button class="btn btn-ghost btn-sm text-warning" title="Salin Template" onclick="app.copyTemplate('${item.id}')"><i class="ph ph-copy"></i></button>
+                            <button class="btn btn-ghost btn-sm text-primary" title="Edit" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
+                            <button class="btn btn-ghost btn-sm text-danger" title="Hapus" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>
+                        `;
                     } else {
                         act = `<button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${item.id}')"><i class="ph ph-pencil-simple"></i></button>
                                <button class="btn btn-ghost btn-sm text-danger" onclick="app.crudEngine.deleteData('${item.id}')"><i class="ph ph-trash"></i></button>`;
