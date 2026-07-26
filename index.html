@@ -2348,7 +2348,7 @@
                 this.init(); 
             }
 
-       async addPersonnelRow(packageId) {
+      async addPersonnelRow(packageId) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg) return;
                 
@@ -2369,7 +2369,7 @@
 
                 pkg.personnel.push(newPersonnel);
 
-                // Simpan ke Supabase di latar belakang
+                // Kirim ke Supabase dengan header dan payload yang kompatibel
                 try {
                     await fetch(`${SUPABASE_URL}package_personnel`, {
                         method: 'POST',
@@ -2377,7 +2377,7 @@
                             'apikey': SUPABASE_KEY, 
                             'Authorization': `Bearer ${SUPABASE_KEY}`, 
                             'Content-Type': 'application/json',
-                            'Prefer': 'resolution=merge-duplicates'
+                            'Prefer': 'return=minimal'
                         },
                         body: JSON.stringify(newPersonnel)
                     });
@@ -2387,7 +2387,7 @@
 
                 DB.update('paket', packageId, { personnel: pkg.personnel });
 
-                // --- MANIPULASI DOM LOKAL (TANPA RE-RENDER HALAMAN) ---
+                // --- MANIPULASI DOM LOKAL UNTUK TAMBAH BARIS TANPA RE-RENDER & TANPA SCROLL ---
                 const tbody = document.querySelector('#table-personnel tbody');
                 if (tbody) {
                     // Hapus baris kosong "Belum ada persyaratan" jika ada
@@ -2428,13 +2428,14 @@
                 }
             }
 
-            async removePersonnelRow(packageId, index) {
+           async removePersonnelRow(packageId, index) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.personnel || !pkg.personnel[index]) return;
                 
                 const targetId = pkg.personnel[index].id;
                 pkg.personnel.splice(index, 1);
 
+                // Hapus data dari tabel Supabase package_personnel secara aman
                 try {
                     if (targetId) {
                         await fetch(`${SUPABASE_URL}package_personnel?id=eq.${targetId}`, {
@@ -2450,17 +2451,33 @@
                 }
 
                 DB.update('paket', packageId, { personnel: pkg.personnel });
-                
-                // Untuk penghapusan, kita render ulang tapi kunci posisi scroll kontainer agar tidak lari ke atas
-                const scrollContainer = document.getElementById('router-view')?.closest('.content-scroll-area');
-                const scrollPos = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
 
-                this.reRenderCurrentView();
-
-                setTimeout(() => {
-                    if (scrollContainer) scrollContainer.scrollTop = scrollPos;
-                    else window.scrollTo(0, scrollPos);
-                }, 40);
+                // --- MANIPULASI DOM LOKAL UNTUK HAPUS BARIS TANPA RE-RENDER & TANPA SCROLL ---
+                const tbody = document.querySelector('#table-personnel tbody');
+                if (tbody) {
+                    const rows = tbody.querySelectorAll('tr');
+                    if (rows[index]) {
+                        rows[index].remove();
+                    }
+                    
+                    // Jika baris habis, tampilkan kembali pesan kosong
+                    if (pkg.personnel.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4 border-b-0">Belum ada persyaratan tenaga ahli.</td></tr>';
+                    } else {
+                        // Perbarui penomoran (No) ulang secara instan pada baris yang tersisa
+                        tbody.querySelectorAll('tr').forEach((tr, newIdx) => {
+                            tr.setAttribute('data-index', newIdx);
+                            const numTd = tr.querySelector('td');
+                            if (numTd) numTd.innerText = newIdx + 1;
+                            
+                            // Perbarui atribut onclick pada tombol hapus agar indeksnya sinkron kembali
+                            const delBtn = tr.querySelector('button.text-danger');
+                            if (delBtn) {
+                                delBtn.setAttribute('onclick', `app.removePersonnelRow('${packageId}', ${newIdx})`);
+                            }
+                        });
+                    }
+                }
             }
             
           reRenderCurrentView() {
