@@ -2324,6 +2324,34 @@
                 this.currentRoute = ''; 
                 this.init(); 
             }
+
+            addPersonnelRow(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg) return;
+                if (!pkg.personnel) pkg.personnel = [];
+                
+                pkg.personnel.push({
+                    id: Utils.generateId(),
+                    jabatan: '',
+                    pendidikan: '',
+                    pengalaman: 0,
+                    sertifikat: '',
+                    jumlah: 1,
+                    orang_bulan: 1
+                });
+
+                DB.update('paket', packageId, { personnel: pkg.personnel });
+                this.reRenderCurrentView();
+            }
+
+            removePersonnelRow(packageId, index) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg || !pkg.personnel) return;
+                
+                pkg.personnel.splice(index, 1);
+                DB.update('paket', packageId, { personnel: pkg.personnel });
+                this.reRenderCurrentView();
+            }
             
           reRenderCurrentView() {
                 if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
