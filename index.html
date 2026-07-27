@@ -2765,20 +2765,21 @@ hideLoginOverlay() {
             }
 
 checkSession() {
-                // 1. Ubah pengecekan menjadi 'userSession' (bukan eproc_logged_in)
+                // 1. Sekarang mengecek menggunakan 'userSession' yang benar
                 const sessionData = localStorage.getItem('userSession');
                 const overlay = document.getElementById('login-overlay');
                 
                 if (sessionData) {
-                    if (overlay) overlay.remove(); // Sembunyikan layar login
+                    if (overlay) overlay.remove(); // Sembunyikan layar login jika ada sesi
                 } else {
-                    if (overlay) overlay.style.display = 'flex'; // Munculkan layar login
+                    if (overlay) overlay.style.display = 'flex'; // Munculkan layar login jika belum ada sesi
                 }
             }
 
             logout() {
-                // 2. Sesuaikan kunci yang dihapus saat klik tombol keluar
+                // 2. Hapus kunci sesi yang baru DAN bersihkan sisa cache lama agar bersih total
                 localStorage.removeItem('userSession');
+                localStorage.removeItem('eproc_logged_in'); 
                 window.location.reload();
             }
 
@@ -2787,14 +2788,14 @@ checkSession() {
                 const user = document.getElementById('login-user').value.trim();
                 const pass = document.getElementById('login-pass').value.trim();
 
-                // 3. Tambahkan tanda tanya (?) sebelum .find untuk mencegah error jika DB belum siap
+                // 3. Tambahkan tanda tanya (?) untuk mencegah error jika tabel Supabase telat dimuat
                 let validUser = DB.cache.users?.find(u => u.username === user && u.password === pass);
 
                 // --- AKUN DARURAT (BACKDOOR) ---
-                // Tambahan khusus berjaga-jaga jika tabel 'users' di Supabase Anda masih kosong
-                if (!validUser && user === 'admin' && pass === 'admin') {
+                // Berjaga-jaga jika tabel 'users' di Supabase kamu masih kosong
+                if (!validUser && user === 'aset' && pass === 'asetmaniamantap') {
                     validUser = { 
-                        username: 'admin', 
+                        username: 'aset', 
                         nama_lengkap: 'Administrator', 
                         role: 'Administrator' 
                     };
@@ -2807,7 +2808,9 @@ checkSession() {
                     // Sembunyikan modal login & mulai aplikasi
                     document.getElementById('login-overlay').style.display = 'none';
                     this.updateHeaderUI();
-                    this.init(); 
+                    
+                    // Cukup pindah ke dashboard (jangan panggil this.init() lagi agar tidak berlipat ganda)
+                    this.navigate('dashboard'); 
                 } else {
                     alert("Username atau password salah! Pastikan data sudah ada di Supabase.");
                 }
