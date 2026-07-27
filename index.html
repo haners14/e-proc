@@ -641,7 +641,9 @@
         // -----------------------------------------------------
         // 3. SCHEMAS
         // -----------------------------------------------------
-       penyedia: { 
+       const Schemas = {
+            pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
+            penyedia: { 
                 title: 'Data Penyedia', 
                 table: 'penyedia', 
                 fields: [
