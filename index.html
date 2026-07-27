@@ -5039,13 +5039,27 @@ renderSignPage(container, itemId) {
            // ==========================================
             // LOGIKA PENCAIRAN & LAMPIRAN PERMINTAAN PEMBAYARAN
             // ==========================================
-           renderPengajuan(container) {
+          renderPengajuan(container) {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
                 let rows = pencairanList.map((d, i) => {
                     const items = pencairanItems.filter(item => item.pencairan_id === d.id);
-                    const totalPencairan = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+                    
+                    // Kalkulasi Total Bruto, Total Potongan, dan Total Dibayarkan dari seluruh item rincian
+                    let totalBruto = 0;
+                    let totalPotongan = 0;
+                    let totalDibayarkan = 0;
+
+                    items.forEach(item => {
+                        const bruto = Number(item.harga || item.subtotal || 0);
+                        const pot = Number(item.nilai_pajak || ((Number(item.ppn) || 0) + (Number(item.pph) || 0)) || 0);
+                        const dibayar = Number(item.total || (bruto - pot));
+
+                        totalBruto += bruto;
+                        totalPotongan += pot;
+                        totalDibayarkan += dibayar;
+                    });
 
                     return `
                         <tr class="hover:bg-gray-50 border-b">
@@ -5056,7 +5070,9 @@ renderSignPage(container, itemId) {
                                 <div class="font-semibold">${d.sub_kegiatan || 'Sub Kegiatan belum dipilih'}</div>
                                 <div class="text-xs text-muted">${items.length} rincian item belanja</div>
                             </td>
-                            <td class="p-3 text-right font-bold">Rp ${Utils.formatNumber(totalPencairan)}</td>
+                            <td class="p-3 text-right">Rp ${Utils.formatNumber(totalBruto)}</td>
+                            <td class="p-3 text-right text-danger">Rp ${Utils.formatNumber(totalPotongan)}</td>
+                            <td class="p-3 text-right font-bold text-success">Rp ${Utils.formatNumber(totalDibayarkan)}</td>
                             <td class="p-3 text-center">${Utils.getBadge(d.status || 'Draft')}</td>
                             <td class="p-3 text-center">
                                 <div class="flex justify-center gap-1">
@@ -5094,13 +5110,15 @@ renderSignPage(container, itemId) {
                                         <th>Nomor Pengajuan</th>
                                         <th>Tanggal</th>
                                         <th>Sub Kegiatan</th>
+                                        <th class="text-right">Total (Bruto)</th>
+                                        <th class="text-right">Total Potongan</th>
                                         <th class="text-right">Total Dibayarkan</th>
                                         <th class="text-center">Status</th>
                                         <th class="text-center" style="width: 250px;">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${rows.length ? rows : '<tr><td colspan="7" class="text-center text-muted py-8">Belum ada data pengajuan pencairan.</td></tr>'}
+                                    ${rows.length ? rows : '<tr><td colspan="9" class="text-center text-muted py-8">Belum ada data pengajuan pencairan.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
