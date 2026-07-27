@@ -2583,6 +2583,34 @@
                 this.init(); 
             }
 
+            toggleChecklist(packageId, documentName, isChecked) {
+                const docs = DB.get('package_documents') || [];
+                let target = docs.find(d => 
+                    d.package_id === packageId && 
+                    (d.document_name || "").trim().toUpperCase() === documentName.trim().toUpperCase()
+                );
+
+                const newStatus = isChecked ? 'FINAL' : 'DRAFT';
+
+                if (target) {
+                    DB.update('package_documents', target.id, { 
+                        status: newStatus, 
+                        generated: isChecked 
+                    });
+                } else {
+                    DB.insert('package_documents', {
+                        package_id: packageId,
+                        document_name: documentName,
+                        document_code: this.documentCode(documentName),
+                        status: newStatus,
+                        generated: isChecked,
+                        version: 1
+                    });
+                }
+
+                this.notify(`Status dokumen ${documentName} diperbarui`, 'success');
+                this.reRenderCurrentView();
+            }
             copyTemplate(id) {
                 const templateList = DB.get('template');
                 const target = templateList.find(t => String(t.id) === String(id));
