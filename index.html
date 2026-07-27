@@ -364,6 +364,19 @@
                     timeout = setTimeout(later, wait);
                 };
             }
+
+            subtractWorkingDays: (startDate, days, holidays = []) => {
+        let date = new Date(startDate); let subtracted = 0;
+        if (days === 0) return date.toISOString().split('T')[0];
+
+        while (subtracted < days) { 
+            date.setDate(date.getDate() - 1); 
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6; 
+            const dateStr = date.toISOString().split('T')[0]; 
+            if (!isWeekend && !holidays.includes(dateStr)) subtracted++; 
+        }
+        return date.toISOString().split('T')[0];
+    }
         };
 
         // -----------------------------------------------------
