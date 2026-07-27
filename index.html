@@ -2111,6 +2111,14 @@
                                 <h2 class="font-bold text-lg">Checklist Dokumen & Penyesuaian Data</h2>
                                 <p class="text-sm text-muted">Nomor dan tanggal di bawah dapat disesuaikan manual, lalu klik Simpan untuk merekamnya ke database.</p>
                             </div>
+                            <div class="flex gap-2">
+                            <!-- Tombol Reset Massal -->
+                            <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentDates('${this.packageId}')">
+                                <i class="ph ph-calendar-x"></i> Reset Semua Tanggal
+                            </button>
+                            <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentNumbers('${this.packageId}')">
+                                <i class="ph ph-hash"></i> Reset Semua Nomor
+                            </button>
                             <button class="btn btn-primary" onclick="app.saveChecklistChanges('${this.packageId}')">
                                 <i class="ph ph-floppy-disk"></i> Simpan Perubahan Checklist
                             </button>
@@ -2429,6 +2437,30 @@
                 XLSX.writeFile(wb, "Template_Import_Tenaga_Ahli.xlsx");
             }
 
+            async resetAllDocumentDates(packageId) {
+                if (!confirm("Apakah Anda yakin ingin mereset seluruh tanggal dokumen kembali ke kalkulasi otomatis jadwal?")) return;
+                
+                const docs = DB.get('package_documents').filter(d => d.package_id === packageId);
+                for (let d of docs) {
+                    DB.update('package_documents', d.id, { document_date: null });
+                }
+                
+                this.notify('Semua tanggal dokumen berhasil direset ke otomatis', 'success');
+                this.reRenderCurrentView();
+            }
+
+            async resetAllDocumentNumbers(packageId) {
+                if (!confirm("Apakah Anda yakin ingin mereset seluruh nomor dokumen kembali ke format otomatis?")) return;
+                
+                const docs = DB.get('package_documents').filter(d => d.package_id === packageId);
+                for (let d of docs) {
+                    DB.update('package_documents', d.id, { document_number: null });
+                }
+                
+                this.notify('Semua nomor dokumen berhasil direset ke otomatis', 'success');
+                this.reRenderCurrentView();
+            }
+            
             async importPersonnel(event, packageId) {
                 const file = event.target.files[0];
                 if (!file) return;
