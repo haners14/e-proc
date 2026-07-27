@@ -1272,6 +1272,54 @@
         return { dates };
     }
 
+            const dokumenPendukung = [
+    "Summary Report",
+    "Surat Permohonan Pemilihan Penyedia",
+    "Surat Penawaran",
+    "Lampiran Penawaran (Profil Perusahaan dll)",
+    "Persyaratan Kualifikasi Peserta",
+    "Surat Pernyataan Sanggup Menyelesaikan Pekerjaan",
+    "Surat Permohonan Pencairan dari Penyedia",
+    "Invoice Lampiran Pembayaran Personil dan Non Personil",
+    "Kelengkapan Dokumen Lampiran (misal laporan)",
+    "Jaminan Pemeliharaan (Fisik)",
+    "Mutual Check / Laporan Kemajuan (Fisik)",
+    "KTP dan NPWP",
+    "Surat Referensi Bank",
+    "Faktur Pajak",
+    "Kwitansi"
+];
+
+if (!this.pkg.dokumen_pendukung) {
+    this.pkg.dokumen_pendukung = {};
+}
+
+const pendukungHtml = dokumenPendukung.map((namaDok) => {
+    const isChecked = Boolean(this.pkg.dokumen_pendukung[namaDok]);
+    return `
+        <tr style="border-bottom: 1px solid #000;">
+            <td style="padding: 8px 12px; border-right: 1px solid #000; font-size: 0.9rem; color: #000;">${namaDok}</td>
+            <td style="padding: 8px 12px; text-align: center; width: 60px;">
+                <input type="checkbox" style="width: 18px; height: 18px; cursor: pointer;" ${isChecked ? 'checked' : ''} onclick="app.toggleDokumenPendukung('${this.packageId}', '${namaDok}', this.checked)">
+            </td>
+        </tr>
+    `;
+}).join('');
+
+const sectionPendukungHtml = `
+    <div class="card p-6 max-w-4xl mx-auto mt-8 bg-white" style="border: 1px solid #000;">
+        <div class="table-container" style="border: 1px solid #000; border-radius: 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tbody>
+                    ${pendukungHtml}
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-sm font-bold text-gray-900" style="font-family: Arial, sans-serif;">
+            Cek materainya di nama pihak ketiga, nilai, dan nomor SPK
+        </div>
+    </div>
+`;
             render(container) {
                 this.pkg = DB.getById('paket', this.packageId);
                 
@@ -2223,6 +2271,72 @@
                         </table>
                     </div>
                 </div>`;
+
+                const dokumenPendukung = [
+            "Summary Report",
+            "Surat Permohonan Pemilihan Penyedia",
+            "Surat Penawaran",
+            "Lampiran Penawaran (Profil Perusahaan dll)",
+            "Persyaratan Kualifikasi Peserta",
+            "Surat Pernyataan Sanggup Menyelesaikan Pekerjaan",
+            "Surat Permohonan Pencairan dari Penyedia",
+            "Invoice Lampiran Pembayaran Personil dan Non Personil",
+            "Kelengkapan Dokumen Lampiran (misal laporan)",
+            "Jaminan Pemeliharaan (Fisik)",
+            "Mutual Check / Laporan Kemajuan (Fisik)",
+            "KTP dan NPWP",
+            "Surat Referensi Bank",
+            "Faktur Pajak",
+            "Kwitansi"
+        ];
+
+        if (!this.pkg.dokumen_pendukung) {
+            this.pkg.dokumen_pendukung = {};
+        }
+
+        const pendukungHtml = dokumenPendukung.map((namaDok) => {
+            const isChecked = Boolean(this.pkg.dokumen_pendukung[namaDok]);
+            return `
+                <tr style="border-bottom: 1px solid #000;">
+                    <td style="padding: 8px 12px; border-right: 1px solid #000; font-size: 0.9rem; color: #000;">${namaDok}</td>
+                    <td style="padding: 8px 12px; text-align: center; width: 60px;">
+                        <input type="checkbox" style="width: 18px; height: 18px; cursor: pointer;" ${isChecked ? 'checked' : ''} onclick="app.toggleDokumenPendukung('${this.packageId}', '${namaDok}', this.checked)">
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const sectionPendukungHtml = `
+            <div class="card p-6 max-w-6xl mx-auto mt-8 bg-white" style="border: 1px solid #000;">
+                <div class="table-container" style="border: 1px solid #000; border-radius: 0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tbody>
+                            ${pendukungHtml}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 text-sm font-bold text-gray-900" style="font-family: Arial, sans-serif;">
+                    Cek materainya di nama pihak ketiga, nilai, dan nomor SPK
+                </div>
+            </div>
+        `;
+        // ---------------------------------
+
+        return `
+            <div class="card p-6 max-w-6xl mx-auto">
+                <!-- (Bagian Header & Tabel Utama Checklist Anda) -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>...</thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+            </div>
+            
+            ${sectionPendukungHtml} <!-- Tambahkan variabel ini di bawah tabel utama -->
+        `;
+    }
+}
             }
 
             attachChecklistEvents() {
@@ -2801,6 +2915,18 @@
                 }
             }
 
+            toggleDokumenPendukung(packageId, namaDok, isChecked) {
+        const pkg = DB.getById('paket', packageId);
+        if (!pkg) return;
+        
+        if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
+        pkg.dokumen_pendukung[namaDok] = isChecked;
+        
+        // Simpan perubahan secara otomatis ke database paket
+        DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
+        this.notify(`Status dokumen pendukung diperbarui`, 'success');
+    }
+}
             removeHargaRow(packageId, index) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.items) return;
