@@ -339,6 +339,18 @@
                 }
                 return date.toISOString().split('T')[0];
             },
+            subtractWorkingDays: (startDate, days, holidays = []) => {
+                let date = new Date(startDate); let subtracted = 0;
+                if (days === 0) return date.toISOString().split('T')[0];
+        
+                while (subtracted < days) { 
+                    date.setDate(date.getDate() - 1); 
+                    const isWeekend = date.getDay() === 0 || date.getDay() === 6; 
+                    const dateStr = date.toISOString().split('T')[0]; 
+                    if (!isWeekend && !holidays.includes(dateStr)) subtracted++; 
+                }
+                return date.toISOString().split('T')[0];
+            },
             toWords: function(n) {
                 const a=['','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh','sebelas']; 
                 const translate = (num) => {
@@ -365,18 +377,7 @@
                 };
             }
 
-            subtractWorkingDays: (startDate, days, holidays = []) => {
-        let date = new Date(startDate); let subtracted = 0;
-        if (days === 0) return date.toISOString().split('T')[0];
-
-        while (subtracted < days) { 
-            date.setDate(date.getDate() - 1); 
-            const isWeekend = date.getDay() === 0 || date.getDay() === 6; 
-            const dateStr = date.toISOString().split('T')[0]; 
-            if (!isWeekend && !holidays.includes(dateStr)) subtracted++; 
-        }
-        return date.toISOString().split('T')[0];
-    }
+           
         };
 
         // -----------------------------------------------------
@@ -1283,11 +1284,40 @@
                 if(this.activeTab === 'rancangankontrak') this.attachKontrakEvents();
                 if(this.activeTab === 'checklist') this.attachChecklistEvents();
                 if(this.activeTab === 'kak') this.attachKAKEvents();
-                if(this.activeTab === 'datapaket'){ 
-                    const f=document.getElementById('form-datapaket'), start=f?.querySelector('[name=tgl_mulai]'), dur=f?.querySelector('[name=durasi_kontrak]'), finish=f?.querySelector('[name=tgl_selesai]'); 
-                    const refresh=()=>{if(start?.value&&finish){const d=new Date(`${start.value}T00:00:00`);d.setDate(d.getDate()+(Number(dur?.value)||0));finish.value=d.toISOString().split('T')[0];}}; 
-                    start?.addEventListener('change',refresh); dur?.addEventListener('input',refresh); refresh(); 
-                }
+               if(this.activeTab === 'datapaket'){ 
+    const f = document.getElementById('form-datapaket');
+    const startPersiapan = f?.querySelector('[name=tgl_awal]'); // Tanggal Awal Persiapan
+    const startSPK = f?.querySelector('[name=tgl_mulai]');       // Tanggal Mulai (SPK)
+    const dur = f?.querySelector('[name=durasi_kontrak]');
+    const finish = f?.querySelector('[name=tgl_selesai]'); 
+    const holidays = DB.get('libur').map(l => l.date);
+
+    const refreshDates = () => {
+        if (startSPK?.value) {
+            // Otomatis set Tanggal Awal Persiapan 11 hari kerja sebelum Tanggal Mulai (SPK)
+            if (startPersiapan) {
+                startPersiapan.value = Utils.subtractWorkingDays(startSPK.value, 11, holidays);
+                // Trigger event change agar auto-save Supabase mendeteksi perubahan ini
+                startPersiapan.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            // Hitung Tanggal Selesai otomatis berdasarkan durasi kontrak
+            if (finish && dur?.value) {
+                const d = new Date(`${startSPK.value}T00:00:00`);
+                d.setDate(d.getDate() + (Number(dur.value) || 0));
+                finish.value = d.toISOString().split('T')[0];
+                finish.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+    }; 
+
+    startSPK?.addEventListener('change', refreshDates); 
+    dur?.addEventListener('input', refreshDates); 
+    
+    // Jalankan sekali jika Tanggal Mulai sudah terisi namun Awal Persiapan masih kosong
+    if (startSPK?.value && !startPersiapan?.value) {
+        refreshDates();
+    }
+}
             }
 
             // AUTO SAVE EVENTS
