@@ -1889,6 +1889,7 @@
                         const keyType = roundKey.replace('pembulatan_', '');
                         const lblEl = document.getElementById(`lbl-round-${keyType}`);
                         const txtEl = document.getElementById(`txt-round-${keyType}`);
+                        if (txtEl) txtEl.value = Utils.toWords(cleanVal).trim() + ' rupiah';
 
                         if (lblEl) lblEl.innerText = Utils.formatCurrency(cleanVal);
                         if (txtEl) txtEl.value = Utils.toWords(cleanVal).trim() + ' rupiah';
