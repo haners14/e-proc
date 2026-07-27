@@ -2226,7 +2226,41 @@ const sectionPendukungHtml = `
                     </tr>`;
                 }).join('');
 
-                const dokumenPendukung = [
+               return `
+                <div class="card p-6 max-w-6xl mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
+                        <div>
+                            <h2 class="font-bold text-lg">Checklist Dokumen & Penyesuaian Data</h2>
+                            <p class="text-sm text-muted">Nomor dan tanggal di bawah dapat disesuaikan manual, lalu klik Simpan untuk merekamnya ke database.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentDates('${this.packageId}')">
+                                <i class="ph ph-calendar-x"></i> Reset Semua Tanggal
+                            </button>
+                            <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentNumbers('${this.packageId}')">
+                                <i class="ph ph-hash"></i> Reset Semua Nomor
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="app.saveChecklistChanges('${this.packageId}')">
+                                <i class="ph ph-floppy-disk"></i> Simpan Perubahan
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Status</th><th>Generate</th></tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>
+                ${sectionPendukungHtml}
+               `;
+            }
+            }
+}
+
+        const dokumenPendukung = [
                     "Summary Report",
                     "Surat Permohonan Pemilihan Penyedia",
                     "Surat Penawaran",
@@ -2274,40 +2308,7 @@ const sectionPendukungHtml = `
                         </div>
                     </div>
                 `;
-
-               return `
-                <div class="card p-6 max-w-6xl mx-auto">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
-                        <div>
-                            <h2 class="font-bold text-lg">Checklist Dokumen & Penyesuaian Data</h2>
-                            <p class="text-sm text-muted">Nomor dan tanggal di bawah dapat disesuaikan manual, lalu klik Simpan untuk merekamnya ke database.</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentDates('${this.packageId}')">
-                                <i class="ph ph-calendar-x"></i> Reset Semua Tanggal
-                            </button>
-                            <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentNumbers('${this.packageId}')">
-                                <i class="ph ph-hash"></i> Reset Semua Nomor
-                            </button>
-                            <button class="btn btn-primary btn-sm" onclick="app.saveChecklistChanges('${this.packageId}')">
-                                <i class="ph ph-floppy-disk"></i> Simpan Perubahan
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Status</th><th>Generate</th></tr>
-                            </thead>
-                            <tbody>${rowsHtml}</tbody>
-                        </table>
-                    </div>
-                </div>
-                ${sectionPendukungHtml}
-               `;
-            }
-            }
-
+        
             attachChecklistEvents() {
                 document.querySelectorAll('.chk-master-input').forEach(el => {
                     el.addEventListener('change', (e) => {
