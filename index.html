@@ -3410,9 +3410,10 @@
                     const nama = matchedPenyedia ? matchedPenyedia.direktur : (item.nama_penerima || '-');
                     const jabatanInfo = matchedPenyedia?.jabatan_direktur || '-';
 
+                    // TTD diperbesar dan nomor urut "1. ....." dihilangkan (dikosongkan untuk tanda tangan basah / digital)
                     const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
-                        : `<span style="color: #94a3b8; font-size: 10px;">${idx + 1}. ....................</span>`;
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 65px; display: block; margin: 0 auto;" />` 
+                        : `<div style="height: 55px;"></div>`;
 
                     return `
                         <tr>
@@ -3422,13 +3423,13 @@
                             <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(bruto)}</td>
                             <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(pajak)}</td>
                             <td style="text-align: right; vertical-align: middle;">${Utils.formatNumber(bersih)}</td>
-                            <td style="text-align: center; vertical-align: middle; height: 45px;">${ttdContent}</td>
+                            <td style="text-align: center; vertical-align: middle;">${ttdContent}</td>
                         </tr>
                     `;
                 }).join('');
 
                 const content = `
-                    <div class="header" style="text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 20px; font-family: Arial, sans-serif;">
+                    <div class="header" style="text-align: center; font-weight: bold; font-size: 13pt; margin-bottom: 15px; font-family: Arial, sans-serif;">
                         TANDA TERIMA PEMBAYARAN
                     </div>
                     
@@ -3444,10 +3445,10 @@
                                 <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 40px;">No.</th>
                                 <th style="border: 1px solid #000; padding: 8px; text-align: left;">Nama</th>
                                 <th style="border: 1px solid #000; padding: 8px; text-align: left;">Jabatan</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 95px;">Jumlah (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 85px;">Pajak (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Jumlah Diterima<br>Stlh Pajak (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 110px;">TTD</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 120px;">Jumlah (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Pajak (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 140px;">Jumlah Diterima<br>Stlh Pajak (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 160px;">TTD</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -3468,15 +3469,15 @@
                         Terbilang : <b>${Utils.toWords(totalBruto)} rupiah</b>
                     </div>
 
-                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 10pt; font-family: Arial, sans-serif;">
-                        <div style="text-align: center; width: 250px;">
+                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 35px; font-size: 10pt; font-family: Arial, sans-serif;">
+                        <div style="text-align: center; width: 280px;">
                             <p>LUNAS BAYAR,</p>
                             <p><b>BENDAHARA PENGELUARAN</b></p>
                             <br><br><br><br>
                             <p style="text-decoration: underline; font-weight: bold;">RIKKA FENDRIANI</p>
                             <p>NIP. 197102131997032001</p>
                         </div>
-                        <div style="text-align: center; width: 280px;">
+                        <div style="text-align: center; width: 320px;">
                             <p>BOGOR, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${(pencairan.bulan || 'JUNI').toUpperCase()} 2026</p>
                             <p><b>PEJABAT PELAKSANA TEKNIS KEGIATAN</b></p>
                             <br><br><br><br>
@@ -3486,8 +3487,9 @@
                     </div>
                 `;
 
+                // Diatur ke orientasi landscape secara otomatis melalui CSS page size
                 const customStyle = `
-                    @page { size: portrait; margin: 15mm; }
+                    @page { size: landscape; margin: 15mm; }
                     body { font-family: Arial, sans-serif; color: #000; }
                     .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
                 `;
