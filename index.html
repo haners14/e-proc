@@ -3573,12 +3573,10 @@
                         function finishedPosition() { painting = false; ctx.beginPath(); }
                         function draw(e) {
                             if (!painting) return;
-                            // Ubah nilai linewidth menjadi lebih besar (misal 4.5 atau 5) agar lebih tebal
-                            ctx.lineWidth = 4.5;
+                            ctx.lineWidth = 6; // Dibuat lebih tebal dan tegas
                             ctx.lineCap = 'round';
                             ctx.lineJoin = 'round';
-                            // Gunakan hitam pekat murni
-                            ctx.strokeStyle = '#000000';
+                            ctx.strokeStyle = '#000000'; // Hitam pekat
 
                             const rect = canvas.getBoundingClientRect();
                             const x = (e.clientX || e.touches[0].clientX) - rect.left;
@@ -3589,7 +3587,7 @@
                             ctx.beginPath();
                             ctx.moveTo(x, y);
                         }
-
+                        
                         canvas.addEventListener('mousedown', startPosition);
                         canvas.addEventListener('mouseup', finishedPosition);
                         canvas.addEventListener('mousemove', draw);
@@ -3657,7 +3655,7 @@
                     
                     // Memastikan data base64 tanda_tangan terpanggil dengan benar
                     const ttdContent = item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" style="max-height: 50px; display: block; margin: 0 auto;" />` 
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 70px; max-width: 130px; display: block; margin: 0 auto;" />` 
                         : `<span style="color: #94a3b8; font-size: 10px;">....................</span>`;
 
                     return `
@@ -3750,7 +3748,7 @@
 
                     // Memastikan data base64 tanda_tangan terpanggil dengan benar
                     const ttdContent = item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" style="max-height: 55px; display: block; margin: 0 auto;" />` 
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 75px; max-width: 140px; display: block; margin: 0 auto;" />` 
                         : `<div style="height: 55px;"></div>`;
 
                     return `
