@@ -1235,6 +1235,43 @@
                 this.activeTab = 'ringkasan';
             }
 
+            calculateAllScheduleDates(pkg) {
+        const rules = DB.get('waktu') || [];
+        const holidays = DB.get('libur')?.map(l => l.date) || [];
+        const baseStartDate = pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+        
+        let dates = {};
+        let unresolved = [...rules];
+        let safetyCounter = 0;
+
+        while (unresolved.length > 0 && safetyCounter < 50) {
+            let progressing = false;
+            unresolved = unresolved.filter(r => {
+                let prev = r.previous;
+                let days = Number(r.days) || 0;
+                let baseDate = null;
+
+                if (!prev || prev === '-' || prev === 'Tanggal Awal') {
+                    baseDate = baseStartDate;
+                } else if (prev === 'Langsung SDP') {
+                    baseDate = dates['SDP'] || baseStartDate;
+                } else if (dates[prev]) {
+                    baseDate = dates[prev];
+                }
+
+                if (baseDate) {
+                    dates[r.name] = Utils.addWorkingDays(baseDate, days, holidays);
+                    progressing = true;
+                    return false;
+                }
+                return true;
+            });
+            safetyCounter++;
+            if (!progressing) break;
+        }
+        return { dates };
+    }
+
             render(container) {
                 this.pkg = DB.getById('paket', this.packageId);
                 
@@ -5733,12 +5770,29 @@ renderSignPage(container, itemId) {
 
                 // 2. Logika Penomoran Dokumen
                 const aliases = {
-                    'BA Reviu Dok Persiapan':'BA_REVIU', 'BA Reviu Dokumen Persiapan':'BA_REVIU',
-                    'Undangan Penandatanganan Kontrak':'UND_KONTRAK', 'Undangan Pengadaan Langsung':'UND_PENGADAAN',
-                    'Undangan Verifikasi':'UND_VERIFIKASI', 'Undangan Reviu':'UND_REVIU',
-                    'Undangan Negosiasi':'UNDANGAN_NEGOSIASI', 'Rancangan Kontrak':'RANCANGAN_KONTRAK',
-                    'Uraian Singkat':'URAIAN_SINGKAT', 'SSUK':'SSUK', 'SSKK':'SSKK'
-                };
+            'Nota Dinas': 'NOTA_DINAS',
+            'Uraian Singkat': 'URAIAN_SINGKAT',
+            'KAK': 'KAK',
+            'HPS/RAB': 'HPS_RAB',
+            'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
+            'BA Reviu Dokumen Persiapan': 'BA_REVIU',
+            'SDP': 'SDP',
+            'BA Evaluasi': 'BA_EVALUASI',
+            'Undangan Verifikasi': 'UND_VERIFIKASI',
+            'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
+            'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
+            'BA Negosiasi': 'BA_NEGOSIASI',
+            'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
+            'BA Hasil Pemilihan': 'BA_HASIL',
+            'SPPBJ': 'SPPBJ',
+            'Undangan Penandatanganan Kontrak': 'UND_KONTRAK',
+            'SPK': 'SPK',
+            'SSUK': 'SSUK',
+            'SSKK': 'SSKK',
+            'SPMK': 'SPMK',
+            'BAST': 'BAST',
+            'BAP': 'BAP'
+        };
                 
                 const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
                 const ruleList = DB.get('penomoran') || [];
