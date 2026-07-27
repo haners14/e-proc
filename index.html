@@ -1688,14 +1688,20 @@
                 const note = alerts.length ? `<div class="card p-4 mb-4" style="border-color:#dc2626;color:#b91c1c"><b>Perhatian nilai:</b><br>${alerts.join('<br>')}</div>` : '';
                 
                 // Block pembulatan dengan ID referensi untuk manipulasi DOM instan
-                const block = (label, key, value) => `
+                const block = (label, key, value) => {
+                    const savedVal = this.pkg[`pembulatan_${key}`] !== undefined && this.pkg[`pembulatan_${key}`] !== null 
+                        ? this.pkg[`pembulatan_${key}`] 
+                        : value;
+
+                    return `
                     <div class="card p-4">
-                        <label class="form-label">Pembulatan ${label}</label>
-                        <input data-round="pembulatan_${key}" class="form-control money-input" inputmode="numeric" value="${Utils.formatNumber(value)}">
-                        <p class="text-sm font-semibold mt-2" id="lbl-round-${key}">${Utils.formatCurrency(value)}</p>
-                        <label class="form-label mt-3">Terbilang</label>
-                        <textarea class="form-control text-xs" rows="3" readonly id="txt-round-${key}">${Utils.toWords(value).trim()} rupiah</textarea>
+                        <label class="form-label font-bold">Pembulatan ${label}</label>
+                        <input data-round="pembulatan_${key}" class="form-control money-input font-bold" inputmode="numeric" value="${Utils.formatNumber(savedVal)}">
+                        <p class="text-sm font-semibold mt-2 text-primary-600" id="lbl-round-${key}">${Utils.formatCurrency(savedVal)}</p>
+                        <label class="form-label mt-3 text-xs font-semibold">Terbilang</label>
+                        <textarea class="form-control text-xs bg-gray-50" rows="3" readonly id="txt-round-${key}">${Utils.toWords(savedVal).trim()} rupiah</textarea>
                     </div>`;
+                };
 
                 return note + `
                     <div class="flex justify-between items-center mb-4">
@@ -1868,9 +1874,24 @@
                 });
                 
                 document.querySelectorAll('[data-round]').forEach(el => {
-                    el.addEventListener('change', e => {
-                        DB.update('paket', this.packageId, { [e.target.dataset.round]: Number(String(e.target.value).replace(/\D/g, '')) || 0 });
-                        this.refreshHargaUI(); 
+                    el.addEventListener('input', e => {
+                        const rawVal = String(e.target.value).replace(/\D/g, '');
+                        const cleanVal = Number(rawVal) || 0;
+                        
+                        // Format ulang input menjadi pemisah ribuan titik
+                        e.target.value = Utils.formatNumber(cleanVal);
+
+                        // Simpan otomatis ke database paket
+                        const roundKey = e.target.dataset.round; // contoh: pembulatan_penawaran atau pembulatan_negosiasi
+                        DB.update('paket', this.packageId, { [roundKey]: cleanVal });
+
+                        // Update label nominal dan terbilang secara instan tanpa re-render penuh
+                        const keyType = roundKey.replace('pembulatan_', '');
+                        const lblEl = document.getElementById(`lbl-round-${keyType}`);
+                        const txtEl = document.getElementById(`txt-round-${keyType}`);
+
+                        if (lblEl) lblEl.innerText = Utils.formatCurrency(cleanVal);
+                        if (txtEl) txtEl.value = Utils.toWords(cleanVal).trim() + ' rupiah';
                     });
                 });
 
