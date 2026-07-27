@@ -200,24 +200,67 @@
 </head>
 <body>
 
-    <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #1e3a8a, #0f172a); z-index: 99999; display: flex; align-items: center; justify-content: center;">
-    <div style="background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <div style="font-size: 2rem; color: #2563eb; font-weight: bold; margin-bottom: 8px;"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
-            <p style="font-size: 0.85rem; color: #64748b;">Silakan masuk menggunakan akun Anda</p>
-        </div>
+    <!-- Halaman / Modal Login dengan Gambar (Split-Screen) -->
+<div id="login-overlay" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-100">
+    
+    <!-- Container Card Login -->
+    <div class="flex w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[550px]">
         
-        <form id="login-form" onsubmit="app.handleLogin(event)" style="display: flex; flex-direction: column; gap: 16px;">
-            <div class="form-group mb-0">
-                <label class="form-label font-bold text-gray-700">Username / Email</label>
-                <input type="text" id="login-user" class="form-control" placeholder="farhan" required>
+        <!-- Sisi Kiri: Gambar Background (Sembunyi di layar HP) -->
+        <div class="hidden md:block md:w-1/2 relative">
+            <!-- Gambar dari Unsplash (Bisa diganti dengan link gambar kantor Anda) -->
+            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80" alt="Office" class="absolute inset-0 w-full h-full object-cover">
+            
+            <!-- Overlay Gradient Biru Transparan -->
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-900/90 to-slate-900/95 flex flex-col justify-between p-10 text-white">
+                <div class="text-2xl font-bold flex items-center gap-2">
+                    <i class="ph-fill ph-intersect text-blue-400"></i> EProc Flow
+                </div>
+                <div>
+                    <h2 class="text-3xl font-bold leading-tight mb-4">Manajemen Pengadaan<br>Lebih Cerdas & Efisien</h2>
+                    <p class="text-slate-300 text-sm leading-relaxed">Sistem terintegrasi untuk pengelolaan paket pekerjaan, dokumen SPJ, dan pencairan anggaran di lingkungan BKAD Kota Bogor.</p>
+                </div>
             </div>
-            <div class="form-group mb-0">
-                <label class="form-label font-bold text-gray-700">Password</label>
-                <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <!-- Sisi Kanan: Form Login -->
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+            <div class="mb-8">
+                <h3 class="text-2xl font-bold text-slate-900 mb-2">Selamat Datang 👋</h3>
+                <p class="text-slate-500 text-sm">Silakan masukkan username dan kata sandi Anda untuk mengakses dashboard.</p>
             </div>
-            <button type="submit" class="btn btn-primary w-full py-3 mt-2" style="justify-content: center;">Masuk Aplikasi</button>
-        </form>
+            
+            <form id="login-form" onsubmit="app.handleLogin(event)" class="flex flex-col gap-5">
+                <div class="form-group mb-0">
+                    <label class="form-label font-bold text-slate-700">Username</label>
+                    <div class="relative">
+                        <i class="ph ph-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                        <input type="text" id="login-user" class="form-control pl-10 py-2.5" placeholder="Masukkan username..." required>
+                    </div>
+                </div>
+                
+                <<div class="form-group mb-0">
+                    <label class="form-label font-bold text-slate-700">Password</label>
+                    <div class="relative">
+                        <i class="ph ph-lock-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                        <!-- Tambahkan pr-10 agar teks tidak menabrak ikon mata -->
+                        <input type="password" id="login-pass" class="form-control pl-10 pr-10 py-2.5" placeholder="••••••••" required>
+                        <!-- Tombol Toggle Lihat Password -->
+                        <button type="button" onclick="app.togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                            <i id="toggle-pass-icon" class="ph ph-eye text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full py-3 mt-2 justify-center text-base">
+                    Masuk ke Aplikasi
+                </button>
+            </form>
+            
+            <div class="mt-10 text-center text-slate-400 text-xs">
+                &copy; 2026 BKAD Kota Bogor • Enterprise Edition
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2657,6 +2700,21 @@ hideLoginOverlay() {
         setTimeout(() => overlay.remove(), 300);
     }
 }
+
+            togglePasswordVisibility() {
+                const passInput = document.getElementById('login-pass');
+                const passIcon = document.getElementById('toggle-pass-icon');
+                
+                if (passInput.type === 'password') {
+                    // Ubah ke mode teks (terlihat) dan ganti ikon ke mata disilang
+                    passInput.type = 'text';
+                    passIcon.classList.replace('ph-eye', 'ph-eye-slash');
+                } else {
+                    // Kembalikan ke mode password (titik-titik) dan ganti ikon ke mata normal
+                    passInput.type = 'password';
+                    passIcon.classList.replace('ph-eye-slash', 'ph-eye');
+                }
+            }
 
 checkSession() {
     const isLoggedIn = localStorage.getItem('eproc_logged_in');
