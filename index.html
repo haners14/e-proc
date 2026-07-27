@@ -5480,14 +5480,12 @@ renderSignPage(container, itemId) {
                     const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-' };
                     const bruto = Number(item.subtotal || item.harga || 0);
                     
-                    // Deteksi nilai pajak secara aman dari berbagai skema properti item
                     let ppn = Number(item.pajak_ppn || 0);
                     let pph21 = Number(item.pajak_pph21 || 0);
                     let pph22 = Number(item.pajak_pph22 || 0);
                     let pph23 = Number(item.pajak_pph23 || 0);
                     let pph42 = Number(item.pajak_pph42 || 0);
 
-                    // Jika menggunakan referensi master_pajak baru
                     if (item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0 && ppn === 0)) {
                         const taxRec = masterPajak.find(p => p.id === item.pajak_id);
                         const taxVal = Number(item.nilai_pajak || item.pph || 0);
@@ -5504,12 +5502,14 @@ renderSignPage(container, itemId) {
                             pph21 = Number(item.pph || item.nilai_pajak || 0);
                         }
                     } else if (!item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0)) {
-                        // Fallback jika PPh tersimpan di properti umum `pph`
                         pph21 = Number(item.pph || item.nilai_pajak || 0);
                     }
 
+                    // Total potongan adalah penjumlahan seluruh jenis pajak (misal PPN + PPh)
                     const pot = ppn + pph21 + pph22 + pph23 + pph42;
-                    const dibayar = Number(item.total || (bruto - pph21 - pph22 - pph23 - pph42));
+                    
+                    // Sesuai permintaan: Jumlah yang dibayarkan = Bruto - Jumlah Potongan
+                    const dibayar = bruto - pot;
 
                     totBruto += bruto; totPPN += ppn; totPPh21 += pph21; totPPh22 += pph22; totPPh23 += pph23; totPPh42 += pph42; totPotongan += pot; totDibayar += dibayar;
 
@@ -5527,7 +5527,7 @@ renderSignPage(container, itemId) {
                             <td class="r">${pph22 ? Utils.formatNumber(pph22) : '-'}</td>
                             <td class="r">${pph23 ? Utils.formatNumber(pph23) : '-'}</td>
                             <td class="r">${pph42 ? Utils.formatNumber(pph42) : '-'}</td>
-                            <td class="r">${pot ? Utils.formatNumber(pot) : '-'}</td>
+                            <td class="r font-semibold">${pot ? Utils.formatNumber(pot) : '-'}</td>
                             <td class="r font-bold">${Utils.formatNumber(dibayar)}</td>
                         </tr>
                     `;
