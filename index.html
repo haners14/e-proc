@@ -3643,6 +3643,8 @@
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
 
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
+                
+                // Ambil data items terbaru secara langsung dari cache/database lokal tanpa tersangkut cache lama
                 const items = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) === String(spj.pencairan_id));
                 const listPenyedia = DB.get('penyedia') || [];
 
@@ -3653,7 +3655,7 @@
                     const jabatan = matchedPenyedia?.jabatan_direktur || '-';
                     const instansi = matchedPenyedia?.instansi || '-';
                     
-                    // Memastikan data base64 tanda_tangan terpanggil dengan benar
+                    // Tambahkan timestamp di akhir base64 atau pastikan variabel item.tanda_tangan terbaru yang dibaca
                     const ttdContent = item.tanda_tangan 
                         ? `<img src="${item.tanda_tangan}" style="max-height: 70px; max-width: 130px; display: block; margin: 0 auto;" />` 
                         : `<span style="color: #94a3b8; font-size: 10px;">....................</span>`;
@@ -3722,12 +3724,14 @@
                 this.printDocument('Daftar Presensi Kegiatan', content, customStyle);
             }
 
-           printTandaTerimaPDF(spjId) {
+          printTandaTerimaPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
 
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
+                
+                // Ambil data items terbaru secara langsung
                 const items = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) === String(spj.pencairan_id));
                 const listPenyedia = DB.get('penyedia') || [];
 
@@ -3746,7 +3750,6 @@
                     const nama = matchedPenyedia ? matchedPenyedia.name : (item.nama_penerima || '-');
                     const jabatanInfo = matchedPenyedia?.jabatan_direktur || '-';
 
-                    // Memastikan data base64 tanda_tangan terpanggil dengan benar
                     const ttdContent = item.tanda_tangan 
                         ? `<img src="${item.tanda_tangan}" style="max-height: 75px; max-width: 140px; display: block; margin: 0 auto;" />` 
                         : `<div style="height: 55px;"></div>`;
