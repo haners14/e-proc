@@ -3636,7 +3636,7 @@
                 this.loadFormPenerimaSign(spjId, itemId);
             }
 
-           printPresensiPDF(spjId) {
+          printPresensiPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
@@ -3648,14 +3648,14 @@
                 let rowsHtml = items.map((item, idx) => {
                     const matchedPenyedia = listPenyedia.find(p => p.id === item.penyedia_id || p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
                     
-                    // Memanggil kolom Nama dan Instansi langsung dari data penyedia/item
-                    const nama = matchedPenyedia ? (matchedPenyedia.direktur || matchedPenyedia.name) : (item.nama_penerima || '-');
+                    const nama = matchedPenyedia ? matchedPenyedia.name : (item.nama_penerima || '-');
                     const jabatan = matchedPenyedia?.jabatan_direktur || '-';
-                    const instansi = matchedPenyedia?.instansi || matchedPenyedia?.name || item.nama_penerima || '-';
+                    const instansi = matchedPenyedia?.instansi || '-';
                     
+                    // Nomor urut dan titik dihilangkan, menyisakan garis kosong atau tanda tangan digital
                     const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
                         ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
-                        : `<span style="color: #94a3b8; font-size: 10px;">${idx + 1}. ....................</span>`;
+                        : `<span style="color: #94a3b8; font-size: 10px;">....................</span>`;
 
                     return `
                         <tr>
