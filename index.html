@@ -1893,8 +1893,11 @@
                 let calculated = [];
                 let dates = {};
                 
-                rules.forEach(r => { 
-                    // Cek apakah dokumen ini sudah memiliki tanggal tersimpan di package_documents (Checklist)
+                // Tentukan tanggal awal acuan dasar (prioritaskan tgl_awal persiapan atau tgl_mulai)
+                let previousDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+
+                rules.forEach((r, idx) => { 
+                    // Cek apakah dokumen ini sudah memiliki tanggal tersimpan manual di checklist
                     const matchedDoc = allDocs.find(d => 
                         d.package_id === this.packageId && 
                         (d.document_name || "").trim().toLowerCase() === r.name.trim().toLowerCase()
@@ -1904,19 +1907,27 @@
                     let isFromChecklist = false;
 
                     if (matchedDoc && matchedDoc.document_date) {
-                        // Jika di checklist tanggalnya sudah diisi/disimpan, ikuti tanggal dari checklist
                         finalDate = matchedDoc.document_date;
                         isFromChecklist = true;
                     } else {
-                        // Jika belum, gunakan kalkulasi otomatis berbasis master waktu
-                        const base = r.anchor === 'selesai' ? this.pkg.tgl_selesai : (r.previous === 'Tanggal Awal' || !r.previous || r.previous === '-' ? (this.pkg.tgl_awal || this.pkg.tgl_mulai) : dates[r.previous] || (this.pkg.tgl_awal || this.pkg.tgl_mulai)); 
-                        finalDate = Utils.addWorkingDays(base || new Date().toISOString().split('T')[0], Number(r.days)||0, holidays);
+                        // Tentukan basis tanggal: apakah mengikuti dokumen acuan sebelumnya atau berurutan dari dokumen persis di atasnya
+                        let base = previousDate;
+                        if (r.previous && r.previous !== '-' && r.previous !== 'Tanggal Awal' && dates[r.previous]) {
+                            base = dates[r.previous];
+                        }
+
+                        // Kalkulasi penambahan hari kerja berdasarkan selisih hari (days) di master waktu
+                        finalDate = Utils.addWorkingDays(base, Number(r.days) || 0, holidays);
                     }
                     
+                    // Simpan ke kamus tanggal berdasarkan nama tahap/dokumen
                     dates[r.name] = finalDate;
+                    previousDate = finalDate; // Geser acuan untuk dokumen berikutnya dalam rantai
+                    
                     calculated.push({ ...r, calculatedDate: finalDate, isFromChecklist });
                 });
 
+                // Urutkan berdasarkan tanggal kalkulasi secara kronologis
                 calculated.sort((a, b) => new Date(a.calculatedDate) - new Date(b.calculatedDate));
                 
                 return `
@@ -1945,7 +1956,7 @@
                     </div>
                 `;
             }
-
+            
             renderJadwalProses() {
                 const rules = DB.get('jadwal_proses'); 
                 const holidays = DB.get('libur').map(x=>x.date); 
