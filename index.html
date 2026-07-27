@@ -310,6 +310,9 @@
 
                 <div class="nav-group">
                     <div class="nav-group-title">SISTEM</div>
+                    <!-- Tambahkan baris di bawah ini -->
+                    <div class="nav-item" data-route="pengaturan-user"><i class="ph ph-users"></i> <span>Manajemen Pengguna</span></div>
+                    
                     <div class="nav-item" data-route="ai-assistant"><i class="ph ph-sparkle text-primary"></i> <span>Asisten AI</span></div>
                     <div class="nav-item" data-route="pengaturan"><i class="ph ph-gear"></i> <span>Pengaturan</span></div>
                 </div>
@@ -738,6 +741,16 @@
             waktu: { title: 'Master Waktu Dokumen', table: 'waktu', fields: [{ key: 'name', label: 'Tahap/Dokumen', type: 'text', required: true }, { key: 'previous', label: 'Mengikuti Jadwal Sebelumnya', type: 'text', required: true }, { key: 'days', label: 'Selisih Hari Kerja', type: 'number', required: true }, { key: 'anchor', label: 'Acuan', type: 'select', options: ['mulai', 'selesai'] }] },
             jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Persiapan', 'Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
             paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'mak', label: 'MAK', type: 'text' }, { key: 'kode_rup', label: 'Kode RUP', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] }
+           users: { 
+                title: 'Manajemen Pengguna', 
+                table: 'users', 
+                fields: [
+                    { key: 'username', label: 'Username', type: 'text', required: true }, 
+                    { key: 'password', label: 'Password', type: 'text', required: true }, 
+                    { key: 'nama_lengkap', label: 'Nama Lengkap', type: 'text', required: true }, 
+                    { key: 'role', label: 'Role / Hak Akses', type: 'select', options: ['Administrator', 'Staf Pengadaan', 'Pimpinan', 'Auditor'], required: true }
+                ] 
+            }
         };
 
        const DOM = {
@@ -4104,14 +4117,15 @@ logout() {
                 });
             }
 
-            navigate(route, param = null) {
+           navigate(route, param = null) {
                 this.currentRoute = route; 
                 this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Memuat modul dari Supabase...</p></div>`;
                 
                 setTimeout(() => {
                     this.routerView.innerHTML = '';
                     const schemaMap = { 
-                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket' 
+                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket',
+                        'pengaturan-user': 'users' // <-- TAMBAHKAN DI SINI
                     };
                     
                     if (schemaMap[route]) { 
