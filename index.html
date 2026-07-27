@@ -2853,8 +2853,7 @@
         DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
         this.notify(`Status dokumen pendukung diperbarui`, 'success');
     }
-}
-            removeHargaRow(packageId, index) {
+             removeHargaRow(packageId, index) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.items) return;
                 
@@ -2869,6 +2868,8 @@
                 }
             }
             
+}
+           
             async init() {
                 await DB.init();
                 
