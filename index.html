@@ -201,14 +201,17 @@
 <body>
 
     <!-- Halaman / Modal Login dengan Gambar (Split-Screen) -->
-<div id="login-overlay" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-100">
+<!-- Halaman / Modal Login dengan Gambar (Split-Screen) -->
+<div id="login-overlay" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80');">
     
-    <!-- Container Card Login -->
-    <div class="flex w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[550px]">
+    <!-- Overlay gelap dengan efek blur untuk background layar penuh -->
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-md"></div>
+
+    <!-- Container Card Login (Tambahkan 'relative' agar berada di atas efek blur) -->
+    <div class="relative flex w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[550px]">
         
         <!-- Sisi Kiri: Gambar Background (Sembunyi di layar HP) -->
         <div class="hidden md:block md:w-1/2 relative">
-            <!-- Gambar dari Unsplash (Bisa diganti dengan link gambar kantor Anda) -->
             <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80" alt="Office" class="absolute inset-0 w-full h-full object-cover">
             
             <!-- Overlay Gradient Biru Transparan -->
@@ -218,13 +221,13 @@
                 </div>
                 <div>
                     <h2 class="text-3xl font-bold leading-tight mb-4">Manajemen Pengadaan<br>Lebih Cerdas & Efisien</h2>
-                    <p class="text-slate-300 text-sm leading-relaxed">Sistem terintegrasi untuk pengelolaan paket pekerjaan, dokumen SPJ, dan pencairan anggaran di lingkungan BKAD Kota Bogor.</p>
+                    <p class="text-slate-300 text-sm leading-relaxed">Sistem terintegrasi untuk pengelolaan paket pekerjaan, dokumen SPJ, dan pencairan anggaran Bidang Pengelolaan BMD.</p>
                 </div>
             </div>
         </div>
 
         <!-- Sisi Kanan: Form Login -->
-        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
             <div class="mb-8">
                 <h3 class="text-2xl font-bold text-slate-900 mb-2">Selamat Datang 👋</h3>
                 <p class="text-slate-500 text-sm">Silakan masukkan username dan kata sandi Anda untuk mengakses dashboard.</p>
@@ -243,9 +246,7 @@
                     <label class="form-label font-bold text-slate-700">Password</label>
                     <div class="relative">
                         <i class="ph ph-lock-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                        <!-- Tambahkan pr-10 agar teks tidak menabrak ikon mata -->
                         <input type="password" id="login-pass" class="form-control pl-10 pr-10 py-2.5" placeholder="••••••••" required>
-                        <!-- Tombol Toggle Lihat Password -->
                         <button type="button" onclick="app.togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
                             <i id="toggle-pass-icon" class="ph ph-eye text-lg"></i>
                         </button>
@@ -258,7 +259,7 @@
             </form>
             
             <div class="mt-10 text-center text-slate-400 text-xs">
-                &copy; 2026 BKAD Kota Bogor • Enterprise Edition
+                &copy; 2026 Farhan Ersandy • Enterprise Edition
             </div>
         </div>
     </div>
