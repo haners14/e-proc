@@ -3516,14 +3516,23 @@ logout() {
             }
             
             async init() {
+                // 1. Cek parameter URL terlebih dahulu
+                const urlParams = new URLSearchParams(window.location.search);
+                const isPublicSign = urlParams.get('action') === 'sign_header' && urlParams.get('spj_id');
 
-                this.checkSession();
+                // 2. Jika bukan link public sign, maka lakukan cek session (harus login)
+                if (!isPublicSign) {
+                    this.checkSession();
+                } else {
+                    // Jika link public sign, pastikan overlay login dihapus secara paksa
+                    const overlay = document.getElementById('login-overlay');
+                    if (overlay) overlay.remove();
+                }
                 
                 await DB.init();
                 
-                // Isolasi tampilan khusus jika diakses melalui link header SPJ
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('action') === 'sign_header' && urlParams.get('spj_id')) {
+                // 3. Isolasi tampilan khusus jika diakses melalui link header SPJ
+                if (isPublicSign) {
                     const appRoot = document.getElementById('app-root');
                     const globalLoader = document.getElementById('global-loader');
                     if (appRoot) appRoot.style.display = 'none';
@@ -3536,7 +3545,7 @@ logout() {
                         document.body.appendChild(signContainer);
                     }
                     this.renderSignHeaderPage(signContainer, urlParams.get('spj_id'));
-                    return;
+                    return; // Hentikan proses init agar tidak me-load dashboard
                 }
 
                 this.bindNav(); 
