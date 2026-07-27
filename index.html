@@ -5446,19 +5446,44 @@ renderSignPage(container, itemId) {
                 const header = DB.getById('pencairan', pencairanId);
                 const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
                 const rekenings = DB.get('master_rekening') || [];
+                const masterPajak = DB.get('master_pajak') || [];
 
                 let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
 
                 const rowsHtml = items.map((item, idx) => {
                     const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-' };
                     const bruto = Number(item.subtotal || item.harga || 0);
-                    const ppn = Number(item.pajak_ppn || 0);
-                    const pph21 = Number(item.pajak_pph21 || 0);
-                    const pph22 = Number(item.pajak_pph22 || 0);
-                    const pph23 = Number(item.pajak_pph23 || 0);
-                    const pph42 = Number(item.pajak_pph42 || 0);
-                    const pot = pph21 + pph22 + pph23 + pph42;
-                    const dibayar = Number(item.total || 0);
+                    
+                    // Deteksi nilai pajak secara aman dari berbagai skema properti item
+                    let ppn = Number(item.pajak_ppn || 0);
+                    let pph21 = Number(item.pajak_pph21 || 0);
+                    let pph22 = Number(item.pajak_pph22 || 0);
+                    let pph23 = Number(item.pajak_pph23 || 0);
+                    let pph42 = Number(item.pajak_pph42 || 0);
+
+                    // Jika menggunakan referensi master_pajak baru
+                    if (item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0 && ppn === 0)) {
+                        const taxRec = masterPajak.find(p => p.id === item.pajak_id);
+                        const taxVal = Number(item.nilai_pajak || item.pph || 0);
+                        const taxPpnVal = Number(item.ppn || 0);
+
+                        if (taxRec) {
+                            if (taxRec.ppn) ppn = taxPpnVal || taxVal;
+                            const tName = (taxRec.jenis_pph || '').toUpperCase();
+                            if (tName.includes('21')) pph21 = taxVal;
+                            else if (tName.includes('22')) pph22 = taxVal;
+                            else if (tName.includes('23')) pph23 = taxVal;
+                            else if (tName.includes('4 AYAT') || tName.includes('4(2)')) pph42 = taxVal;
+                        } else {
+                            pph21 = Number(item.pph || item.nilai_pajak || 0);
+                        }
+                    } else if (!item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0)) {
+                        // Fallback jika PPh tersimpan di properti umum `pph`
+                        pph21 = Number(item.pph || item.nilai_pajak || 0);
+                    }
+
+                    const pot = ppn + pph21 + pph22 + pph23 + pph42;
+                    const dibayar = Number(item.total || (bruto - pph21 - pph22 - pph23 - pph42));
 
                     totBruto += bruto; totPPN += ppn; totPPh21 += pph21; totPPh22 += pph22; totPPh23 += pph23; totPPh42 += pph42; totPotongan += pot; totDibayar += dibayar;
 
@@ -5490,7 +5515,7 @@ renderSignPage(container, itemId) {
                     <table class="meta-info" style="width: 100%; border: none; margin-bottom: 10px; font-size: 9pt;">
                         <tr><td style="width: 160px; border:none;">Nama Sub Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${header.sub_kegiatan || '-'}</td></tr>
                         <tr><td style="border:none;">Kode Kegiatan</td><td style="border:none;">:</td><td style="border:none;">5.02.03.2.01.0010</td></tr>
-                        <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juni'} 2026</td></tr>
+                        <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juli'} 2026</td></tr>
                     </table>
 
                     <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 8pt;">
@@ -5542,7 +5567,7 @@ renderSignPage(container, itemId) {
                             <p>NIP. 198503292011011001</p>
                         </div>
                         <div class="ttd-right" style="text-align: center; width: 250px;">
-                            <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${header.bulan || 'Juni'} 2026</p>
+                            <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${header.bulan || 'Juli'} 2026</p>
                             <p><b>Bendahara</b></p>
                             <br><br><br>
                             <p><u><b>RIKKA FENDRIANI</b></u></p>
