@@ -5611,11 +5611,10 @@ renderSignPage(container, itemId) {
                     return false;
                 });
 
-                // Jika hasil filter kosong (untuk mencegah dropdown kosong melompong), gunakan pencocokan longgar berdasarkan kata kunci
+                // Jika hasil filter kosong, gunakan pencocokan longgar berdasarkan kata kunci
                 const finalRekeningList = optsRekening.length > 0 ? optsRekening : daftarRekening.filter(r => {
                     if (r.jenis !== 'Detail') return false;
                     if (!subKegiatanHeader) return true;
-                    // Ambil kata pertama/utama dari sub kegiatan untuk dicocokkan
                     const keyword = subKegiatanHeader.split(' ')[0];
                     return (r.uraian || '').toLowerCase().includes(keyword) || (r.kode || '').toLowerCase().includes(keyword);
                 });
@@ -5704,10 +5703,22 @@ renderSignPage(container, itemId) {
                             </div>
                         </div>
 
+                        <div class="grid grid-cols-3 gap-4 mb-1">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Jumlah (Qty)</label>
+                                <input type="number" id="detail_jumlah" class="form-control text-center font-bold" value="${existingItem ? (existingItem.qty || 1) : 1}" oninput="app.hitungPajakDetailItem()" min="1" required>
+                            </div>
+                            <div class="form-group mb-0 col-span-2">
+                                <label class="form-label font-bold text-gray-700">Nilai / Harga Satuan (Rp)</label>
+                                <input type="text" id="detail_nilai" class="form-control money-input font-bold" value="${existingItem ? Utils.formatNumber(existingItem.harga || 0) : ''}" placeholder="0" oninput="app.hitungPajakDetailItem()" required>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-group mb-0">
-                                <label class="form-label font-bold text-gray-700">Nilai Tagihan / Bruto (Rp)</label>
-                                <input type="text" id="detail_bruto" class="form-control money-input font-bold" value="${existingItem ? Utils.formatNumber(existingItem.harga || existingItem.subtotal || 0) : ''}" placeholder="0" oninput="app.hitungPajakDetailItem()" required>
+                                <label class="form-label font-bold text-gray-700">Total Tagihan / Bruto (Rp)</label>
+                                <input type="text" id="detail_bruto" class="form-control font-bold bg-gray-100 text-primary-700" value="${existingItem ? Utils.formatNumber(existingItem.subtotal || 0) : '0'}" readonly disabled>
+                                <small class="text-xs text-muted block mt-1">Nilai dihitung otomatis: Jumlah × Nilai Satuan</small>
                             </div>
                             <div class="form-group mb-0">
                                 <label class="form-label font-bold text-gray-700">Profil Master Pajak</label>
@@ -5718,7 +5729,7 @@ renderSignPage(container, itemId) {
                             </div>
                         </div>
 
-                        <div class="bg-primary-50 p-4 rounded-md border border-primary-200 text-xs space-y-1">
+                        <div class="bg-primary-50 p-4 rounded-md border border-primary-200 text-xs space-y-1 mt-2">
                             <div class="font-bold text-primary-900 mb-2">Simulasi Kalkulasi Otomatis:</div>
                             <div class="flex justify-between"><span>DPP (Tagihan ÷ 1.11):</span> <span id="sim_dpp" class="font-semibold">Rp 0</span></div>
                             <div class="flex justify-between"><span>PPN (Tagihan − DPP):</span> <span id="sim_ppn" class="font-semibold">Rp 0</span></div>
@@ -5749,7 +5760,8 @@ renderSignPage(container, itemId) {
                         });
                     }
 
-                    const moneyInput = document.getElementById('detail_bruto');
+                    // Pindah event listener pembulatan uang ke input Nilai Satuan
+                    const moneyInput = document.getElementById('detail_nilai');
                     if (moneyInput) {
                         moneyInput.addEventListener('input', e => {
                             e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, ''));
@@ -5767,7 +5779,8 @@ renderSignPage(container, itemId) {
                 } else {
                     wrapPaket.style.display = 'none';
                     document.getElementById('detail_uraian').value = '';
-                    document.getElementById('detail_bruto').value = '';
+                    document.getElementById('detail_jumlah').value = 1; // Reset Qty
+                    document.getElementById('detail_nilai').value = ''; // Reset Nilai
                     app.hitungPajakDetailItem();
                 }
             }
@@ -5780,7 +5793,8 @@ renderSignPage(container, itemId) {
                 const nilaiNego = opt.getAttribute('data-nilai');
 
                 document.getElementById('detail_uraian').value = `Pembayaran Termin / Pelunasan Pekerjaan: ${namaPaket}`;
-                document.getElementById('detail_bruto').value = Utils.formatNumber(nilaiNego);
+                document.getElementById('detail_jumlah').value = 1;
+                document.getElementById('detail_nilai').value = Utils.formatNumber(nilaiNego);
                 app.hitungPajakDetailItem();
             }
 
@@ -5794,7 +5808,17 @@ renderSignPage(container, itemId) {
             }
 
             hitungPajakDetailItem() {
-                const brutoVal = parseFloat(String(document.getElementById('detail_bruto')?.value || '0').replace(/\D/g, '')) || 0;
+                // 1. Ambil nilai Jumlah dan Nilai Satuan
+                const qty = parseFloat(document.getElementById('detail_jumlah')?.value) || 0;
+                const nilaiSatuan = parseFloat(String(document.getElementById('detail_nilai')?.value || '0').replace(/\D/g, '')) || 0;
+                
+                // 2. Kalkulasi Bruto (Jumlah x Nilai Satuan)
+                const brutoVal = qty * nilaiSatuan;
+                
+                // Update tampilan input Bruto
+                const elBruto = document.getElementById('detail_bruto');
+                if (elBruto) elBruto.value = Utils.formatNumber(brutoVal);
+
                 const pajakSelect = document.getElementById('detail_master_pajak');
                 const optPajak = pajakSelect?.options[pajakSelect.selectedIndex];
 
@@ -5833,11 +5857,16 @@ renderSignPage(container, itemId) {
                 const namaPenerima = document.getElementById('detail_nama_penerima').value;
                 const bank = document.getElementById('detail_bank').value;
                 const noRekening = document.getElementById('detail_norek').value;
-                const bruto = parseFloat(String(document.getElementById('detail_bruto').value).replace(/\D/g, '')) || 0;
+                
+                // Ambil Jumlah dan Harga Satuan
+                const qty = parseFloat(document.getElementById('detail_jumlah').value) || 1;
+                const harga = parseFloat(String(document.getElementById('detail_nilai').value).replace(/\D/g, '')) || 0;
+                const bruto = qty * harga; // Total Bruto
+
                 const pajakId = document.getElementById('detail_master_pajak').value;
 
                 if (!rekeningId || !uraian || !namaPenerima || bruto <= 0) {
-                    return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, dan nilai tagihan.', 'error');
+                    return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, jumlah dan nilai satuan.', 'error');
                 }
 
                 let dpp = bruto;
@@ -5860,7 +5889,7 @@ renderSignPage(container, itemId) {
                 const totalPotongan = ppn + pph;
                 const jumlahDibayarkan = bruto - totalPotongan;
 
-                // Payload disesuaikan dengan kolom dasar tabel pencairan_items agar tidak error 400 Bad Request
+                // Payload disesuaikan agar tersimpan di Supabase
                 const itemPayload = {
                     pencairan_id: pencairanId,
                     rekening_id: rekeningId,
@@ -5868,9 +5897,9 @@ renderSignPage(container, itemId) {
                     nama_penerima: namaPenerima,
                     bank: bank,
                     no_rekening: noRekening,
-                    qty: 1,
-                    harga: bruto,
-                    subtotal: bruto,
+                    qty: qty,                 // Simpan Jumlah (Quantity)
+                    harga: harga,             // Simpan Nilai Satuan
+                    subtotal: bruto,          // Simpan Total Bruto
                     pajak_id: pajakId || null,
                     nilai_pajak: totalPotongan,
                     total: jumlahDibayarkan
