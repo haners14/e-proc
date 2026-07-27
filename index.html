@@ -2583,6 +2583,33 @@
                 this.init(); 
             }
 
+            async deleteItemPencairan(itemId, pencairanId) {
+                if (!confirm('Apakah Anda yakin ingin menghapus item rincian ini?')) return;
+
+                // Hapus dari cache lokal
+                if (DB.cache['pencairan_items']) {
+                    DB.cache['pencairan_items'] = DB.cache['pencairan_items'].filter(i => String(i.id) !== String(itemId));
+                }
+
+                // Hapus dari server Supabase
+                try {
+                    await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${itemId}`, {
+                        method: 'DELETE',
+                        headers: { 
+                            'apikey': SUPABASE_KEY, 
+                            'Authorization': `Bearer ${SUPABASE_KEY}` 
+                        }
+                    });
+                } catch (e) {
+                    console.error('Gagal menghapus item pencairan dari server:', e);
+                }
+
+                this.notify('Item rincian berhasil dihapus', 'success');
+                
+                // Refresh modal detail rincian agar tabel terupdate otomatis
+                this.formDetailPencairan(pencairanId);
+            }
+
             toggleChecklist(packageId, documentName, isChecked) {
                 const docs = DB.get('package_documents') || [];
                 let target = docs.find(d => 
