@@ -3683,13 +3683,13 @@
                     </table>
 
                     <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 10pt; font-family: Arial, sans-serif;">
-                        <thead>
+                       <thead>
                             <tr style="background-color: #1e3a8a; color: white;">
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 45px;">NO.</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">NAMA</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">JABATAN</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">INSTANSI</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 140px;">TANDA TANGAN</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 45px;">NO.</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">NAMA</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">JABATAN</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">INSTANSI</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 140px;">TANDA TANGAN</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -3716,9 +3716,10 @@
                 `;
 
                 const customStyle = `
-                    @page { size: portrait; margin: 15mm; }
+                    @page { size: landscape; margin: 15mm; } /* atau portrait untuk presensi */
                     body { font-family: Arial, sans-serif; color: #000; }
-                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
+                    .tbl-main th { border: 1px solid #000; padding: 6px 8px; text-align: center !important; vertical-align: middle !important; }
+                    .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
                 `;
 
                 this.printDocument('Daftar Presensi Kegiatan', content, customStyle);
@@ -3781,13 +3782,13 @@
                     <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 9.5pt; font-family: Arial, sans-serif;">
                         <thead>
                             <tr style="background-color: #dbeafe;">
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 40px;">No.</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">Nama</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">Jabatan</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 120px;">Jumlah (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 110px;">Pajak (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: right; width: 140px;">Jumlah Diterima<br>Stlh Pajak (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; width: 160px;">TTD</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 40px;">No.</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Nama</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Jabatan</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 120px;">Jumlah (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 110px;">Pajak (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 140px;">Jumlah Diterima<br>Stlh Pajak (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 160px;">TTD</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -3827,9 +3828,10 @@
                 `;
 
                 const customStyle = `
-                    @page { size: landscape; margin: 15mm; }
+                    @page { size: landscape; margin: 15mm; } /* atau portrait untuk presensi */
                     body { font-family: Arial, sans-serif; color: #000; }
-                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
+                    .tbl-main th { border: 1px solid #000; padding: 6px 8px; text-align: center !important; vertical-align: middle !important; }
+                    .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
                 `;
 
                 this.printDocument('Tanda Terima Pembayaran', content, customStyle);
