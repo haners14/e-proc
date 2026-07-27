@@ -643,7 +643,24 @@
         // -----------------------------------------------------
         const Schemas = {
             pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
-            penyedia: { title: 'Data Penyedia', table: 'penyedia', fields: [{ key: 'name', label: 'Nama Perusahaan', type: 'text', required: true }, { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, { key: 'type', label: 'Bentuk Usaha', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, { key: 'no_izin', label: 'Nomor Izin (IUJK/dll)', type: 'text', hideInTable: true }, { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, { key: 'bank', label: 'Bank', type: 'text', hideInTable: true }, { key: 'no_rekening', label: 'Nomor Rekening', type: 'text', hideInTable: true }, { key: 'an_rekening', label: 'Atas Nama Rekening', type: 'text', hideInTable: true }, { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }] },
+            penyedia: { 
+                title: 'Data Penyedia', 
+                table: 'penyedia', 
+                fields: [
+                    { key: 'name', label: 'Nama', type: 'text', required: true }, 
+                    { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, 
+                    { key: 'type', label: 'Bentuk', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, 
+                    { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, 
+                    { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, 
+                    { key: 'no_izin', label: 'Nomor Izin (IUJK/dll)', type: 'text', hideInTable: true }, 
+                    { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, 
+                    { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, 
+                    { key: 'bank', label: 'Bank', type: 'text', hideInTable: true }, 
+                    { key: 'no_rekening', label: 'Nomor Rekening', type: 'text', hideInTable: true }, 
+                    { key: 'an_rekening', label: 'Atas Nama Rekening', type: 'text', hideInTable: true }, 
+                    { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }
+                ] 
+            },
             template: { title: 'Template Dokumen', table: 'template', fields: [ { key:'code', label:'Kode', type:'text', required:true }, { key:'name', label:'Nama Template', type:'text', required:true }, { key:'type', label:'Jenis', type:'select', options:['Barang','Konstruksi','Konsultansi','Jasa Lainnya','Umum'], required:true }, { key:'file_url', label:'URL Template DOCX', type:'textarea' }, { key:'filename', label:'Nama File', type:'text' }, { key:'last_updated', label:'Tanggal Update', type:'date', formatter:Utils.formatDate } ] },
             penomoran: { title: 'Format Penomoran', table: 'penomoran', fields: [{ key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' }, { key: 'format', label: 'Format Penomoran', type: 'text', required: true }, { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }] },
             jenis: { title: 'Jenis Pengadaan', table: 'jenis', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
@@ -717,6 +734,13 @@
                         <button class="btn btn-outline" onclick="app.exportPaket()"><i class="ph ph-download"></i> Export Data</button>
                         <button class="btn btn-outline" onclick="document.getElementById('import-paket-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
                     `;
+                } else if (this.schemaKey === 'penyedia') {
+                    extraButtons = `
+                        <input type="file" id="import-penyedia-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importPenyediaExcel(event)">
+                        <button class="btn btn-outline" onclick="app.downloadTemplatePenyedia()"><i class="ph ph-download"></i> Template</button>
+                        <button class="btn btn-outline" onclick="document.getElementById('import-penyedia-excel').click()"><i class="ph ph-upload"></i> Import</button>
+                        <button class="btn btn-outline" onclick="app.exportPenyediaExcel()"><i class="ph ph-export"></i> Export</button>
+                    `;
                 }
 
                 container.innerHTML = `
@@ -743,7 +767,6 @@
                 `;
                 const si = document.getElementById('crud-search');
                 if(si) {
-                    // Gunakan event 'input' agar pencarian merespons secara real-time tanpa harus menekan Enter
                     si.addEventListener('input', (e) => {
                         this.searchQuery = e.target.value;
                         this.currentPage = 1;
@@ -2583,69 +2606,47 @@
                 this.init(); 
             }
 
-            exportPencairanExcel() {
-                const pencairanList = DB.get('pencairan') || [];
-                const pencairanItems = DB.get('pencairan_items') || [];
-                const rekenings = DB.get('master_rekening') || [];
-
-                if (pencairanList.length === 0) {
-                    return this.notify('Tidak ada data pengajuan untuk diexport', 'error');
+           exportPenyediaExcel() {
+                const penyediaList = DB.get('penyedia') || [];
+                if (penyediaList.length === 0) {
+                    return this.notify('Tidak ada data penyedia untuk diexport', 'error');
                 }
 
-                let rows = [];
-                pencairanList.forEach(header => {
-                    const items = pencairanItems.filter(i => i.pencairan_id === header.id);
-                    if (items.length === 0) {
-                        // Jika header belum punya item, masukkan baris headernya saja
-                        rows.push({
-                            "Nomor Pengajuan": header.nomor || '',
-                            "Tanggal (YYYY-MM-DD)": header.tanggal || '',
-                            "Jenis Pencairan (LS/GU/TU)": header.jenis || 'LS',
-                            "Sub Kegiatan": header.sub_kegiatan || '',
-                            "Kode Rekening": '',
-                            "Uraian Keperluan": '',
-                            "Nama Penerima": '',
-                            "Bank": '',
-                            "Nomor Rekening Bank": '',
-                            "Nilai Tagihan Bruto": 0
-                        });
-                    } else {
-                        items.forEach(item => {
-                            const rek = rekenings.find(r => r.id === item.rekening_id) || {};
-                            rows.push({
-                                "Nomor Pengajuan": header.nomor || '',
-                                "Tanggal (YYYY-MM-DD)": header.tanggal || '',
-                                "Jenis Pencairan (LS/GU/TU)": header.jenis || 'LS',
-                                "Sub Kegiatan": header.sub_kegiatan || '',
-                                "Kode Rekening": rek.kode || '',
-                                "Uraian Keperluan": item.uraian || '',
-                                "Nama Penerima": item.nama_penerima || '',
-                                "Bank": item.bank || '',
-                                "Nomor Rekening Bank": item.no_rekening || '',
-                                "Nilai Tagihan Bruto": Number(item.harga || item.subtotal || 0)
-                            });
-                        });
-                    }
-                });
+                const data = penyediaList.map((p, idx) => ({
+                    "No": idx + 1,
+                    "Nama": p.name || '',
+                    "Alamat": p.address || '',
+                    "Bentuk": p.type || 'Badan Usaha',
+                    "NPWP": p.npwp || '',
+                    "NIB": p.nib || '',
+                    "Nomor Izin": p.no_izin || '',
+                    "Nama Direktur": p.direktur || '',
+                    "Jabatan Direktur": p.jabatan_direktur || '',
+                    "Bank": p.bank || '',
+                    "Nomor Rekening": p.no_rekening || '',
+                    "Atas Nama Rekening": p.an_rekening || '',
+                    "Status Verifikasi": p.status || 'Aktif'
+                }));
 
-                const ws = XLSX.utils.json_to_sheet(rows);
+                const ws = XLSX.utils.json_to_sheet(data);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Pengajuan Pencairan");
-                XLSX.writeFile(wb, "Data_Pengajuan_Pencairan_Dan_Rincian.xlsx");
-                this.notify('Data pengajuan berhasil diexport ke Excel', 'success');
+                XLSX.utils.book_append_sheet(wb, ws, "Data Penyedia");
+                XLSX.writeFile(wb, "Data_Master_Penyedia.xlsx");
+                this.notify('Data penyedia berhasil diexport', 'success');
             }
 
-            downloadTemplatePencairan() {
+            downloadTemplatePenyedia() {
                 const ws = XLSX.utils.aoa_to_sheet([
-                    ["Nomor Pengajuan", "Tanggal (YYYY-MM-DD)", "Jenis Pencairan (LS/GU/TU)", "Sub Kegiatan", "Kode Rekening", "Uraian Keperluan", "Nama Penerima", "Bank", "Nomor Rekening Bank", "Nilai Tagihan Bruto"],
-                    ["001/SPP-LS/BKAD/2026", "2026-07-27", "LS", "Optimalisasi Penggunaan, Pemanfaatan, Pemindahtanganan, Pemusnahan, dan Penghapusan Barang Milik Daerah", "5.02.03.2.01.0010.5.1.02.02.008.00019", "Pembayaran Pekerjaan Konsultansi", "CV. CAKRA WISMA CIPTA MANDIRI", "Bank BJB", "8855560001", 24531000]
+                    ["Nama", "Alamat", "Bentuk", "NPWP", "NIB", "Nomor Izin", "Nama Direktur", "Jabatan Direktur", "Bank", "Nomor Rekening", "Atas Nama Rekening", "Status Verifikasi"],
+                    ["CV. CONTOH MANDIRI", "Jl. Pemuda No.1", "Badan Usaha", "01.234.567.8-901.000", "9120001234567", "503/123-IUJK", "Budi Santoso", "Direktur Utama", "Bank BJB", "1234567890", "CV. CONTOH MANDIRI", "Aktif"]
                 ]);
                 const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Template Pengajuan");
-                XLSX.writeFile(wb, "Template_Import_Pengajuan_Pencairan.xlsx");
+                XLSX.utils.book_append_sheet(wb, ws, "Template Penyedia");
+                XLSX.writeFile(wb, "Template_Import_Penyedia.xlsx");
+                this.notify('Template Excel Penyedia berhasil diunduh', 'success');
             }
 
-            importPencairanExcel(event) {
+            importPenyediaExcel(event) {
                 const file = event.target.files[0];
                 if (!file) return;
 
@@ -2657,96 +2658,254 @@
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                         const rows = XLSX.utils.sheet_to_json(firstSheet);
 
-                        const rekenings = DB.get('master_rekening') || [];
-                        const masterPajak = DB.get('master_pajak') || [];
+                        const existingData = DB.get('penyedia') || [];
 
-                        // Kelompokkan berdasarkan Nomor Pengajuan
-                        let grouped = {};
                         rows.forEach(r => {
-                            const noPengajuan = String(r["Nomor Pengajuan"] || '').trim();
-                            if (!noPengajuan) return;
+                            const nama = String(r["Nama"] || r["Nama Perusahaan"] || '').trim();
+                            if (!nama) return;
 
-                            if (!grouped[noPengajuan]) {
-                                grouped[noPengajuan] = {
-                                    nomor: noPengajuan,
-                                    tanggal: String(r["Tanggal (YYYY-MM-DD)"] || new Date().toISOString().split('T')[0]).trim(),
-                                    jenis: String(r["Jenis Pencairan (LS/GU/TU)"] || 'LS').trim().toUpperCase(),
-                                    sub_kegiatan: String(r["Sub Kegiatan"] || '').trim(),
-                                    kegiatan: 'Pengelolaan Barang Milik Daerah',
-                                    status: 'Draft',
-                                    items: []
-                                };
-                            }
+                            const payload = {
+                                name: nama,
+                                address: String(r["Alamat"] || '').trim(),
+                                type: String(r["Bentuk"] || r["Bentuk Usaha"] || 'Badan Usaha').trim(),
+                                npwp: String(r["NPWP"] || '-').trim(),
+                                nib: String(r["NIB"] || '').trim(),
+                                no_izin: String(r["Nomor Izin"] || '').trim(),
+                                direktur: String(r["Nama Direktur"] || '').trim(),
+                                jabatan_direktur: String(r["Jabatan Direktur"] || '').trim(),
+                                bank: String(r["Bank"] || '').trim(),
+                                no_rekening: String(r["Nomor Rekening"] || '').trim(),
+                                an_rekening: String(r["Atas Nama Rekening"] || '').trim(),
+                                status: String(r["Status Verifikasi"] || 'Aktif').trim()
+                            };
 
-                            if (r["Uraian Keperluan"] || r["Nilai Tagihan Bruto"]) {
-                                const kodeRek = String(r["Kode Rekening"] || '').trim();
-                                const rekMatch = rekenings.find(re => re.kode === kodeRek);
-                                const bruto = Number(r["Nilai Tagihan Bruto"]) || 0;
-
-                                grouped[noPengajuan].items.push({
-                                    uraian: String(r["Uraian Keperluan"] || '').trim(),
-                                    rekening_id: rekMatch ? rekMatch.id : null,
-                                    nama_penerima: String(r["Nama Penerima"] || '').trim(),
-                                    bank: String(r["Bank"] || '').trim(),
-                                    no_rekening: String(r["Nomor Rekening Bank"] || '').trim(),
-                                    bruto: bruto
-                                });
+                            const existing = existingData.find(ex => ex.name.toLowerCase() === nama.toLowerCase());
+                            if (existing) {
+                                DB.update('penyedia', existing.id, payload);
+                            } else {
+                                DB.insert('penyedia', payload);
                             }
                         });
 
-                        for (let no in grouped) {
-                            const groupData = grouped[no];
+                        this.notify('Data penyedia berhasil diimpor & disinkron ke database', 'success');
+                        this.reRenderCurrentView();
+                    } catch (err) {
+                        console.error(err);
+                        this.notify('Gagal memproses file Excel Penyedia', 'error');
+                    } finally {
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+            exportPencairanExcel() {
+                const pencairanList = DB.get('pencairan') || [];
+                const pencairanItems = DB.get('pencairan_items') || [];
+                const rekenings = DB.get('master_rekening') || [];
+                const masterPajak = DB.get('master_pajak') || [];
+
+                if (pencairanList.length === 0) {
+                    return this.notify('Tidak ada data pengajuan untuk diexport', 'error');
+                }
+
+                // 1. Sheet Header
+                const headerRows = pencairanList.map(h => ({
+                    "ID Header": h.id,
+                    "Nomor Pengajuan": h.nomor || '',
+                    "Tanggal (YYYY-MM-DD)": h.tanggal || '',
+                    "Jenis Pencairan (LS/GU/TU)": h.jenis || 'LS',
+                    "Sub Kegiatan": h.sub_kegiatan || ''
+                }));
+
+                // 2. Sheet Detail
+                const detailRows = [];
+                pencairanItems.forEach(item => {
+                    const header = pencairanList.find(h => h.id === item.pencairan_id) || {};
+                    const rek = rekenings.find(r => r.id === item.rekening_id) || {};
+                    const taxRec = masterPajak.find(p => p.id === item.pajak_id) || {};
+
+                    detailRows.push({
+                        "Nomor Pengajuan (Relasi)": header.nomor || '',
+                        "Kode Rekening": rek.kode || '',
+                        "Uraian Keperluan": item.uraian || '',
+                        "Nama Penerima": item.nama_penerima || '',
+                        "Bank": item.bank || '',
+                        "Nomor Rekening Bank": item.no_rekening || '',
+                        "Nilai Tagihan Bruto": Number(item.harga || item.subtotal || 0),
+                        "Profil Pajak": taxRec.profil || ''
+                    });
+                });
+
+                const wb = XLSX.utils.book_new();
+                const wsHeader = XLSX.utils.json_to_sheet(headerRows);
+                const wsDetail = XLSX.utils.json_to_sheet(detailRows);
+
+                XLSX.utils.book_append_sheet(wb, wsHeader, "Header Pengajuan");
+                XLSX.utils.book_append_sheet(wb, wsDetail, "Detail Item Belanja");
+
+                XLSX.writeFile(wb, "Data_Pencairan_Header_Dan_Detail.xlsx");
+                this.notify('Data Header dan Detail berhasil diexport ke file Excel terpisah', 'success');
+            }
+
+            ownloadTemplatePencairan() {
+                const wb = XLSX.utils.book_new();
+
+                // Template Header
+                const wsHeader = XLSX.utils.aoa_to_sheet([
+                    ["Nomor Pengajuan", "Tanggal (YYYY-MM-DD)", "Jenis Pencairan (LS/GU/TU)", "Sub Kegiatan"],
+                    ["001/SPP-LS/BKAD/2026", "2026-07-27", "LS", "Optimalisasi Penggunaan, Pemanfaatan, Pemindahtanganan, Pemusnahan, dan Penghapusan Barang Milik Daerah"]
+                ]);
+
+                // Template Detail (Dilengkapi kolom Profil Pajak)
+                const wsDetail = XLSX.utils.aoa_to_sheet([
+                    ["Nomor Pengajuan (Relasi)", "Kode Rekening", "Uraian Keperluan", "Nama Penerima", "Bank", "Nomor Rekening Bank", "Nilai Tagihan Bruto", "Profil Pajak"],
+                    ["001/SPP-LS/BKAD/2026", "5.02.03.2.01.0010.5.1.02.02.008.00019", "Pembayaran Pekerjaan Konsultansi", "CV. CAKRA WISMA CIPTA MANDIRI", "Bank BJB", "8855560001", 24531000, "Perencanaan/Pengawasan Konstruksi (Kualifikasi) (PPh 4%)"]
+                ]);
+
+                XLSX.utils.book_append_sheet(wb, wsHeader, "Header Pengajuan");
+                XLSX.utils.book_append_sheet(wb, wsDetail, "Detail Item Belanja");
+
+                XLSX.writeFile(wb, "Template_Import_Pencairan_Header_Detail.xlsx");
+                this.notify('Template Excel Header & Detail berhasil diunduh', 'success');
+            }
+            
+
+            importPencairanExcel(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        const rekenings = DB.get('master_rekening') || [];
+                        const masterPajak = DB.get('master_pajak') || [];
+
+                        // 1. Baca Sheet Header (jika ada sheet bernama "Header Pengajuan" atau ambil sheet pertama)
+                        const sheetHeaderName = workbook.SheetNames.find(n => n.toLowerCase().includes('header')) || workbook.SheetNames[0];
+                        const rowsHeader = XLSX.utils.sheet_to_json(workbook.Sheets[sheetHeaderName]);
+
+                        // 2. Baca Sheet Detail (jika ada sheet bernama "Detail Item Belanja" atau ambil sheet kedua)
+                        const sheetDetailName = workbook.SheetNames.find(n => n.toLowerCase().includes('detail')) || workbook.SheetNames[1];
+                        const rowsDetail = sheetDetailName ? XLSX.utils.sheet_to_json(workbook.Sheets[sheetDetailName]) : [];
+
+                        let nomorToIdMap = {};
+
+                        // Proses Insert Header
+                        rowsHeader.forEach(r => {
+                            const nomor = String(r["Nomor Pengajuan"] || '').trim();
+                            if (!nomor) return;
+
                             const headerId = Utils.generateId();
-                            
-                            const dateObj = new Date(groupData.tanggal);
+                            nomorToIdMap[nomor] = headerId;
+
+                            const tanggal = String(r["Tanggal (YYYY-MM-DD)"] || new Date().toISOString().split('T')[0]).trim();
+                            const dateObj = new Date(tanggal);
                             const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                             const namaBulan = months[dateObj.getMonth()] || 'Juli';
 
                             const headerPayload = {
                                 id: headerId,
-                                nomor: groupData.nomor,
-                                tanggal: groupData.tanggal,
-                                jenis: groupData.jenis,
-                                sub_kegiatan: groupData.sub_kegiatan,
-                                kegiatan: groupData.kegiatan,
+                                nomor: nomor,
+                                tanggal: tanggal,
+                                jenis: String(r["Jenis Pencairan (LS/GU/TU)"] || 'LS').trim().toUpperCase(),
+                                sub_kegiatan: String(r["Sub Kegiatan"] || '').trim(),
+                                kegiatan: 'Pengelolaan Barang Milik Daerah',
                                 bulan: namaBulan,
                                 status: 'Final',
                                 created_at: new Date().toISOString()
                             };
 
                             DB.insert('pencairan', headerPayload);
+                        });
 
-                            let totalHeader = 0;
-                            groupData.items.forEach(item => {
-                                const jumlahDibayarkan = item.bruto; // Atau sesuaikan kalkulasi pajak jika diperlukan
-                                totalHeader += jumlahDibayarkan;
+                        // Proses Insert Detail & Kalkulasi Otomatis Pajak
+                        let headerTotalMap = {};
 
-                                const itemPayload = {
-                                    id: Utils.generateId(),
-                                    pencairan_id: headerId,
-                                    rekening_id: item.rekening_id,
-                                    uraian: item.uraian,
-                                    nama_penerima: item.nama_penerima,
-                                    bank: item.bank,
-                                    no_rekening: item.no_rekening,
-                                    qty: 1,
-                                    harga: item.bruto,
-                                    subtotal: item.bruto,
-                                    total: jumlahDibayarkan,
-                                    created_at: new Date().toISOString()
-                                };
+                        rowsDetail.forEach(r => {
+                            const noRelasi = String(r["Nomor Pengajuan (Relasi)"] || '').trim();
+                            const targetHeaderId = nomorToIdMap[noRelasi];
+                            if (!targetHeaderId) return; // Lewati jika header tidak ditemukan
 
-                                DB.insert('pencairan_items', itemPayload);
-                            });
+                            const kodeRek = String(r["Kode Rekening"] || '').trim();
+                            const rekMatch = rekenings.find(re => re.kode === kodeRek);
+                            const bruto = Number(r["Nilai Tagihan Bruto"]) || 0;
+                            const profilPajakStr = String(r["Profil Pajak"] || '').trim().toLowerCase();
 
-                            DB.update('pencairan', headerId, { total: totalHeader });
+                            // Cari profil pajak yang cocok berdasarkan nama/profil
+                            const pajakMatch = masterPajak.find(p => 
+                                (p.profil || '').toLowerCase().includes(profilPajakStr) || 
+                                profilPajakStr.includes((p.profil || '').toLowerCase())
+                            );
+
+                            let dpp = bruto;
+                            let ppn = 0;
+                            let pph = 0;
+
+                            if (pajakMatch) {
+                                const tarif = Number(pajakMatch.tarif) || 0;
+                                const isPpn = Boolean(pajakMatch.ppn);
+
+                                if (isPpn) {
+                                    dpp = Math.round(bruto / 1.11);
+                                    ppn = bruto - dpp;
+                                }
+                                pph = Math.round(dpp * (tarif / 100));
+                            }
+
+                            const totalPotongan = ppn + pph;
+                            const jumlahDibayarkan = bruto - totalPotongan;
+
+                            headerTotalMap[targetHeaderId] = (headerTotalMap[targetHeaderId] || 0) + jumlahDibayarkan;
+
+                            let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
+                            if (pajakMatch) {
+                                const tName = (pajakMatch.jenis_pph || '').toUpperCase();
+                                if (tName.includes('21')) pph21 = pph;
+                                else if (tName.includes('22')) pph22 = pph;
+                                else if (tName.includes('23')) pph23 = pph;
+                                else if (tName.includes('4 AYAT') || tName.includes('4(2)')) pph42 = pph;
+                            }
+
+                            const itemPayload = {
+                                id: Utils.generateId(),
+                                pencairan_id: targetHeaderId,
+                                rekening_id: rekMatch ? rekMatch.id : null,
+                                uraian: String(r["Uraian Keperluan"] || '').trim(),
+                                nama_penerima: String(r["Nama Penerima"] || '').trim(),
+                                bank: String(r["Bank"] || '').trim(),
+                                no_rekening: String(r["Nomor Rekening Bank"] || '').trim(),
+                                qty: 1,
+                                harga: bruto,
+                                subtotal: bruto,
+                                pajak_id: pajakMatch ? pajakMatch.id : null,
+                                nilai_pajak: totalPotongan,
+                                ppn: ppn,
+                                pph: pph,
+                                pajak_ppn: ppn,
+                                pajak_pph21: pph21,
+                                pajak_pph22: pph22,
+                                pajak_pph23: pph23,
+                                pajak_pph42: pph42,
+                                total: jumlahDibayarkan,
+                                created_at: new Date().toISOString()
+                            };
+
+                            DB.insert('pencairan_items', itemPayload);
+                        });
+
+                        // Perbarui total pada header pengajuan berdasarkan akumulasi detail item bersih
+                        for (let hId in headerTotalMap) {
+                            DB.update('pencairan', hId, { total: headerTotalMap[hId] });
                         }
 
-                        this.notify('Data pengajuan dan rincian berhasil diimpor dari Excel', 'success');
+                        this.notify('Import Header dan Detail beserta kalkulasi pajak otomatis berhasil!', 'success');
                         this.renderPengajuan(this.routerView);
                     } catch (err) {
                         console.error(err);
-                        this.notify('Gagal memproses file Excel Pengajuan', 'error');
+                        this.notify('Gagal memproses file Excel Pengajuan Versi Header-Detail', 'error');
                     } finally {
                         event.target.value = '';
                     }
