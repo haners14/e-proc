@@ -2118,7 +2118,7 @@
                 `;
             }
 
-         renderChecklist() {
+            renderChecklist() {
                 const docs = [
                     'Nota Dinas', 'Undangan Reviu', 'BA Reviu Dokumen Persiapan', 'Uraian Singkat',
                     'KAK', 'HPS/RAB', 'SDP', 'Undangan Pengadaan Langsung', 'BA Evaluasi',
@@ -2145,6 +2145,7 @@
                     return reg;
                 });
 
+                // Urutkan checklist kronologis
                 const sorted = registers.sort((a, b) => {
                     const dateA = a.document_date || app.calculateDocumentMeta(this.pkg, a.document_name).date || "9999-12-31";
                     const dateB = b.document_date || app.calculateDocumentMeta(this.pkg, b.document_name).date || "9999-12-31";
@@ -2194,46 +2195,6 @@
                     </tr>`;
                 }).join('');
 
-                const dokumenPendukung = [
-                    "Summary Report", "Surat Permohonan Pemilihan Penyedia", "Surat Penawaran",
-                    "Lampiran Penawaran (Profil Perusahaan dll)", "Persyaratan Kualifikasi Peserta",
-                    "Surat Pernyataan Sanggup Menyelesaikan Pekerjaan", "Surat Permohonan Pencairan dari Penyedia",
-                    "Invoice Lampiran Pembayaran Personil dan Non Personil", "Kelengkapan Dokumen Lampiran (misal laporan)",
-                    "Jaminan Pemeliharaan (Fisik)", "Mutual Check / Laporan Kemajuan (Fisik)", "KTP dan NPWP",
-                    "Surat Referensi Bank", "Faktur Pajak", "Kwitansi"
-                ];
-
-                if (!this.pkg.dokumen_pendukung) {
-                    this.pkg.dokumen_pendukung = {};
-                }
-
-                const pendukungHtml = dokumenPendukung.map((namaDok) => {
-                    const isChecked = Boolean(this.pkg.dokumen_pendukung[namaDok]);
-                    return `
-                        <tr style="border-bottom: 1px solid #000;">
-                            <td style="padding: 8px 12px; border-right: 1px solid #000; font-size: 0.9rem; color: #000;">${namaDok}</td>
-                            <td style="padding: 8px 12px; text-align: center; width: 60px;">
-                                <input type="checkbox" style="width: 18px; height: 18px; cursor: pointer;" ${isChecked ? 'checked' : ''} onclick="app.toggleDokumenPendukung('${this.packageId}', '${namaDok}', this.checked)">
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-
-                const sectionPendukungHtml = `
-                    <div class="card p-6 max-w-6xl mx-auto mt-8 bg-white" style="border: 1px solid #000;">
-                        <div class="table-container" style="border: 1px solid #000; border-radius: 0;">
-                            <table style="width: 100%; border-collapse: collapse;">
-                                <tbody>
-                                    ${pendukungHtml}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-4 text-sm font-bold text-gray-900" style="font-family: Arial, sans-serif;">
-                            Cek materainya di nama pihak ketiga, nilai, dan nomor SPK
-                        </div>
-                    </div>
-                `;
-
                return `
                 <div class="card p-6 max-w-6xl mx-auto">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
@@ -2261,9 +2222,7 @@
                             <tbody>${rowsHtml}</tbody>
                         </table>
                     </div>
-                </div>
-                ${sectionPendukungHtml}
-               `;
+                </div>`;
             }
 
             attachChecklistEvents() {
@@ -2514,20 +2473,6 @@
                 this.routerView = document.getElementById('router-view'); 
                 this.currentRoute = ''; 
                 this.init(); 
-            }
-
-            removeHargaRow(packageId, index) {
-                const pkg = DB.getById('paket', packageId);
-                if (!pkg || !pkg.items) return;
-                
-                pkg.items.splice(index, 1);
-                DB.update('paket', packageId, { items: pkg.items });
-                
-                if (app && app.currentViewInstance && typeof app.currentViewInstance.render === 'function') {
-                    app.currentViewInstance.render(app.routerView);
-                } else if (typeof this.reRenderCurrentView === 'function') {
-                    this.reRenderCurrentView();
-                }
             }
 
             copyTemplate(id) {
@@ -2856,20 +2801,18 @@
                 }
             }
 
-            toggleDokumenPendukung(packageId, namaDok, isChecked) {
-        const pkg = DB.getById('paket', packageId);
-        if (!pkg) return;
-        
-        if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
-        pkg.dokumen_pendukung[namaDok] = isChecked;
-        
-        // Simpan perubahan secara otomatis ke database paket
-        DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
-        this.notify(`Status dokumen pendukung diperbarui`, 'success');
-    }
+            removeHargaRow(packageId, index) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg || !pkg.items) return;
+                
+                pkg.items.splice(index, 1);
+                DB.update('paket', packageId, { items: pkg.items });
+                
+                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
+                    this.currentViewInstance.render(this.routerView);
+                }
+            }
             
-}
-           
             async init() {
                 await DB.init();
                 
@@ -5279,6 +5222,8 @@ renderSignPage(container, itemId) {
                 }
             }
 
+            
+
             printLampiranPencairan(pencairanId) {
                 const header = DB.getById('pencairan', pencairanId);
                 const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
@@ -5513,7 +5458,7 @@ renderSignPage(container, itemId) {
                 if (latest?.file_url) { window.open(latest.file_url, '_blank'); return; }
                 this.runDocumentEngine(master.id, pkgId);
             }
-        
+
             async runDocumentEngine(reference, pkgId) {
                 const master = this.resolveDocumentMaster(reference, pkgId);
                 const docName = master.document_name;
@@ -5796,10 +5741,14 @@ renderSignPage(container, itemId) {
                 };
             }
 
-          calculateDocumentMeta(pkg, doc) {
+            calculateDocumentMeta(pkg, doc) {
                 const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
+                
+                // 1. Tarik tanggal dari Engine Jadwal Cerdas
                 const { dates } = this.calculateAllScheduleDates(pkg);
+                
                 let calcDate = ''; 
+                
                 if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
                     calcDate = pkg.tgl_mulai;
                 } else if ((doc === 'BAST' || doc === 'BAP') && pkg.tgl_selesai) {
@@ -5815,10 +5764,9 @@ renderSignPage(container, itemId) {
                         } 
                     }
                 }
+                
                 if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
                 const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
-                return { date: finalDate, number: savedChecklist.manual_number || '' };
-            }
 
                 // 2. Logika Penomoran Dokumen
                 const aliases = {
