@@ -2168,7 +2168,7 @@
                         </td>
                         <td class="font-medium">
                             ${master.document_name}
-                            <div class="text-xs text-muted">${master.document_code || '-'}</div>
+                            <div class="text-xs text-muted">${master.document_code || app.documentCode(master.document_name)}</div>
                         </td>
                         <td>
                             <div class="flex gap-1 items-center">
