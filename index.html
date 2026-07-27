@@ -2104,34 +2104,34 @@
                     </tr>`;
                 }).join('');
 
-                return `
-                    <div class="card p-6 max-w-6xl mx-auto">
-                        <div class="flex justify-between items-center mb-4 border-b pb-4">
-                            <div>
-                                <h2 class="font-bold text-lg">Checklist Dokumen & Penyesuaian Data</h2>
-                                <p class="text-sm text-muted">Nomor dan tanggal di bawah dapat disesuaikan manual, lalu klik Simpan untuk merekamnya ke database.</p>
-                            </div>
-                            <div class="flex gap-2">
-                            <!-- Tombol Reset Massal -->
+               return `
+                <div class="card p-6 max-w-6xl mx-auto">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4 gap-4">
+                        <div>
+                            <h2 class="font-bold text-lg">Checklist Dokumen & Penyesuaian Data</h2>
+                            <p class="text-sm text-muted">Nomor dan tanggal di bawah dapat disesuaikan manual, lalu klik Simpan untuk merekamnya ke database.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
                             <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentDates('${this.packageId}')">
                                 <i class="ph ph-calendar-x"></i> Reset Semua Tanggal
                             </button>
                             <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentNumbers('${this.packageId}')">
                                 <i class="ph ph-hash"></i> Reset Semua Nomor
                             </button>
-                            <button class="btn btn-primary" onclick="app.saveChecklistChanges('${this.packageId}')">
-                                <i class="ph ph-floppy-disk"></i> Simpan Perubahan Checklist
+                            <button class="btn btn-primary btn-sm" onclick="app.saveChecklistChanges('${this.packageId}')">
+                                <i class="ph ph-floppy-disk"></i> Simpan Perubahan
                             </button>
                         </div>
-                        <div class="table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Status</th><th>Generate</th></tr>
-                                </thead>
-                                <tbody>${rowsHtml}</tbody>
-                            </table>
-                        </div>
-                    </div>`;
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr><th></th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal Dokumen</th><th>Status</th><th>Generate</th></tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                </div>`;
             }
 
             attachChecklistEvents() {
