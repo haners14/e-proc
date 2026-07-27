@@ -318,22 +318,27 @@
 
         <!-- Main Workspace -->
         <main class="main-content">
-            <header class="top-header">
-                <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column;">
-                    <span class="font-semibold text-main">Farhan Ersandy</span>
-                    <span style="font-size: 0.75rem;">Pengelola Pengadaan Barang/Jasa • BKAD Kota Bogor (Supabase Sync)</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: var(--space-4);">
-                    <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu (Ctrl+K)', 'info')">
-                        <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
-                    </div>
-                    <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
-                    <button class="btn btn-ghost text-danger" onclick="app.logout()" title="Keluar Akun" style="padding: 6px;">
-            <i class="ph ph-sign-out" style="font-size: 1.25rem;"></i>
-        </button>
-                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">FE</div>
-                </div>
-            </header>
+    <header class="top-header">
+        <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column;">
+            <!-- Tambahkan id="header-nama" -->
+            <span id="header-nama" class="font-semibold text-main">Nama Pengguna</span>
+            
+            <!-- Tambahkan id="header-role" -->
+            <span id="header-role" style="font-size: 0.75rem;">Role / Hak Akses</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--space-4);">
+            <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu (Ctrl+K)', 'info')">
+                <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
+            </div>
+            <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
+            <button class="btn btn-ghost text-danger" onclick="app.logout()" title="Keluar Akun" style="padding: 6px;">
+                <i class="ph ph-sign-out" style="font-size: 1.25rem;"></i>
+            </button>
+            
+            <!-- Tambahkan id="header-inisial" -->
+            <div id="header-inisial" style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">U</div>
+        </div>
+    </header>
 
             <div class="content-scroll-area" id="router-view">
                 <!-- Views dynamically injected here -->
@@ -1145,7 +1150,7 @@
                     <div style="padding: var(--space-8); max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8);">
                         <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                             <div>
-                                <h1 class="font-bold text-main" style="font-size: 2rem; letter-spacing: -0.02em;">Selamat Pagi, Farhan 👋</h1>
+                                <h1 class="font-bold text-main" style="font-size: 2rem; letter-spacing: -0.02em;">Selamat Pagi Maszeh 👋</h1>
                                 <p class="text-muted text-lg mt-1">Berikut adalah ringkasan pengadaan hari ini.</p>
                             </div>
                             <button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar'); setTimeout(()=>app.crudEngine.showForm(), 250);"><i class="ph ph-plus-circle"></i> Tambah Paket Baru</button>
@@ -1247,7 +1252,7 @@
                     <div class="chat-container">
                         <div class="p-4 border-b border-gray-200 bg-surface flex justify-between items-center shadow-sm z-10"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xl"><i class="ph-fill ph-sparkle"></i></div><div><h2 class="font-bold">ProcFlow AI</h2><p class="text-xs text-muted">Asisten Ahli Pengadaan (Perpres 16/2018 jo. 12/2021)</p></div></div><button class="btn btn-ghost btn-sm" onclick="app.reRenderCurrentView()"><i class="ph ph-trash"></i> Bersihkan Obrolan</button></div>
                         <div class="chat-messages" id="chat-messages">
-                            <div class="chat-msg bot"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">Halo Farhan! Saya adalah Asisten AI Anda. Saya dapat membantu menyusun dokumen KAK, mengecek regulasi, memberikan rekomendasi Harga, atau meninjau kelengkapan paket. Apa yang ingin Anda kerjakan hari ini?</div></div>
+                            <div class="chat-msg bot"><div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">Halo Maszeh! Saya adalah Asisten AI Anda. Saya dapat membantu menyusun dokumen KAK, mengecek regulasi, memberikan rekomendasi Harga, atau meninjau kelengkapan paket. Apa yang ingin Anda kerjakan hari ini?</div></div>
                         </div>
                         <div class="chat-input-area">
                             <div class="chat-suggestions">
@@ -1295,39 +1300,59 @@
             }
 
             static renderSettings(container) {
-                container.innerHTML = `
-                    <div class="p-6 max-w-4xl mx-auto w-full">
-                        <h1 class="text-2xl font-bold text-main mb-6">Pengaturan Sistem</h1>
-                        <div class="card p-6 mb-6">
-                            <h2 class="font-bold mb-4 border-b pb-2">Profil Pengguna</h2>
-                            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
-                                <div class="form-group"><label class="form-label">Nama Lengkap</label><input type="text" class="form-control" value="Farhan Ersandy"></div>
-                                <div class="form-group"><label class="form-label">NIP</label><input type="text" class="form-control" value="199001012015031001"></div>
-                                <div class="form-group"><label class="form-label">Jabatan</label><input type="text" class="form-control" value="Pengelola Pengadaan" readonly disabled></div>
-                                <div class="form-group"><label class="form-label">Unit Kerja</label><input type="text" class="form-control" value="BKAD Kota Bogor" readonly disabled></div>
-                            </div>
-                            <button class="btn btn-primary mt-2" onclick="app.notify('Profil disimpan', 'success')">Simpan Profil</button>
-                        </div>
-                        <div class="card p-6">
-                            <h2 class="font-bold mb-4 border-b pb-2">Konfigurasi Database (Supabase)</h2>
-                            <div class="form-group">
-                                <label class="form-label">Supabase URL</label>
-                                <input type="text" class="form-control" value="${SUPABASE_URL}" readonly disabled>
-                            </div>
-                            <div class="form-group flex items-center gap-3">
-                                <input type="checkbox" checked class="w-4 h-4 accent-primary">
-                                <label class="text-sm font-medium">Aktifkan Document Dependency Engine (SSOT)</label>
-                            </div>
-                            <div class="form-group flex items-center gap-3">
-                                <input type="checkbox" checked class="w-4 h-4 accent-primary">
-                                <label class="text-sm font-medium">Lewati hari libur nasional saat kalkulasi Jadwal</label>
-                            </div>
-                            <button class="btn btn-primary mt-4" onclick="app.notify('Pengaturan disimpan', 'success')">Simpan Konfigurasi</button>
-                        </div>
+    // 1. Ambil data sesi pengguna yang sedang login
+    const sessionData = localStorage.getItem('userSession');
+    let user = { nama_lengkap: 'Pengguna', username: '-', role: 'Pengguna' }; // Nilai default
+    
+    if (sessionData) {
+        user = JSON.parse(sessionData);
+    }
+
+    // 2. Sisipkan variabel data pengguna (user.nama_lengkap, dll) ke dalam HTML
+    container.innerHTML = `
+        <div class="p-6 max-w-4xl mx-auto w-full">
+            <h1 class="text-2xl font-bold text-main mb-6">Pengaturan Sistem</h1>
+            <div class="card p-6 mb-6">
+                <h2 class="font-bold mb-4 border-b pb-2">Profil Pengguna</h2>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label">Nama Lengkap</label>
+                        <input type="text" class="form-control" value="${user.nama_lengkap}">
                     </div>
-                `;
-            }
-        }
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" value="${user.username}" readonly disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Jabatan / Role</label>
+                        <input type="text" class="form-control" value="${user.role}" readonly disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Unit Kerja</label>
+                        <input type="text" class="form-control" value="BKAD Kota Bogor" readonly disabled>
+                    </div>
+                </div>
+                <button class="btn btn-primary mt-2" onclick="app.notify('Profil disimpan', 'success')">Simpan Profil</button>
+            </div>
+            <div class="card p-6">
+                <h2 class="font-bold mb-4 border-b pb-2">Konfigurasi Database (Supabase)</h2>
+                <div class="form-group">
+                    <label class="form-label">Supabase URL</label>
+                    <input type="text" class="form-control" value="${SUPABASE_URL}" readonly disabled>
+                </div>
+                <div class="form-group flex items-center gap-3">
+                    <input type="checkbox" checked class="w-4 h-4 accent-primary">
+                    <label class="text-sm font-medium">Aktifkan Document Dependency Engine (SSOT)</label>
+                </div>
+                <div class="form-group flex items-center gap-3">
+                    <input type="checkbox" checked class="w-4 h-4 accent-primary">
+                    <label class="text-sm font-medium">Lewati hari libur nasional saat kalkulasi Jadwal</label>
+                </div>
+                <button class="btn btn-primary mt-4" onclick="app.notify('Pengaturan disimpan', 'success')">Simpan Konfigurasi</button>
+            </div>
+        </div>
+    `;
+}
 
         // -----------------------------------------------------
         // 6. WORKSPACE VIEW (Paket Detail)
@@ -2685,23 +2710,50 @@
                 this.currentRoute = ''; 
                 this.init(); 
             }
-
+function updateHeaderUI() {
+    // 1. Ambil data user yang sedang login dari localStorage
+    const sessionData = localStorage.getItem('userSession');
+    
+    if (sessionData) {
+        const user = JSON.parse(sessionData);
+        
+        // 2. Ganti Nama Lengkap
+        const namaLengkap = user.nama_lengkap || user.username;
+        document.getElementById('header-nama').innerText = namaLengkap;
+        
+        // 3. Ganti Role & Instansi
+        const role = user.role || 'Pengguna';
+        document.getElementById('header-role').innerText = `${role} • BKAD Kota Bogor (Supabase Sync)`;
+        
+        // 4. Buat Inisial Otomatis (Contoh: "Syahrul" -> "S", "Farhan Ersandy" -> "FE")
+        const inisial = namaLengkap
+            .split(' ')                  // Pecah berdasarkan spasi
+            .map(kata => kata[0])        // Ambil huruf pertama tiap kata
+            .join('')                    // Gabungkan huruf
+            .substring(0, 2)             // Maksimal 2 huruf
+            .toUpperCase();              // Jadikan huruf kapital
+            
+        document.getElementById('header-inisial').innerText = inisial;
+    }
+}
             handleLogin(e) {
     e.preventDefault();
     const user = document.getElementById('login-user').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
 
     // Contoh validasi sederhana (bisa dihubungkan ke tabel Supabase 'users' jika ada)
-    if (user === 'farhan' && pass === 'admin123') {
-        // Simpan status sesi ke localStorage browser
-        localStorage.setItem('eproc_logged_in', 'true');
-        localStorage.setItem('eproc_user', user);
-        
-        this.notify('Login berhasil! Selamat datang, Farhan.', 'success');
-        this.hideLoginOverlay();
-    } else {
-        this.notify('Username atau Password salah!', 'error');
-    }
+   const validUser = DB.cache.users.find(u => u.username === usernameInput && u.password === passwordInput);
+
+if (validUser) {
+    // Simpan sesi data pengguna yang berhasil login (misal ke localStorage)
+    localStorage.setItem('userSession', JSON.stringify(validUser));
+    
+    // Sembunyikan modal login & mulai aplikasi
+    document.getElementById('login-modal').classList.add('hidden');
+    App.init(); // atau fungsi inisialisasi awal Anda
+} else {
+    alert("Username atau password salah!");
+}
 }
 
 hideLoginOverlay() {
