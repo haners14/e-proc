@@ -2861,8 +2861,11 @@
                 pkg.items.splice(index, 1);
                 DB.update('paket', packageId, { items: pkg.items });
                 
-                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
-                    this.currentViewInstance.render(this.routerView);
+                // Perbaikan: Langsung panggil render ulang current view instance secara aman
+                if (app && app.currentViewInstance && typeof app.currentViewInstance.render === 'function') {
+                    app.currentViewInstance.render(app.routerView);
+                } else if (typeof this.reRenderCurrentView === 'function') {
+                    this.reRenderCurrentView();
                 }
             }
             
