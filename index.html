@@ -2493,19 +2493,62 @@
             }
 
             renderDokumen() {
-                const docs = DB.get('package_documents').filter(d => d.package_id === this.packageId);
-                const rows = docs.map(d => {
-                    const versions = app.getDocumentHistory(d);
-                    const latest = versions[0];
-                    const template = app.selectTemplate(d.document_code, this.pkg, d.template_id);
-                    const number = d.document_number || latest?.document_number || '-';
-                    const date = d.document_date || latest?.document_date || latest?.date;
-                    const status = d.status || (latest ? latest.status : 'DRAFT');
-                    const file = latest?.file_url || d.file_url;
-                    return `<tr><td><div class="font-semibold">${d.document_name}</div><div class="text-xs text-muted">${d.document_code || '-'}</div></td><td>${number}</td><td>${Utils.formatDate(date)}</td><td>${template ? template.name : 'Belum dipilih'}</td><td>${Utils.getBadge(status)}</td><td>v${d.version || latest?.version || 1}</td><td><div class="flex gap-1" style="flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="app.runDocumentEngine('${d.id}','${this.packageId}')">Generate</button><button class="btn btn-outline btn-sm" onclick="app.previewDocument('${d.id}')" ${file?'':'disabled'}>Preview</button><button class="btn btn-outline btn-sm" onclick="app.downloadDocument('${d.id}')" ${file?'':'disabled'}>Unduh</button><button class="btn btn-outline btn-sm" onclick="app.openDocumentUpload('${d.id}')">Upload</button><button class="btn btn-ghost btn-sm" onclick="app.showDocumentHistory('${d.id}')">Riwayat (${versions.length})</button></div></td></tr>`;
-                }).join('');
-                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg text-main">Register Dokumen Paket</h2><p class="text-sm text-muted"><code>package_documents</code> adalah master nomor, tanggal, status, dan template. <code>generated_documents</code> menyimpan riwayat versi.</p></div><button class="btn btn-primary" onclick="app.openDocumentForm('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Dokumen</button></div><div class="card p-0 overflow-hidden"><div class="table-container"><table class="data-table"><thead><tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr></thead><tbody>${rows || '<tr><td colspan="7" class="text-center text-muted p-8">Belum ada dokumen master. Tambahkan dokumen atau pilih dari template yang sudah Anda unggah.</td></tr>'}</tbody></table></div></div></div>`;
-            }
+    const docs = DB.get('package_documents').filter(d => d.package_id === this.packageId);
+    const rows = docs.map(d => {
+        const versions = app.getDocumentHistory(d);
+        const latest = versions[0];
+        const template = app.selectTemplate(d.document_code, this.pkg, d.template_id);
+        const number = d.document_number || latest?.document_number || '-';
+        const date = d.document_date || latest?.document_date || latest?.date;
+        const status = d.status || (latest ? latest.status : 'DRAFT');
+        const file = latest?.file_url || d.file_url;
+        
+        return `
+            <tr>
+                <td>
+                    <div class="font-semibold">${d.document_name}</div>
+                    <div class="text-xs text-muted">${d.document_code || '-'}</div>
+                </td>
+                <td>${number}</td>
+                <td>${Utils.formatDate(date)}</td>
+                <td>${template ? template.name : 'Belum dipilih'}</td>
+                <td>${Utils.getBadge(status)}</td>
+                <td>v${d.version || latest?.version || 1}</td>
+                <td>
+                    <div class="flex gap-1" style="flex-wrap:wrap">
+                        <button class="btn btn-primary btn-sm" onclick="app.runDocumentEngine('${d.id}','${this.packageId}')">Generate</button>
+                        <button class="btn btn-outline btn-sm" onclick="app.previewDocument('${d.id}')">Preview</button>
+                        <button class="btn btn-outline btn-sm" onclick="app.downloadDocument('${d.id}')">Unduh</button>
+                        <button class="btn btn-outline btn-sm" onclick="app.openDocumentUpload('${d.id}')">Upload</button>
+                        <button class="btn btn-ghost btn-sm" onclick="app.showDocumentHistory('${d.id}')">Riwayat (${versions.length})</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    return `
+        <div class="max-w-6xl mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h2 class="font-bold text-lg text-main">Register Dokumen Paket</h2>
+                    <p class="text-sm text-muted">Pengelolaan dokumen, nomor, tanggal, status, dan template.</p>
+                </div>
+                <button class="btn btn-primary" onclick="app.openDocumentForm('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Dokumen</button>
+            </div>
+            <div class="card p-0 overflow-hidden">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Dokumen</th><th>Nomor</th><th>Tanggal</th><th>Template</th><th>Status</th><th>Versi</th><th>Aksi</th></tr>
+                        </thead>
+                        <tbody>${rows || '<tr><td colspan="7" class="text-center text-muted p-8">Belum ada dokumen master.</td></tr>'}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
             renderLaporan() {
                 const docs = DB.get('package_documents').filter(d => d.package_id === this.packageId);
