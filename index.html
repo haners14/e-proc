@@ -2516,6 +2516,20 @@
                 this.init(); 
             }
 
+            removeHargaRow(packageId, index) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg || !pkg.items) return;
+                
+                pkg.items.splice(index, 1);
+                DB.update('paket', packageId, { items: pkg.items });
+                
+                if (app && app.currentViewInstance && typeof app.currentViewInstance.render === 'function') {
+                    app.currentViewInstance.render(app.routerView);
+                } else if (typeof this.reRenderCurrentView === 'function') {
+                    this.reRenderCurrentView();
+                }
+            }
+
             copyTemplate(id) {
                 const templateList = DB.get('template');
                 const target = templateList.find(t => String(t.id) === String(id));
@@ -2853,20 +2867,6 @@
         DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
         this.notify(`Status dokumen pendukung diperbarui`, 'success');
     }
-             removeHargaRow(packageId, index) {
-                const pkg = DB.getById('paket', packageId);
-                if (!pkg || !pkg.items) return;
-                
-                pkg.items.splice(index, 1);
-                DB.update('paket', packageId, { items: pkg.items });
-                
-                // Perbaikan: Langsung panggil render ulang current view instance secara aman
-                if (app && app.currentViewInstance && typeof app.currentViewInstance.render === 'function') {
-                    app.currentViewInstance.render(app.routerView);
-                } else if (typeof this.reRenderCurrentView === 'function') {
-                    this.reRenderCurrentView();
-                }
-            }
             
 }
            
