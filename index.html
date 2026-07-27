@@ -2738,25 +2738,27 @@
                     document.getElementById('header-inisial').innerText = inisial;
                 }
             }
-            handleLogin(e) {
-    e.preventDefault();
-    const user = document.getElementById('login-user').value.trim();
-    const pass = document.getElementById('login-pass').value.trim();
+           handleLogin(e) {
+                e.preventDefault();
+                // Variabel yang didefinisikan bernama 'user' dan 'pass'
+                const user = document.getElementById('login-user').value.trim();
+                const pass = document.getElementById('login-pass').value.trim();
 
-    // Contoh validasi sederhana (bisa dihubungkan ke tabel Supabase 'users' jika ada)
-   const validUser = DB.cache.users.find(u => u.username === usernameInput && u.password === passwordInput);
+                // Pastikan pencarian menggunakan variabel 'user' dan 'pass' yang sesuai
+                const validUser = DB.cache.users.find(u => u.username === user && u.password === pass);
 
-if (validUser) {
-    // Simpan sesi data pengguna yang berhasil login (misal ke localStorage)
-    localStorage.setItem('userSession', JSON.stringify(validUser));
-    
-    // Sembunyikan modal login & mulai aplikasi
-    document.getElementById('login-modal').classList.add('hidden');
-    App.init(); // atau fungsi inisialisasi awal Anda
-} else {
-    alert("Username atau password salah!");
-}
-}
+                if (validUser) {
+                    // Simpan sesi data pengguna yang berhasil login (misal ke localStorage)
+                    localStorage.setItem('userSession', JSON.stringify(validUser));
+                    
+                    // Sembunyikan modal login & mulai aplikasi
+                    document.getElementById('login-overlay').style.display = 'none';
+                    this.updateHeaderUI(); // Panggil fungsi update header
+                    this.init(); 
+                } else {
+                    alert("Username atau password salah!");
+                }
+            }
 
 hideLoginOverlay() {
     const overlay = document.getElementById('login-overlay');
