@@ -5191,7 +5191,7 @@ renderSignPage(container, itemId) {
                         dpp = Math.round(brutoVal / 1.11);
                         ppn = brutoVal - dpp;
                     } else {
-                        dpp = brutoVal; // Jika non-PPN, DPP adalah bruto atau sesuai ketentuan
+                        dpp = brutoVal;
                     }
 
                     pph = Math.round(dpp * (tarif / 100));
@@ -5199,7 +5199,8 @@ renderSignPage(container, itemId) {
                     dpp = brutoVal;
                 }
 
-                const totalBersih = brutoVal - pph; // Jumlah dibayarkan = Bruto - PPh
+                // Jumlah Dibayarkan (Bersih) = Bruto dikurangi seluruh potongan (PPN dan PPh)
+                const totalBersih = brutoVal - ppn - pph;
 
                 if (document.getElementById('sim_dpp')) document.getElementById('sim_dpp').innerText = `Rp ${Utils.formatNumber(dpp)}`;
                 if (document.getElementById('sim_ppn')) document.getElementById('sim_ppn').innerText = `Rp ${Utils.formatNumber(ppn)}`;
@@ -5237,9 +5238,21 @@ renderSignPage(container, itemId) {
                     pph = Math.round(dpp * (tarif / 100));
                 }
 
-                const jumlahDibayarkan = bruto - pph;
+                // Total potongan keseluruhan (PPN + PPh)
+                const totalPotongan = ppn + pph;
+                
+                // Jumlah dibayarkan bersih = Bruto - Total Potongan
+                const jumlahDibayarkan = bruto - totalPotongan;
 
-                // Payload lengkap sesuai skema tabel SQL terbaru
+                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
+                if (pajakId) {
+                    const optText = pajakSelect.options[pajakSelect.selectedIndex].text.toUpperCase();
+                    if (optText.includes('21')) pph21 = pph;
+                    else if (optText.includes('22')) pph22 = pph;
+                    else if (optText.includes('23')) pph23 = pph;
+                    else if (optText.includes('4 AYAT') || optText.includes('4(2)')) pph42 = pph;
+                }
+
                 const newItem = {
                     id: Utils.generateId(),
                     pencairan_id: pencairanId,
@@ -5252,9 +5265,14 @@ renderSignPage(container, itemId) {
                     harga: bruto,
                     subtotal: bruto,
                     pajak_id: pajakId || null,
-                    nilai_pajak: pph,
+                    nilai_pajak: totalPotongan,
                     ppn: ppn,
                     pph: pph,
+                    pajak_ppn: ppn,
+                    pajak_pph21: pph21,
+                    pajak_pph22: pph22,
+                    pajak_pph23: pph23,
+                    pajak_pph42: pph42,
                     total: jumlahDibayarkan,
                     created_at: new Date().toISOString()
                 };
