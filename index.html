@@ -641,13 +641,12 @@
         // -----------------------------------------------------
         // 3. SCHEMAS
         // -----------------------------------------------------
-        const Schemas = {
-            pejabat: { title: 'Data Pejabat', table: 'pejabat', fields: [{ key: 'nip', label: 'NIP', type: 'text', required: true, width: '150px' }, { key: 'name', label: 'Nama Lengkap', type: 'text', required: true }, { key: 'role', label: 'Peran Default', type: 'select', options: ['PPK', 'Pejabat Pengadaan', 'PPTK', 'Bendahara', 'PA/KPA'], required: true }, { key: 'department', label: 'Unit Kerja', type: 'text', required: true }, { key: 'status', label: 'Status', type: 'select', options: ['Aktif', 'Nonaktif'], formatter: Utils.getBadge }] },
-            penyedia: { 
+       penyedia: { 
                 title: 'Data Penyedia', 
                 table: 'penyedia', 
                 fields: [
                     { key: 'name', label: 'Nama', type: 'text', required: true }, 
+                    { key: 'instansi', label: 'Instansi', type: 'text', required: true }, 
                     { key: 'address', label: 'Alamat', type: 'textarea', required: true, hideInTable: true }, 
                     { key: 'type', label: 'Bentuk', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, 
                     { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, 
@@ -2615,6 +2614,7 @@
                 const data = penyediaList.map((p, idx) => ({
                     "No": idx + 1,
                     "Nama": p.name || '',
+                    "Instansi": p.instansi || '',
                     "Alamat": p.address || '',
                     "Bentuk": p.type || 'Badan Usaha',
                     "NPWP": p.npwp || '',
@@ -2637,8 +2637,8 @@
 
             downloadTemplatePenyedia() {
                 const ws = XLSX.utils.aoa_to_sheet([
-                    ["Nama", "Alamat", "Bentuk", "NPWP", "NIB", "Nomor Izin", "Nama Direktur", "Jabatan Direktur", "Bank", "Nomor Rekening", "Atas Nama Rekening", "Status Verifikasi"],
-                    ["CV. CONTOH MANDIRI", "Jl. Pemuda No.1", "Badan Usaha", "01.234.567.8-901.000", "9120001234567", "503/123-IUJK", "Budi Santoso", "Direktur Utama", "Bank BJB", "1234567890", "CV. CONTOH MANDIRI", "Aktif"]
+                    ["Nama", "Instansi", "Alamat", "Bentuk", "NPWP", "NIB", "Nomor Izin", "Nama Direktur", "Jabatan Direktur", "Bank", "Nomor Rekening", "Atas Nama Rekening", "Status Verifikasi"],
+                    ["CV. CONTOH MANDIRI", "CV. Contoh Mandiri Utama", "Jl. Pemuda No.1", "Badan Usaha", "01.234.567.8-901.000", "9120001234567", "503/123-IUJK", "Budi Santoso", "Direktur Utama", "Bank BJB", "1234567890", "CV. CONTOH MANDIRI", "Aktif"]
                 ]);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template Penyedia");
@@ -2666,6 +2666,7 @@
 
                             const payload = {
                                 name: nama,
+                                instansi: String(r["Instansi"] || '').trim(),
                                 address: String(r["Alamat"] || '').trim(),
                                 type: String(r["Bentuk"] || r["Bentuk Usaha"] || 'Badan Usaha').trim(),
                                 npwp: String(r["NPWP"] || '-').trim(),
