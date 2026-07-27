@@ -3015,15 +3015,21 @@
             }
 
             toggleDokumenPendukung(packageId, namaDok, isChecked) {
-            const pkg = DB.getById('paket', packageId);
-            if (!pkg) return;
-            
-            if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
-            pkg.dokumen_pendukung[namaDok] = isChecked;
-            
-            DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
-            this.notify(`Status dokumen pendukung diperbarui`, 'success');
-        }
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg) return;
+                
+                if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
+                pkg.dokumen_pendukung[namaDok] = isChecked;
+                
+                // Simpan hanya ke cache lokal agar tidak error 400 di Supabase
+                const cachePackages = DB.cache['packages'] || [];
+                const idx = cachePackages.findIndex(p => String(p.id) === String(packageId));
+                if (idx > -1) {
+                    cachePackages[idx].dokumen_pendukung = pkg.dokumen_pendukung;
+                }
+
+                this.notify(`Status dokumen pendukung diperbarui`, 'success');
+            }
             
             async init() {
                 await DB.init();
