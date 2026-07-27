@@ -2738,27 +2738,7 @@
                     document.getElementById('header-inisial').innerText = inisial;
                 }
             }
-           handleLogin(e) {
-                e.preventDefault();
-                // Variabel yang didefinisikan bernama 'user' dan 'pass'
-                const user = document.getElementById('login-user').value.trim();
-                const pass = document.getElementById('login-pass').value.trim();
-
-                // Pastikan pencarian menggunakan variabel 'user' dan 'pass' yang sesuai
-                const validUser = DB.cache.users.find(u => u.username === user && u.password === pass);
-
-                if (validUser) {
-                    // Simpan sesi data pengguna yang berhasil login (misal ke localStorage)
-                    localStorage.setItem('userSession', JSON.stringify(validUser));
-                    
-                    // Sembunyikan modal login & mulai aplikasi
-                    document.getElementById('login-overlay').style.display = 'none';
-                    this.updateHeaderUI(); // Panggil fungsi update header
-                    this.init(); 
-                } else {
-                    alert("Username atau password salah!");
-                }
-            }
+           
 
 hideLoginOverlay() {
     const overlay = document.getElementById('login-overlay');
@@ -2785,21 +2765,53 @@ hideLoginOverlay() {
             }
 
 checkSession() {
-    const isLoggedIn = localStorage.getItem('eproc_logged_in');
-    const overlay = document.getElementById('login-overlay');
-    
-    if (isLoggedIn === 'true') {
-        if (overlay) overlay.remove();
-    } else {
-        if (overlay) overlay.style.display = 'flex';
-    }
-}
+                // 1. Ubah pengecekan menjadi 'userSession' (bukan eproc_logged_in)
+                const sessionData = localStorage.getItem('userSession');
+                const overlay = document.getElementById('login-overlay');
+                
+                if (sessionData) {
+                    if (overlay) overlay.remove(); // Sembunyikan layar login
+                } else {
+                    if (overlay) overlay.style.display = 'flex'; // Munculkan layar login
+                }
+            }
 
-logout() {
-    localStorage.removeItem('eproc_logged_in');
-    localStorage.removeItem('eproc_user');
-    window.location.reload();
-}
+            logout() {
+                // 2. Sesuaikan kunci yang dihapus saat klik tombol keluar
+                localStorage.removeItem('userSession');
+                window.location.reload();
+            }
+
+            handleLogin(e) {
+                e.preventDefault();
+                const user = document.getElementById('login-user').value.trim();
+                const pass = document.getElementById('login-pass').value.trim();
+
+                // 3. Tambahkan tanda tanya (?) sebelum .find untuk mencegah error jika DB belum siap
+                let validUser = DB.cache.users?.find(u => u.username === user && u.password === pass);
+
+                // --- AKUN DARURAT (BACKDOOR) ---
+                // Tambahan khusus berjaga-jaga jika tabel 'users' di Supabase Anda masih kosong
+                if (!validUser && user === 'admin' && pass === 'admin') {
+                    validUser = { 
+                        username: 'admin', 
+                        nama_lengkap: 'Administrator', 
+                        role: 'Administrator' 
+                    };
+                }
+
+                if (validUser) {
+                    // Simpan sesi data pengguna
+                    localStorage.setItem('userSession', JSON.stringify(validUser));
+                    
+                    // Sembunyikan modal login & mulai aplikasi
+                    document.getElementById('login-overlay').style.display = 'none';
+                    this.updateHeaderUI();
+                    this.init(); 
+                } else {
+                    alert("Username atau password salah! Pastikan data sudah ada di Supabase.");
+                }
+            }
 
            exportPenyediaExcel() {
                 const penyediaList = DB.get('penyedia') || [];
