@@ -310,10 +310,7 @@
 
                 <div class="nav-group">
                     <div class="nav-group-title">SISTEM</div>
-                    <!-- Tambahkan baris di bawah ini -->
                     <div class="nav-item" data-route="pengaturan-user"><i class="ph ph-users"></i> <span>Manajemen Pengguna</span></div>
-                    
-                    <div class="nav-item" data-route="ai-assistant"><i class="ph ph-sparkle text-primary"></i> <span>Asisten AI</span></div>
                     <div class="nav-item" data-route="pengaturan"><i class="ph ph-gear"></i> <span>Pengaturan</span></div>
                 </div>
             </nav>
@@ -500,9 +497,11 @@
         const DB = {
             cache: {}, isReady: false,
             
-            async init() {
+           async init() {
                 if (this.isReady) return;
-                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'package_documents', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items', 'spj_headers'];
+                
+                // Tambahkan 'users' di akhir array coreTables ini
+                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'package_documents', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items', 'spj_headers', 'users'];
                 
                 await Promise.all(coreTables.map(async (table) => {
                     try {
@@ -510,7 +509,6 @@
                         this.cache[table] = res.ok ? await res.json() : [];
                     } catch(e) { this.cache[table] = []; }
                 }));
-
                 if(!this.cache['master_rekening'] || this.cache['master_rekening'].length === 0) {
                     this.cache['master_rekening'] = [
                         {id:'R1', kode:'5.02.03.2.01', uraian:'PENGELOLAAN BARANG MILIK DAERAH', pagu:0, jenis:'Header'},
