@@ -2597,9 +2597,11 @@
 
             downloadTemplateHPS() {
                 const ws = XLSX.utils.aoa_to_sheet([
-                    ["Uraian Pekerjaan / Spesifikasi", "Sat", "Vol HPS", "Harga Satuan HPS", "Vol Penawaran", "Harga Satuan Penawaran", "Vol Negosiasi", "Harga Satuan Negosiasi", "Pajak (%)"],
-                    ["Pekerjaan Persiapan", "Ls", 1, 5000000, 1, 4900000, 1, 4800000, 11],
-                    ["Pengadaan Barang Utama", "Unit", 2, 15000000, 2, 14500000, 2, 14000000, 11]
+                    ["Tipe (ITEM/HEADER)", "Uraian Pekerjaan", "Sat", "Vol HPS", "Harga HPS", "Vol Pen", "Harga Pen", "Vol Neg", "Harga Neg", "Pajak (%)"],
+                    ["HEADER", "I. PEKERJAAN PERSIAPAN", "", "", "", "", "", "", "", ""],
+                    ["ITEM", "Pembuatan Direksi Keet", "Ls", 1, 5000000, 1, 4900000, 1, 4800000, 11],
+                    ["HEADER", "II. PEKERJAAN UTAMA", "", "", "", "", "", "", "", ""],
+                    ["ITEM", "Pekerjaan Struktur Gedung", "M2", 100, 1500000, 100, 1450000, 100, 1400000, 11]
                 ]);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template HPS");
@@ -2624,26 +2626,29 @@
                         if (!pkg.items) pkg.items = [];
 
                         rows.forEach((r, idx) => {
+                            const tipe = String(r["Tipe (ITEM/HEADER)"] || 'ITEM').trim().toUpperCase();
+                            const isHeader = tipe === 'HEADER';
+
                             const newItem = {
                                 id: Utils.generateId(),
                                 package_id: packageId,
-                                uraian: String(r["Uraian Pekerjaan / Spesifikasi"] || '').trim(),
-                                sat: String(r["Sat"] || 'Ls').trim(),
-                                vol_hps: Number(r["Vol HPS"]) || 0,
-                                harga_hps: Number(r["Harga Satuan HPS"]) || 0,
-                                vol_pen: Number(r["Vol Penawaran"]) || 0,
-                                harga_pen: Number(r["Harga Satuan Penawaran"]) || 0,
-                                vol_neg: Number(r["Vol Negosiasi"]) || 0,
-                                harga_neg: Number(r["Harga Satuan Negosiasi"]) || 0,
-                                pajak: Number(r["Pajak (%)"]) || 11,
-                                is_header: false,
+                                uraian: String(r["Uraian Pekerjaan"] || '').trim(),
+                                sat: String(r["Sat"] || (isHeader ? '' : 'Ls')).trim(),
+                                vol_hps: isHeader ? 0 : (Number(r["Vol HPS"]) || 0),
+                                harga_hps: isHeader ? 0 : (Number(r["Harga HPS"]) || 0),
+                                vol_pen: isHeader ? 0 : (Number(r["Vol Pen"]) || 0),
+                                harga_pen: isHeader ? 0 : (Number(r["Harga Pen"]) || 0),
+                                vol_neg: isHeader ? 0 : (Number(r["Vol Neg"]) || 0),
+                                harga_neg: isHeader ? 0 : (Number(r["Harga Neg"]) || 0),
+                                pajak: isHeader ? 0 : (Number(r["Pajak (%)"]) || 11),
+                                is_header: isHeader,
                                 urutan: pkg.items.length + idx
                             };
                             pkg.items.push(newItem);
                         });
 
                         DB.update('paket', packageId, { items: pkg.items });
-                        this.notify('Rincian HPS berhasil diimpor dari Excel', 'success');
+                        this.notify('Rincian HPS berhasil diimpor sesuai format template', 'success');
                         this.reRenderCurrentView();
                     } catch (err) {
                         console.error(err);
