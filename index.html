@@ -3021,7 +3021,7 @@
                 if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
                 pkg.dokumen_pendukung[namaDok] = isChecked;
                 
-                // Simpan hanya ke cache lokal agar tidak error 400 di Supabase
+                // Simpan ke cache lokal paket
                 const cachePackages = DB.cache['packages'] || [];
                 const idx = cachePackages.findIndex(p => String(p.id) === String(packageId));
                 if (idx > -1) {
@@ -3029,6 +3029,9 @@
                 }
 
                 this.notify(`Status dokumen pendukung diperbarui`, 'success');
+                
+                // Panggil render ulang agar status centang permanen di UI
+                this.reRenderCurrentView();
             }
             
             async init() {
