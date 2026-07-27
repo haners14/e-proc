@@ -3636,13 +3636,13 @@
                 this.loadFormPenerimaSign(spjId, itemId);
             }
 
-          printPresensiPDF(spjId) {
+         printPresensiPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
 
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                const items = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) === String(spj.pencairan_id));
                 const listPenyedia = DB.get('penyedia') || [];
 
                 let rowsHtml = items.map((item, idx) => {
@@ -3652,9 +3652,9 @@
                     const jabatan = matchedPenyedia?.jabatan_direktur || '-';
                     const instansi = matchedPenyedia?.instansi || '-';
                     
-                    // Nomor urut dan titik dihilangkan, menyisakan garis kosong atau tanda tangan digital
-                    const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
+                    // Memastikan data base64 tanda_tangan terpanggil dengan benar
+                    const ttdContent = item.tanda_tangan 
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 50px; display: block; margin: 0 auto;" />` 
                         : `<span style="color: #94a3b8; font-size: 10px;">....................</span>`;
 
                     return `
@@ -3663,7 +3663,7 @@
                             <td style="vertical-align: middle;">${nama}</td>
                             <td style="vertical-align: middle;">${jabatan}</td>
                             <td style="vertical-align: middle;">${instansi}</td>
-                            <td style="text-align: center; vertical-align: middle; height: 45px;">${ttdContent}</td>
+                            <td style="text-align: center; vertical-align: middle; height: 55px;">${ttdContent}</td>
                         </tr>
                     `;
                 }).join('');
@@ -3721,13 +3721,13 @@
                 this.printDocument('Daftar Presensi Kegiatan', content, customStyle);
             }
 
-            printTandaTerimaPDF(spjId) {
+           printTandaTerimaPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
 
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                const items = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) === String(spj.pencairan_id));
                 const listPenyedia = DB.get('penyedia') || [];
 
                 let totalBruto = 0, totalPajak = 0, totalBersih = 0;
@@ -3741,13 +3741,13 @@
                     totalPajak += pajak;
                     totalBersih += bersih;
 
-                    const matchedPenyedia = listPenyedia.find(p => p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
-                    const nama = matchedPenyedia ? matchedPenyedia.direktur : (item.nama_penerima || '-');
+                    const matchedPenyedia = listPenyedia.find(p => p.id === item.penyedia_id || p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
+                    const nama = matchedPenyedia ? matchedPenyedia.name : (item.nama_penerima || '-');
                     const jabatanInfo = matchedPenyedia?.jabatan_direktur || '-';
 
-                    // TTD diperbesar dan nomor urut "1. ....." dihilangkan (dikosongkan untuk tanda tangan basah / digital)
-                    const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" style="max-height: 65px; display: block; margin: 0 auto;" />` 
+                    // Memastikan data base64 tanda_tangan terpanggil dengan benar
+                    const ttdContent = item.tanda_tangan 
+                        ? `<img src="${item.tanda_tangan}" style="max-height: 55px; display: block; margin: 0 auto;" />` 
                         : `<div style="height: 55px;"></div>`;
 
                     return `
@@ -3822,7 +3822,6 @@
                     </div>
                 `;
 
-                // Diatur ke orientasi landscape secara otomatis melalui CSS page size
                 const customStyle = `
                     @page { size: landscape; margin: 15mm; }
                     body { font-family: Arial, sans-serif; color: #000; }
