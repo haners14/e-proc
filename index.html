@@ -5385,7 +5385,7 @@ renderSignPage(container, itemId) {
                 if (document.getElementById('sim_total')) document.getElementById('sim_total').innerText = `Rp ${Utils.formatNumber(totalBersih)}`;
             }
 
-            simpanItemPencairanBaru(pencairanId) {
+            simpanItemPencairanBaru(pencairanId, itemId = null) {
                 const rekeningId = document.getElementById('detail_rekening_id').value;
                 const uraian = document.getElementById('detail_uraian').value;
                 const namaPenerima = document.getElementById('detail_nama_penerima').value;
@@ -5415,10 +5415,7 @@ renderSignPage(container, itemId) {
                     pph = Math.round(dpp * (tarif / 100));
                 }
 
-                // Total potongan keseluruhan (PPN + PPh)
                 const totalPotongan = ppn + pph;
-                
-                // Jumlah dibayarkan bersih = Bruto - Total Potongan
                 const jumlahDibayarkan = bruto - totalPotongan;
 
                 let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
@@ -5430,8 +5427,7 @@ renderSignPage(container, itemId) {
                     else if (optText.includes('4 AYAT') || optText.includes('4(2)')) pph42 = pph;
                 }
 
-                const newItem = {
-                    id: Utils.generateId(),
+                const itemPayload = {
                     pencairan_id: pencairanId,
                     rekening_id: rekeningId,
                     uraian: uraian,
@@ -5450,20 +5446,39 @@ renderSignPage(container, itemId) {
                     pajak_pph22: pph22,
                     pajak_pph23: pph23,
                     pajak_pph42: pph42,
-                    total: jumlahDibayarkan,
-                    created_at: new Date().toISOString()
+                    total: jumlahDibayarkan
                 };
 
                 if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
-                DB.cache['pencairan_items'].unshift(newItem);
 
-                fetch(`${SUPABASE_URL}pencairan_items`, {
-                    method: 'POST',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newItem)
-                }).catch(e => console.error(e));
+                if (itemId) {
+                    // Jika sedang edit, update data pada cache lokal & database Supabase
+                    const index = DB.cache['pencairan_items'].findIndex(i => String(i.id) === String(itemId));
+                    if (index > -1) {
+                        DB.cache['pencairan_items'][index] = { ...DB.cache['pencairan_items'][index], ...itemPayload };
+                    }
 
-                this.notify('Item rincian berhasil ditambahkan', 'success');
+                    fetch(`${SUPABASE_URL}pencairan_items?id=eq.${itemId}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(itemPayload)
+                    }).catch(e => console.error(e));
+
+                    this.notify('Item rincian berhasil diperbarui', 'success');
+                } else {
+                    // Jika baru, insert data baru
+                    const newItem = { id: Utils.generateId(), created_at: new Date().toISOString(), ...itemPayload };
+                    DB.cache['pencairan_items'].unshift(newItem);
+
+                    fetch(`${SUPABASE_URL}pencairan_items`, {
+                        method: 'POST',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newItem)
+                    }).catch(e => console.error(e));
+
+                    this.notify('Item rincian berhasil ditambahkan', 'success');
+                }
+
                 this.formDetailPencairan(pencairanId);
             }
 
