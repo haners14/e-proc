@@ -3644,10 +3644,12 @@
                 const listPenyedia = DB.get('penyedia') || [];
 
                 let rowsHtml = items.map((item, idx) => {
-                    const matchedPenyedia = listPenyedia.find(p => p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
-                    const nama = matchedPenyedia ? matchedPenyedia.direktur : (item.nama_penerima || '-');
+                    const matchedPenyedia = listPenyedia.find(p => p.id === item.penyedia_id || p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
+                    
+                    // Memanggil kolom Nama dan Instansi langsung dari data penyedia/item
+                    const nama = matchedPenyedia ? (matchedPenyedia.direktur || matchedPenyedia.name) : (item.nama_penerima || '-');
                     const jabatan = matchedPenyedia?.jabatan_direktur || '-';
-                    const instansi = matchedPenyedia?.name || item.nama_penerima || '-';
+                    const instansi = matchedPenyedia?.instansi || matchedPenyedia?.name || item.nama_penerima || '-';
                     
                     const ttdContent = item.status_ttd === 'SIGNED' && item.tanda_tangan 
                         ? `<img src="${item.tanda_tangan}" style="max-height: 40px; display: block; margin: 0 auto;" />` 
