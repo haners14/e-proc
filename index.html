@@ -3573,9 +3573,12 @@
                         function finishedPosition() { painting = false; ctx.beginPath(); }
                         function draw(e) {
                             if (!painting) return;
-                            ctx.lineWidth = 2.5;
+                            // Ubah nilai linewidth menjadi lebih besar (misal 4.5 atau 5) agar lebih tebal
+                            ctx.lineWidth = 4.5;
                             ctx.lineCap = 'round';
-                            ctx.strokeStyle = '#0f172a';
+                            ctx.lineJoin = 'round';
+                            // Gunakan hitam pekat murni
+                            ctx.strokeStyle = '#000000';
 
                             const rect = canvas.getBoundingClientRect();
                             const x = (e.clientX || e.touches[0].clientX) - rect.left;
