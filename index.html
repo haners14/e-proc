@@ -5595,15 +5595,7 @@ renderSignPage(container, itemId) {
                 const totalPotongan = ppn + pph;
                 const jumlahDibayarkan = bruto - totalPotongan;
 
-                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
-                if (pajakId) {
-                    const optText = pajakSelect.options[pajakSelect.selectedIndex].text.toUpperCase();
-                    if (optText.includes('21')) pph21 = pph;
-                    else if (optText.includes('22')) pph22 = pph;
-                    else if (optText.includes('23')) pph23 = pph;
-                    else if (optText.includes('4 AYAT') || optText.includes('4(2)')) pph42 = pph;
-                }
-
+                // Payload disesuaikan dengan kolom dasar tabel pencairan_items agar tidak error 400 Bad Request
                 const itemPayload = {
                     pencairan_id: pencairanId,
                     rekening_id: rekeningId,
@@ -5616,20 +5608,12 @@ renderSignPage(container, itemId) {
                     subtotal: bruto,
                     pajak_id: pajakId || null,
                     nilai_pajak: totalPotongan,
-                    ppn: ppn,
-                    pph: pph,
-                    pajak_ppn: ppn,
-                    pajak_pph21: pph21,
-                    pajak_pph22: pph22,
-                    pajak_pph23: pph23,
-                    pajak_pph42: pph42,
                     total: jumlahDibayarkan
                 };
 
                 if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
 
                 if (itemId) {
-                    // Jika sedang edit, update data pada cache lokal & database Supabase
                     const index = DB.cache['pencairan_items'].findIndex(i => String(i.id) === String(itemId));
                     if (index > -1) {
                         DB.cache['pencairan_items'][index] = { ...DB.cache['pencairan_items'][index], ...itemPayload };
@@ -5637,19 +5621,18 @@ renderSignPage(container, itemId) {
 
                     fetch(`${SUPABASE_URL}pencairan_items?id=eq.${itemId}`, {
                         method: 'PATCH',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
                         body: JSON.stringify(itemPayload)
                     }).catch(e => console.error(e));
 
                     this.notify('Item rincian berhasil diperbarui', 'success');
                 } else {
-                    // Jika baru, insert data baru
                     const newItem = { id: Utils.generateId(), created_at: new Date().toISOString(), ...itemPayload };
                     DB.cache['pencairan_items'].unshift(newItem);
 
                     fetch(`${SUPABASE_URL}pencairan_items`, {
                         method: 'POST',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
                         body: JSON.stringify(newItem)
                     }).catch(e => console.error(e));
 
