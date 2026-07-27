@@ -2194,19 +2194,6 @@
                     </tr>`;
                 }).join('');
 
-                const dokumenPendukung = [
-                    "Summary Report", "Surat Permohonan Pemilihan Penyedia", "Surat Penawaran",
-                    "Lampiran Penawaran (Profil Perusahaan dll)", "Persyaratan Kualifikasi Peserta",
-                    "Surat Pernyataan Sanggup Menyelesaikan Pekerjaan", "Surat Permohonan Pencairan dari Penyedia",
-                    "Invoice Lampiran Pembayaran Personil dan Non Personil", "Kelengkapan Dokumen Lampiran (misal laporan)",
-                    "Jaminan Pemeliharaan (Fisik)", "Mutual Check / Laporan Kemajuan (Fisik)", "KTP dan NPWP",
-                    "Surat Referensi Bank", "Faktur Pajak", "Kwitansi"
-                ];
-
-                if (!this.pkg.dokumen_pendukung) {
-                    this.pkg.dokumen_pendukung = {};
-                }
-
                 const pendukungHtml = dokumenPendukung.map((namaDok) => {
                     const isChecked = Boolean(this.pkg.dokumen_pendukung[namaDok]);
                     return `
@@ -2265,7 +2252,7 @@
                 ${sectionPendukungHtml}
                `;
             }
-            }
+            
         
             attachChecklistEvents() {
                 document.querySelectorAll('.chk-master-input').forEach(el => {
