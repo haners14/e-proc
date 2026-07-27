@@ -4772,7 +4772,7 @@ renderSignPage(container, itemId) {
                 `;
             }
             
-           formHeaderPencairan(id = null) {
+          formHeaderPencairan(id = null) {
                 const pencairanList = DB.get('pencairan') || [];
                 const nextNoStr = String(pencairanList.length + 1).padStart(3, '0') + '/SPP-LS/BKAD/2026';
                 const todayStr = new Date().toISOString().split('T')[0];
@@ -4782,6 +4782,7 @@ renderSignPage(container, itemId) {
                     tanggal: todayStr,
                     sub_kegiatan: '',
                     kegiatan: 'Pengelolaan Barang Milik Daerah',
+                    jenis: 'LS', // Default jenis pencairan
                     bulan: 'Juni'
                 };
 
@@ -4801,25 +4802,35 @@ renderSignPage(container, itemId) {
                                 <input type="date" name="tanggal" class="form-control" value="${header.tanggal || ''}" required>
                             </div>
                         </div>
-                        <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Sub Kegiatan (Sesuai DPA)</label>
-                            <select name="sub_kegiatan" class="form-control" required>
-                                <option value="">-- Pilih Sub Kegiatan --</option>
-                                ${optsSub}
-                            </select>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Jenis Pencairan</label>
+                                <select name="jenis" class="form-control" required>
+                                    <option value="LS" ${header.jenis === 'LS' ? 'selected' : ''}>SPJ-LS (Langsung)</option>
+                                    <option value="GU" ${header.jenis === 'GU' ? 'selected' : ''}>SPJ-UP/GU (Ganti Uang)</option>
+                                    <option value="TU" ${header.jenis === 'TU' ? 'selected' : ''}>SPJ-TU (Tambah Uang)</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-0">
+                                <label class="form-label font-bold text-gray-700">Sub Kegiatan (Sesuai DPA)</label>
+                                <select name="sub_kegiatan" class="form-control" required>
+                                    <option value="">-- Pilih Sub Kegiatan --</option>
+                                    ${optsSub}
+                                </select>
+                            </div>
                         </div>
                     </form>
                 `;
 
-                // Footer modal sekarang bersih, hanya tombol Batal dan Simpan saja
                 const footer = `
                     <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
                     <button class="btn btn-primary" onclick="app.saveHeaderPencairan('${id || ''}')"><i class="ph ph-floppy-disk"></i> Simpan</button>
                 `;
 
-                DOM.openModal(id ? 'Edit Header Pencairan' : 'Buat Header Pengajuan Baru', body, footer);
+                DOM.openModal(id ? 'Edit Header Pencairan' : 'Buat Header Pengajuan Baru', body, footer, '700px');
             }
-
+            
             saveHeaderPencairan(id) {
                 const formData = DOM.getFormData('form-header-pencairan');
                 if (!formData.nomor || !formData.tanggal || !formData.sub_kegiatan) {
