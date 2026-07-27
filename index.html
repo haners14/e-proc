@@ -200,6 +200,27 @@
 </head>
 <body>
 
+    <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #1e3a8a, #0f172a); z-index: 99999; display: flex; align-items: center; justify-content: center;">
+    <div style="background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 2rem; color: #2563eb; font-weight: bold; margin-bottom: 8px;"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
+            <p style="font-size: 0.85rem; color: #64748b;">Silakan masuk menggunakan akun Anda</p>
+        </div>
+        
+        <form id="login-form" onsubmit="app.handleLogin(event)" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group mb-0">
+                <label class="form-label font-bold text-gray-700">Username / Email</label>
+                <input type="text" id="login-user" class="form-control" placeholder="farhan" required>
+            </div>
+            <div class="form-group mb-0">
+                <label class="form-label font-bold text-gray-700">Password</label>
+                <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-full py-3 mt-2" style="justify-content: center;">Masuk Aplikasi</button>
+        </form>
+    </div>
+</div>
+
     <div class="app-layout" id="app-root" style="display: none;">
         
         <!-- Sidebar Navigation -->
@@ -263,6 +284,9 @@
                         <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
                     </div>
                     <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
+                    <button class="btn btn-ghost text-danger" onclick="app.logout()" title="Keluar Akun" style="padding: 6px;">
+            <i class="ph ph-sign-out" style="font-size: 1.25rem;"></i>
+        </button>
                     <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">FE</div>
                 </div>
             </header>
@@ -2607,6 +2631,50 @@
                 this.init(); 
             }
 
+            handleLogin(e) {
+    e.preventDefault();
+    const user = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+
+    // Contoh validasi sederhana (bisa dihubungkan ke tabel Supabase 'users' jika ada)
+    if (user === 'farhan' && pass === 'admin123') {
+        // Simpan status sesi ke localStorage browser
+        localStorage.setItem('eproc_logged_in', 'true');
+        localStorage.setItem('eproc_user', user);
+        
+        this.notify('Login berhasil! Selamat datang, Farhan.', 'success');
+        this.hideLoginOverlay();
+    } else {
+        this.notify('Username atau Password salah!', 'error');
+    }
+}
+
+hideLoginOverlay() {
+    const overlay = document.getElementById('login-overlay');
+    if (overlay) {
+        overlay.style.transition = 'opacity 0.3s ease';
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.remove(), 300);
+    }
+}
+
+checkSession() {
+    const isLoggedIn = localStorage.getItem('eproc_logged_in');
+    const overlay = document.getElementById('login-overlay');
+    
+    if (isLoggedIn === 'true') {
+        if (overlay) overlay.remove();
+    } else {
+        if (overlay) overlay.style.display = 'flex';
+    }
+}
+
+logout() {
+    localStorage.removeItem('eproc_logged_in');
+    localStorage.removeItem('eproc_user');
+    window.location.reload();
+}
+
            exportPenyediaExcel() {
                 const penyediaList = DB.get('penyedia') || [];
                 if (penyediaList.length === 0) {
@@ -3389,6 +3457,9 @@
             }
             
             async init() {
+
+                this.checkSession();
+                
                 await DB.init();
                 
                 // Isolasi tampilan khusus jika diakses melalui link header SPJ
