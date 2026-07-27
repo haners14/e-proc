@@ -2583,6 +2583,177 @@
                 this.init(); 
             }
 
+            exportPencairanExcel() {
+                const pencairanList = DB.get('pencairan') || [];
+                const pencairanItems = DB.get('pencairan_items') || [];
+                const rekenings = DB.get('master_rekening') || [];
+
+                if (pencairanList.length === 0) {
+                    return this.notify('Tidak ada data pengajuan untuk diexport', 'error');
+                }
+
+                let rows = [];
+                pencairanList.forEach(header => {
+                    const items = pencairanItems.filter(i => i.pencairan_id === header.id);
+                    if (items.length === 0) {
+                        // Jika header belum punya item, masukkan baris headernya saja
+                        rows.push({
+                            "Nomor Pengajuan": header.nomor || '',
+                            "Tanggal (YYYY-MM-DD)": header.tanggal || '',
+                            "Jenis Pencairan (LS/GU/TU)": header.jenis || 'LS',
+                            "Sub Kegiatan": header.sub_kegiatan || '',
+                            "Kode Rekening": '',
+                            "Uraian Keperluan": '',
+                            "Nama Penerima": '',
+                            "Bank": '',
+                            "Nomor Rekening Bank": '',
+                            "Nilai Tagihan Bruto": 0
+                        });
+                    } else {
+                        items.forEach(item => {
+                            const rek = rekenings.find(r => r.id === item.rekening_id) || {};
+                            rows.push({
+                                "Nomor Pengajuan": header.nomor || '',
+                                "Tanggal (YYYY-MM-DD)": header.tanggal || '',
+                                "Jenis Pencairan (LS/GU/TU)": header.jenis || 'LS',
+                                "Sub Kegiatan": header.sub_kegiatan || '',
+                                "Kode Rekening": rek.kode || '',
+                                "Uraian Keperluan": item.uraian || '',
+                                "Nama Penerima": item.nama_penerima || '',
+                                "Bank": item.bank || '',
+                                "Nomor Rekening Bank": item.no_rekening || '',
+                                "Nilai Tagihan Bruto": Number(item.harga || item.subtotal || 0)
+                            });
+                        });
+                    }
+                });
+
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Pengajuan Pencairan");
+                XLSX.writeFile(wb, "Data_Pengajuan_Pencairan_Dan_Rincian.xlsx");
+                this.notify('Data pengajuan berhasil diexport ke Excel', 'success');
+            }
+
+            downloadTemplatePencairan() {
+                const ws = XLSX.utils.aoa_to_sheet([
+                    ["Nomor Pengajuan", "Tanggal (YYYY-MM-DD)", "Jenis Pencairan (LS/GU/TU)", "Sub Kegiatan", "Kode Rekening", "Uraian Keperluan", "Nama Penerima", "Bank", "Nomor Rekening Bank", "Nilai Tagihan Bruto"],
+                    ["001/SPP-LS/BKAD/2026", "2026-07-27", "LS", "Optimalisasi Penggunaan, Pemanfaatan, Pemindahtanganan, Pemusnahan, dan Penghapusan Barang Milik Daerah", "5.02.03.2.01.0010.5.1.02.02.008.00019", "Pembayaran Pekerjaan Konsultansi", "CV. CAKRA WISMA CIPTA MANDIRI", "Bank BJB", "8855560001", 24531000]
+                ]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template Pengajuan");
+                XLSX.writeFile(wb, "Template_Import_Pengajuan_Pencairan.xlsx");
+            }
+
+            importPencairanExcel(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+                        const rekenings = DB.get('master_rekening') || [];
+                        const masterPajak = DB.get('master_pajak') || [];
+
+                        // Kelompokkan berdasarkan Nomor Pengajuan
+                        let grouped = {};
+                        rows.forEach(r => {
+                            const noPengajuan = String(r["Nomor Pengajuan"] || '').trim();
+                            if (!noPengajuan) return;
+
+                            if (!grouped[noPengajuan]) {
+                                grouped[noPengajuan] = {
+                                    nomor: noPengajuan,
+                                    tanggal: String(r["Tanggal (YYYY-MM-DD)"] || new Date().toISOString().split('T')[0]).trim(),
+                                    jenis: String(r["Jenis Pencairan (LS/GU/TU)"] || 'LS').trim().toUpperCase(),
+                                    sub_kegiatan: String(r["Sub Kegiatan"] || '').trim(),
+                                    kegiatan: 'Pengelolaan Barang Milik Daerah',
+                                    status: 'Draft',
+                                    items: []
+                                };
+                            }
+
+                            if (r["Uraian Keperluan"] || r["Nilai Tagihan Bruto"]) {
+                                const kodeRek = String(r["Kode Rekening"] || '').trim();
+                                const rekMatch = rekenings.find(re => re.kode === kodeRek);
+                                const bruto = Number(r["Nilai Tagihan Bruto"]) || 0;
+
+                                grouped[noPengajuan].items.push({
+                                    uraian: String(r["Uraian Keperluan"] || '').trim(),
+                                    rekening_id: rekMatch ? rekMatch.id : null,
+                                    nama_penerima: String(r["Nama Penerima"] || '').trim(),
+                                    bank: String(r["Bank"] || '').trim(),
+                                    no_rekening: String(r["Nomor Rekening Bank"] || '').trim(),
+                                    bruto: bruto
+                                });
+                            }
+                        });
+
+                        for (let no in grouped) {
+                            const groupData = grouped[no];
+                            const headerId = Utils.generateId();
+                            
+                            const dateObj = new Date(groupData.tanggal);
+                            const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                            const namaBulan = months[dateObj.getMonth()] || 'Juli';
+
+                            const headerPayload = {
+                                id: headerId,
+                                nomor: groupData.nomor,
+                                tanggal: groupData.tanggal,
+                                jenis: groupData.jenis,
+                                sub_kegiatan: groupData.sub_kegiatan,
+                                kegiatan: groupData.kegiatan,
+                                bulan: namaBulan,
+                                status: 'Final',
+                                created_at: new Date().toISOString()
+                            };
+
+                            DB.insert('pencairan', headerPayload);
+
+                            let totalHeader = 0;
+                            groupData.items.forEach(item => {
+                                const jumlahDibayarkan = item.bruto; // Atau sesuaikan kalkulasi pajak jika diperlukan
+                                totalHeader += jumlahDibayarkan;
+
+                                const itemPayload = {
+                                    id: Utils.generateId(),
+                                    pencairan_id: headerId,
+                                    rekening_id: item.rekening_id,
+                                    uraian: item.uraian,
+                                    nama_penerima: item.nama_penerima,
+                                    bank: item.bank,
+                                    no_rekening: item.no_rekening,
+                                    qty: 1,
+                                    harga: item.bruto,
+                                    subtotal: item.bruto,
+                                    total: jumlahDibayarkan,
+                                    created_at: new Date().toISOString()
+                                };
+
+                                DB.insert('pencairan_items', itemPayload);
+                            });
+
+                            DB.update('pencairan', headerId, { total: totalHeader });
+                        }
+
+                        this.notify('Data pengajuan dan rincian berhasil diimpor dari Excel', 'success');
+                        this.renderPengajuan(this.routerView);
+                    } catch (err) {
+                        console.error(err);
+                        this.notify('Gagal memproses file Excel Pengajuan', 'error');
+                    } finally {
+                        event.target.value = '';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
             async deleteItemPencairan(itemId, pencairanId) {
                 if (!confirm('Apakah Anda yakin ingin menghapus item rincian ini?')) return;
 
@@ -4709,7 +4880,7 @@ renderSignPage(container, itemId) {
            // ==========================================
             // LOGIKA PENCAIRAN & LAMPIRAN PERMINTAAN PEMBAYARAN
             // ==========================================
-            renderPengajuan(container) {
+           renderPengajuan(container) {
                 const pencairanList = DB.get('pencairan') || [];
                 const pencairanItems = DB.get('pencairan_items') || [];
 
@@ -4748,7 +4919,13 @@ renderSignPage(container, itemId) {
                                 <h1 class="text-2xl font-bold text-main">Pengajuan Pencairan & Lampiran</h1>
                                 <p class="text-muted text-sm mt-1">Manajemen Header SPP dan Rincian Item Belanja serta Pajak Terintegrasi DPA.</p>
                             </div>
-                            <button class="btn btn-primary" onclick="app.formHeaderPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
+                            <div class="flex gap-2">
+                                <input type="file" id="import-pencairan-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importPencairanExcel(event)">
+                                <button class="btn btn-outline" onclick="app.downloadTemplatePencairan()"><i class="ph ph-download"></i> Template Excel</button>
+                                <button class="btn btn-outline" onclick="document.getElementById('import-pencairan-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
+                                <button class="btn btn-outline" onclick="app.exportPencairanExcel()"><i class="ph ph-export"></i> Export Data</button>
+                                <button class="btn btn-primary" onclick="app.formHeaderPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
+                            </div>
                         </div>
                         <div class="card flex-1 overflow-auto">
                             <table class="data-table">
