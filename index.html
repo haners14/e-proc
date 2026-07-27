@@ -3021,16 +3021,10 @@
                 if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
                 pkg.dokumen_pendukung[namaDok] = isChecked;
                 
-                // Simpan ke cache lokal paket
-                const cachePackages = DB.cache['packages'] || [];
-                const idx = cachePackages.findIndex(p => String(p.id) === String(packageId));
-                if (idx > -1) {
-                    cachePackages[idx].dokumen_pendukung = pkg.dokumen_pendukung;
-                }
-
-                this.notify(`Status dokumen pendukung diperbarui`, 'success');
+                // Sinkronkan dan simpan permanen ke Supabase melalui fungsi DB.update
+                DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
                 
-                // Panggil render ulang agar status centang permanen di UI
+                this.notify(`Status dokumen pendukung diperbarui`, 'success');
                 this.reRenderCurrentView();
             }
             
