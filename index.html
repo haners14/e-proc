@@ -2711,32 +2711,33 @@
                 this.currentRoute = ''; 
                 this.init(); 
             }
-function updateHeaderUI() {
-    // 1. Ambil data user yang sedang login dari localStorage
-    const sessionData = localStorage.getItem('userSession');
-    
-    if (sessionData) {
-        const user = JSON.parse(sessionData);
-        
-        // 2. Ganti Nama Lengkap
-        const namaLengkap = user.nama_lengkap || user.username;
-        document.getElementById('header-nama').innerText = namaLengkap;
-        
-        // 3. Ganti Role & Instansi
-        const role = user.role || 'Pengguna';
-        document.getElementById('header-role').innerText = `${role} • BKAD Kota Bogor (Supabase Sync)`;
-        
-        // 4. Buat Inisial Otomatis (Contoh: "Syahrul" -> "S", "Farhan Ersandy" -> "FE")
-        const inisial = namaLengkap
-            .split(' ')                  // Pecah berdasarkan spasi
-            .map(kata => kata[0])        // Ambil huruf pertama tiap kata
-            .join('')                    // Gabungkan huruf
-            .substring(0, 2)             // Maksimal 2 huruf
-            .toUpperCase();              // Jadikan huruf kapital
             
-        document.getElementById('header-inisial').innerText = inisial;
-    }
-}
+        updateHeaderUI() {
+                // Ambil data user yang sedang login dari localStorage
+                const sessionData = localStorage.getItem('userSession');
+                
+                if (sessionData) {
+                    const user = JSON.parse(sessionData);
+                    
+                    // Ganti Nama Lengkap
+                    const namaLengkap = user.nama_lengkap || user.username;
+                    document.getElementById('header-nama').innerText = namaLengkap;
+                    
+                    // Ganti Role & Instansi
+                    const role = user.role || 'Pengguna';
+                    document.getElementById('header-role').innerText = `${role} • BKAD Kota Bogor (Supabase Sync)`;
+                    
+                    // Buat Inisial Otomatis
+                    const inisial = namaLengkap
+                        .split(' ')
+                        .map(kata => kata[0])
+                        .join('')
+                        .substring(0, 2)
+                        .toUpperCase();
+                        
+                    document.getElementById('header-inisial').innerText = inisial;
+                }
+            }
             handleLogin(e) {
     e.preventDefault();
     const user = document.getElementById('login-user').value.trim();
