@@ -5279,8 +5279,6 @@ renderSignPage(container, itemId) {
                 }
             }
 
-            
-
             printLampiranPencairan(pencairanId) {
                 const header = DB.getById('pencairan', pencairanId);
                 const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
@@ -5515,7 +5513,7 @@ renderSignPage(container, itemId) {
                 if (latest?.file_url) { window.open(latest.file_url, '_blank'); return; }
                 this.runDocumentEngine(master.id, pkgId);
             }
-
+        
             async runDocumentEngine(reference, pkgId) {
                 const master = this.resolveDocumentMaster(reference, pkgId);
                 const docName = master.document_name;
@@ -5798,14 +5796,10 @@ renderSignPage(container, itemId) {
                 };
             }
 
-            calculateDocumentMeta(pkg, doc) {
+          calculateDocumentMeta(pkg, doc) {
                 const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
-                
-                // 1. Tarik tanggal dari Engine Jadwal Cerdas
                 const { dates } = this.calculateAllScheduleDates(pkg);
-                
                 let calcDate = ''; 
-                
                 if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
                     calcDate = pkg.tgl_mulai;
                 } else if ((doc === 'BAST' || doc === 'BAP') && pkg.tgl_selesai) {
@@ -5821,9 +5815,10 @@ renderSignPage(container, itemId) {
                         } 
                     }
                 }
-                
                 if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
                 const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
+                return { date: finalDate, number: savedChecklist.manual_number || '' };
+            }
 
                 // 2. Logika Penomoran Dokumen
                 const aliases = {
