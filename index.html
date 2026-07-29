@@ -6692,32 +6692,51 @@ renderSignPage(container, itemId) {
             }
 
             calculateDocumentMeta(pkg, doc) {
-                const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
-                
-                // 1. Tarik tanggal dari Engine Jadwal Cerdas
-                const { dates } = this.calculateAllScheduleDates(pkg);
-                
-                let calcDate = ''; 
-                
-                if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
-                    calcDate = pkg.tgl_mulai;
-                } else if ((doc === 'BAST' || doc === 'BAP') && pkg.tgl_selesai) {
-                    calcDate = pkg.tgl_selesai;
-                } else if (doc === 'Uraian Singkat') {
-                    calcDate = dates['KAK'] || pkg.tgl_awal || '';
-                } else {
-                    for (const [k, v] of Object.entries(dates)) { 
-                        const names = doc === 'BA Reviu Dokumen Persiapan' ? ['BA Reviu Dok Persiapan','BA Reviu Dokumen Persiapan','BA Reviu'] : [doc];
-                        if (names.some(name => name.toLowerCase() === k.toLowerCase() || k.toLowerCase().includes(name.toLowerCase()))) { 
-                            calcDate = v; 
-                            break; 
-                        } 
-                    }
-                }
-                
-                if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
-                const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
+    const savedChecklist = (pkg.checklists || []).find(x => x.doc === doc) || {};
+    
+    // 1. Tarik tanggal dari Engine Jadwal Cerdas
+    const { dates } = this.calculateAllScheduleDates(pkg);
+    
+    let calcDate = ''; 
+    
+    if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
+        calcDate = pkg.tgl_mulai;
+    } else if ((doc === 'BAST' || doc === 'BAP') && pkg.tgl_selesai) {
+        calcDate = pkg.tgl_selesai;
+    } else if (doc === 'Uraian Singkat') {
+        calcDate = dates['KAK'] || pkg.tgl_awal || '';
+    } else {
+        for (const [k, v] of Object.entries(dates)) { 
+            const names = doc === 'BA Reviu Dokumen Persiapan' ? ['BA Reviu Dok Persiapan','BA Reviu Dokumen Persiapan','BA Reviu'] : [doc];
+            if (names.some(name => name.toLowerCase() === k.toLowerCase() || k.toLowerCase().includes(name.toLowerCase()))) { 
+                calcDate = v; 
+                break; 
+            } 
+        }
+    }
+    
+    if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
+    const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
 
+    // Logika pemecah tanggal terbilang
+    const dateObj = new Date(finalDate || new Date());
+    const days = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+    const months = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
+
+    return {
+        // --- PROPERTI BAWAAN YANG SUDAH ADA SEBELUMNYA ---
+        number: savedChecklist.manual_number || '-', // atau logika nomor bawaan Anda
+        date: finalDate,
+        
+        // --- TAMBAHKAN PROPERTI TERBILANG DI SINI ---
+        hari: days[dateObj.getDay()] ? days[dateObj.getDay()].toUpperCase() : '-',
+        tanggal_terbilang: Utils.toWords(dateObj.getDate()).toUpperCase(),
+        bulan: months[dateObj.getMonth()] ? months[dateObj.getMonth()].toUpperCase() : '-',
+        tahun_terbilang: Utils.toWords(dateObj.getFullYear()).toUpperCase(),
+        tanggal_numerik: Utils.formatDate(finalDate),
+        tanggal_negosiasi: Utils.formatDate(finalDate)
+    };
+}
                 // 2. Logika Penomoran Dokumen
                 const aliases = {
             'Nota Dinas': 'NOTA_DINAS',
