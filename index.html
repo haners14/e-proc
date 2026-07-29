@@ -395,7 +395,7 @@
                     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
                     const d = new Date(dateString);
                     return days[d.getDay()] || '';
-                }
+                },
             getBadge: (status) => {
                 const text = status ? status.toString().toUpperCase() : 'UNKNOWN';
                 const map = { 
