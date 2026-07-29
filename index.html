@@ -6737,6 +6737,10 @@ renderSignPage(container, itemId) {
         tanggal_negosiasi: Utils.formatDate(finalDate)
     };
 }
+
+            if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
+                const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
+            
                 // 2. Logika Penomoran Dokumen
                 const aliases = {
             'Nota Dinas': 'NOTA_DINAS',
