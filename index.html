@@ -6718,17 +6718,78 @@ renderSignPage(container, itemId) {
     if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
     const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
 
-    // Logika pemecah tanggal terbilang
+    // 2. Logika Penomoran Dokumen
+    const aliases = {
+        'Nota Dinas': 'NOTA_DINAS',
+        'Uraian Singkat': 'URAIAN_SINGKAT',
+        'KAK': 'KAK',
+        'HPS/RAB': 'HPS_RAB',
+        'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
+        'BA Reviu Dokumen Persiapan': 'BA_REVIU',
+        'SDP': 'SDP',
+        'BA Evaluasi': 'BA_EVALUASI',
+        'Undangan Verifikasi': 'UND_VERIFIKASI',
+        'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
+        'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
+        'BA Negosiasi': 'BA_NEGOSIASI',
+        'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
+        'BA Hasil Pemilihan': 'BA_HASIL',
+        'SPPBJ': 'SPPBJ',
+        'Undangan Penandatanganan Kontrak': 'UND_KONTRAK',
+        'SPK': 'SPK',
+        'SSUK': 'SSUK',
+        'SSKK': 'SSKK',
+        'SPMK': 'SPMK',
+        'BAST': 'BAST',
+        'BAP': 'BAP'
+    };
+        
+    const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
+    const ruleList = DB.get('penomoran') || [];
+    let rule = ruleList.find(r => r.code === code || r.code === doc);
+        
+    if (!rule) {
+        if (doc.includes('Reviu')) rule = ruleList.find(r => r.code === 'BA_REVIU');
+        else if (doc.includes('Evaluasi')) rule = ruleList.find(r => r.code === 'BA_EVALUASI');
+        else if (doc.includes('Pembuktian')) rule = ruleList.find(r => r.code === 'BA_PEMBUKTIAN');
+        else if (doc.includes('Negosiasi')) rule = ruleList.find(r => r.code === 'BA_NEGOSIASI');
+        else if (doc.includes('Undangan')) rule = ruleList.find(r => r.code === 'UNDANGAN');
+        else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
+        else if (doc === 'SSUK' || doc === 'SSKK' || doc === 'SPMK') rule = ruleList.find(r => r.code === 'SPK');
+        else if (doc.includes('Rancangan Kontrak')) rule = ruleList.find(r => r.code === 'RANCANGAN_KONTRAK') || ruleList.find(r => r.code === 'SPK');
+    }
+        
+    let calcNumber = '';
+    if (rule) {
+        const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+        const d = new Date(`${dateForNumber}T00:00:00`);
+        const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
+        
+        const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
+        const allPkgs = DB.get('paket') || [];
+        const sortedPkgs = [...allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        const pkgIdx = sortedPkgs.findIndex(p => p.id === pkg.id);
+        const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
+        
+        calcNumber = rule.format
+             .replace(/\[keyword_penomoran\]/g, keyword)
+             .replace(/\[uraian\]/g, keyword) 
+             .replace(/\[bulan\]/g, toRoman(d.getMonth() + 1))
+             .replace(/\[tahun\]/g, d.getFullYear())
+             .replace(/\[nomor\]/g, seqNum);
+    }
+
+    const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
+
+    // 3. Logika Pemecah Tanggal Terbilang (Hari, Bulan, Tahun)
     const dateObj = new Date(finalDate || new Date());
     const days = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
     const months = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
 
+    // 4. Return Data Lengkap (Nomor, Tanggal, & Terbilang)
     return {
-        // --- PROPERTI BAWAAN YANG SUDAH ADA SEBELUMNYA ---
-        number: savedChecklist.manual_number || '-', // atau logika nomor bawaan Anda
+        number: finalNumber,
         date: finalDate,
-        
-        // --- TAMBAHKAN PROPERTI TERBILANG DI SINI ---
         hari: days[dateObj.getDay()] ? days[dateObj.getDay()].toUpperCase() : '-',
         tanggal_terbilang: Utils.toWords(dateObj.getDate()).toUpperCase(),
         bulan: months[dateObj.getMonth()] ? months[dateObj.getMonth()].toUpperCase() : '-',
@@ -6737,74 +6798,6 @@ renderSignPage(container, itemId) {
         tanggal_negosiasi: Utils.formatDate(finalDate)
     };
 }
-
-            if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
-                const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
-            
-                // 2. Logika Penomoran Dokumen
-                const aliases = {
-            'Nota Dinas': 'NOTA_DINAS',
-            'Uraian Singkat': 'URAIAN_SINGKAT',
-            'KAK': 'KAK',
-            'HPS/RAB': 'HPS_RAB',
-            'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
-            'BA Reviu Dokumen Persiapan': 'BA_REVIU',
-            'SDP': 'SDP',
-            'BA Evaluasi': 'BA_EVALUASI',
-            'Undangan Verifikasi': 'UND_VERIFIKASI',
-            'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
-            'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
-            'BA Negosiasi': 'BA_NEGOSIASI',
-            'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
-            'BA Hasil Pemilihan': 'BA_HASIL',
-            'SPPBJ': 'SPPBJ',
-            'Undangan Penandatanganan Kontrak': 'UND_KONTRAK',
-            'SPK': 'SPK',
-            'SSUK': 'SSUK',
-            'SSKK': 'SSKK',
-            'SPMK': 'SPMK',
-            'BAST': 'BAST',
-            'BAP': 'BAP'
-        };
-                
-                const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
-                const ruleList = DB.get('penomoran') || [];
-                let rule = ruleList.find(r => r.code === code || r.code === doc);
-                
-                if (!rule) {
-                    if (doc.includes('Reviu')) rule = ruleList.find(r => r.code === 'BA_REVIU');
-                    else if (doc.includes('Evaluasi')) rule = ruleList.find(r => r.code === 'BA_EVALUASI');
-                    else if (doc.includes('Pembuktian')) rule = ruleList.find(r => r.code === 'BA_PEMBUKTIAN');
-                    else if (doc.includes('Negosiasi')) rule = ruleList.find(r => r.code === 'BA_NEGOSIASI');
-                    else if (doc.includes('Undangan')) rule = ruleList.find(r => r.code === 'UNDANGAN');
-                    else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
-                    else if (doc === 'SSUK' || doc === 'SSKK' || doc === 'SPMK') rule = ruleList.find(r => r.code === 'SPK');
-                    else if (doc.includes('Rancangan Kontrak')) rule = ruleList.find(r => r.code === 'RANCANGAN_KONTRAK') || ruleList.find(r => r.code === 'SPK');
-                }
-                
-                let calcNumber = '';
-                if (rule) {
-                    const dateForNumber = finalDate || pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().split('T')[0];
-                    const d = new Date(`${dateForNumber}T00:00:00`);
-                    const toRoman = (num) => ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"][num-1] || "";
-                    
-                    const keyword = pkg.keyword_penomoran || pkg.uraian || 'PKT';
-                    const allPkgs = DB.get('paket') || [];
-                    const sortedPkgs = [...allPkgs].sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-                    const pkgIdx = sortedPkgs.findIndex(p => p.id === pkg.id);
-                    const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
-                    
-                    calcNumber = rule.format
-                                 .replace(/\[keyword_penomoran\]/g, keyword)
-                                 .replace(/\[uraian\]/g, keyword) 
-                                 .replace(/\[bulan\]/g, toRoman(d.getMonth() + 1))
-                                 .replace(/\[tahun\]/g, d.getFullYear())
-                                 .replace(/\[nomor\]/g, seqNum);
-                }
-
-                const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
-                return { number: finalNumber, date: finalDate };
-            }
 
             printDocument(title, content, customStyle = '') {
                 const win = window.open('', '_blank'); 
