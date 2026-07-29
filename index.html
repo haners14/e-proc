@@ -6595,7 +6595,7 @@ renderSignPage(container, itemId) {
                     nama_paket: pkg.name, nama_rekening: pkg.nama_rekening || "-", sumber_dana: pkg.sumber_pembiayaan || "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 30} Hari Kalender`,
                     nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
-                    nama_paket_upper: (pkg.pkg.name || "-").toUpperCase(),
+                    nama_paket_upper: (pkg.name || "-").toUpperCase(),
                     
                     hps_nominal: Utils.formatNumber(hpsRound),
                     hps_terbilang: Utils.toWords(hpsRound) + " rupiah",
