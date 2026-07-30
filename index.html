@@ -3019,7 +3019,7 @@ checkSession() {
                 this.notify('Data Header dan Detail berhasil diexport ke file Excel terpisah', 'success');
             }
 
-            ownloadTemplatePencairan() {
+            downloadTemplatePencairan() {
                 const wb = XLSX.utils.book_new();
 
                 // Template Header
@@ -6058,6 +6058,7 @@ renderSignPage(container, itemId) {
                 `;
                 tbody.appendChild(tr);
                 }
+            }
 
                 tr.querySelector('.money-input').addEventListener('input', function(e) {
                     let val = String(e.target.value).replace(/\D/g, '');
