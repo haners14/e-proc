@@ -6731,44 +6731,17 @@ renderSignPage(container, itemId) {
 
     // 2. Logika Penomoran Dokumen
     const aliases = {
-        'Nota Dinas': 'NOTA_DINAS',
-        'Uraian Singkat': 'URAIAN_SINGKAT',
-        'KAK': 'KAK',
-        'HPS/RAB': 'HPS_RAB',
-        'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
-        'BA Reviu Dokumen Persiapan': 'BA_REVIU',
-        'SDP': 'SDP',
-        'BA Evaluasi': 'BA_EVALUASI',
-        'Undangan Verifikasi': 'UND_VERIFIKASI',
-        'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
-        'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
-        'BA Negosiasi': 'BA_NEGOSIASI',
-        'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
-        'BA Hasil Pemilihan': 'BA_HASIL',
-        'SPPBJ': 'SPPBJ',
-        'Undangan Penandatanganan Kontrak': 'UND_KONTRAK',
-        'SPK': 'SPK',
-        'SSUK': 'SSUK',
-        'SSKK': 'SSKK',
-        'SPMK': 'SPMK',
-        'BAST': 'BAST',
-        'BAP': 'BAP'
+        'Nota Dinas': 'NOTA_DINAS', 'Uraian Singkat': 'URAIAN_SINGKAT', 'KAK': 'KAK',
+        'HPS/RAB': 'HPS_RAB', 'Rancangan Kontrak': 'RANCANGAN_KONTRAK', 'BA Reviu Dokumen Persiapan': 'BA_REVIU',
+        'SDP': 'SDP', 'BA Evaluasi': 'BA_EVALUASI', 'Undangan Verifikasi': 'UND_VERIFIKASI',
+        'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN', 'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
+        'BA Negosiasi': 'BA_NEGOSIASI', 'BA Hasil Pemilihan': 'BA_HASIL', 'SPPBJ': 'SPPBJ',
+        'SPK': 'SPK', 'SSUK': 'SSUK', 'SSKK': 'SSKK', 'SPMK': 'SPMK', 'BAST': 'BAST', 'BAP': 'BAP'
     };
         
     const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
     const ruleList = DB.get('penomoran') || [];
     let rule = ruleList.find(r => r.code === code || r.code === doc);
-        
-    if (!rule) {
-        if (doc.includes('Reviu')) rule = ruleList.find(r => r.code === 'BA_REVIU');
-        else if (doc.includes('Evaluasi')) rule = ruleList.find(r => r.code === 'BA_EVALUASI');
-        else if (doc.includes('Pembuktian')) rule = ruleList.find(r => r.code === 'BA_PEMBUKTIAN');
-        else if (doc.includes('Negosiasi')) rule = ruleList.find(r => r.code === 'BA_NEGOSIASI');
-        else if (doc.includes('Undangan')) rule = ruleList.find(r => r.code === 'UNDANGAN');
-        else if (doc.includes('Hasil Pemilihan')) rule = ruleList.find(r => r.code === 'BA_HASIL');
-        else if (doc === 'SSUK' || doc === 'SSKK' || doc === 'SPMK') rule = ruleList.find(r => r.code === 'SPK');
-        else if (doc.includes('Rancangan Kontrak')) rule = ruleList.find(r => r.code === 'RANCANGAN_KONTRAK') || ruleList.find(r => r.code === 'SPK');
-    }
         
     let calcNumber = '';
     if (rule) {
@@ -6792,12 +6765,11 @@ renderSignPage(container, itemId) {
 
     const finalNumber = savedChecklist.manual_number !== undefined ? savedChecklist.manual_number : calcNumber;
 
-    // 3. Logika Pemecah Tanggal Terbilang (Hari, Bulan, Tahun)
+    // 3. Logika Pemecah Tanggal Terbilang
     const dateObj = new Date(finalDate || new Date());
     const days = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
     const months = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
 
-    // 4. Return Data Lengkap (Nomor, Tanggal, & Terbilang)
     return {
         number: finalNumber,
         date: finalDate,
