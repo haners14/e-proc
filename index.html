@@ -6199,151 +6199,150 @@ renderSignPage(container, itemId) {
             
 
             printLampiranPencairan(pencairanId) {
-                const header = DB.getById('pencairan', pencairanId);
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
-                const rekenings = DB.get('master_rekening') || [];
-                const masterPajak = DB.get('master_pajak') || [];
+    const header = DB.getById('pencairan', pencairanId);
+    const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
+    const rekenings = DB.get('master_rekening') || [];
+    const masterPajak = DB.get('master_pajak') || [];
 
-                let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
+    let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
 
-                const rowsHtml = items.map((item, idx) => {
-                    const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-' };
-                    const bruto = Number(item.subtotal || item.harga || 0);
-                    
-                    let ppn = Number(item.pajak_ppn || 0);
-                    let pph21 = Number(item.pajak_pph21 || 0);
-                    let pph22 = Number(item.pajak_pph22 || 0);
-                    let pph23 = Number(item.pajak_pph23 || 0);
-                    let pph42 = Number(item.pajak_pph42 || 0);
+    const rowsHtml = items.map((item, idx) => {
+        const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-' };
+        const bruto = Number(item.subtotal || item.harga || 0);
+        
+        let ppn = Number(item.pajak_ppn || 0);
+        let pph21 = Number(item.pajak_pph21 || 0);
+        let pph22 = Number(item.pajak_pph22 || 0);
+        let pph23 = Number(item.pajak_pph23 || 0);
+        let pph42 = Number(item.pajak_pph42 || 0);
 
-                    if (item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0 && ppn === 0)) {
-                        const taxRec = masterPajak.find(p => p.id === item.pajak_id);
-                        const taxVal = Number(item.nilai_pajak || item.pph || 0);
-                        const taxPpnVal = Number(item.ppn || 0);
+        if (item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0 && ppn === 0)) {
+            const taxRec = masterPajak.find(p => p.id === item.pajak_id);
+            const taxVal = Number(item.nilai_pajak || item.pph || 0);
+            const taxPpnVal = Number(item.ppn || 0);
 
-                        if (taxRec) {
-                            if (taxRec.ppn) ppn = taxPpnVal || taxVal;
-                            const tName = (taxRec.jenis_pph || '').toUpperCase();
-                            if (tName.includes('21')) pph21 = taxVal;
-                            else if (tName.includes('22')) pph22 = taxVal;
-                            else if (tName.includes('23')) pph23 = taxVal;
-                            else if (tName.includes('4 AYAT') || tName.includes('4(2)')) pph42 = taxVal;
-                        } else {
-                            pph21 = Number(item.pph || item.nilai_pajak || 0);
-                        }
-                    } else if (!item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0)) {
-                        pph21 = Number(item.pph || item.nilai_pajak || 0);
-                    }
-
-                    // Total potongan adalah penjumlahan seluruh jenis pajak (misal PPN + PPh)
-                    const pot = ppn + pph21 + pph22 + pph23 + pph42;
-                    
-                    // Sesuai permintaan: Jumlah yang dibayarkan = Bruto - Jumlah Potongan
-                    const dibayar = bruto - pot;
-
-                    totBruto += bruto; totPPN += ppn; totPPh21 += pph21; totPPh22 += pph22; totPPh23 += pph23; totPPh42 += pph42; totPotongan += pot; totDibayar += dibayar;
-
-                    return `
-                        <tr>
-                            <td class="c">${idx + 1}</td>
-                            <td>${rek.kode}</td>
-                            <td><b>${item.uraian || '-'}</b></td>
-                            <td>${item.nama_penerima || '-'}</td>
-                            <td class="c">${item.bank || '-'}</td>
-                            <td>${item.no_rekening || '-'}</td>
-                            <td class="r">${Utils.formatNumber(bruto)}</td>
-                            <td class="r">${ppn ? Utils.formatNumber(ppn) : '-'}</td>
-                            <td class="r">${pph21 ? Utils.formatNumber(pph21) : '-'}</td>
-                            <td class="r">${pph22 ? Utils.formatNumber(pph22) : '-'}</td>
-                            <td class="r">${pph23 ? Utils.formatNumber(pph23) : '-'}</td>
-                            <td class="r">${pph42 ? Utils.formatNumber(pph42) : '-'}</td>
-                            <td class="r font-semibold">${pot ? Utils.formatNumber(pot) : '-'}</td>
-                            <td class="r font-bold">${Utils.formatNumber(dibayar)}</td>
-                        </tr>
-                    `;
-                }).join('');
-
-                const content = `
-                    <div class="header" style="text-align: center; font-weight: bold; font-size: 11pt; margin-bottom: 15px;">
-                        LAMPIRAN PERMINTAAN PEMBAYARAN
-                    </div>
-
-                    <table class="meta-info" style="width: 100%; border: none; margin-bottom: 10px; font-size: 9pt;">
-                        <tr><td style="width: 160px; border:none;">Nama Sub Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${header.sub_kegiatan || '-'}</td></tr>
-                        <tr><td style="border:none;">Kode Kegiatan</td><td style="border:none;">:</td><td style="border:none;">5.02.03.2.01.0010</td></tr>
-                        <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juli'} 2026</td></tr>
-                    </table>
-
-                    <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 8pt;">
-                        <thead>
-                            <tr>
-                                <th rowspan="2">No</th>
-                                <th rowspan="2">Kode Rekening</th>
-                                <th rowspan="2">Keperluan</th>
-                                <th rowspan="2">Nama Penerima</th>
-                                <th rowspan="2">Nama Bank</th>
-                                <th rowspan="2">Kode Rekening (Bank)</th>
-                                <th rowspan="2">Jumlah</th>
-                                <th colspan="5">Potongan</th>
-                                <th rowspan="2">Jumlah Potongan</th>
-                                <th rowspan="2">Jumlah yang dibayarkan</th>
-                            </tr>
-                            <tr>
-                                <th>PPN</th>
-                                <th>PPh Psl 21</th>
-                                <th>PPh Psl 22</th>
-                                <th>PPh Psl 23</th>
-                                <th>PPh Psl 4 Ayat 2</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rowsHtml}
-                        </tbody>
-                        <tfoot>
-                            <tr class="font-bold">
-                                <td colspan="6" class="r">Jumlah Total</td>
-                                <td class="r">${Utils.formatNumber(totBruto)}</td>
-                                <td class="r">${totPPN ? Utils.formatNumber(totPPN) : '-'}</td>
-                                <td class="r">${totPPh21 ? Utils.formatNumber(totPPh21) : '-'}</td>
-                                <td class="r">${totPPh22 ? Utils.formatNumber(totPPh22) : '-'}</td>
-                                <td class="r">${totPPh23 ? Utils.formatNumber(totPPh23) : '-'}</td>
-                                <td class="r">${totPPh42 ? Utils.formatNumber(totPPh42) : '-'}</td>
-                                <td class="r">${totPotongan ? Utils.formatNumber(totPotongan) : '-'}</td>
-                                <td class="r">${Utils.formatNumber(totDibayar)}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-
-                    <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 9pt;">
-                        <div class="ttd-left" style="text-align: center; width: 250px;">
-                            <p>Mengetahui</p>
-                            <p><b>PPTK</b></p>
-                            <br><br><br>
-                            <p><u><b>AGIH PRIBADI KUSUMAH, S.E., M.Si</b></u></p>
-                            <p>NIP. 198503292011011001</p>
-                        </div>
-                        <div class="ttd-right" style="text-align: center; width: 250px;">
-                            <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${header.bulan || 'Juli'} 2026</p>
-                            <p><b>Bendahara</b></p>
-                            <br><br><br>
-                            <p><u><b>RIKKA FENDRIANI</b></u></p>
-                            <p>NIP. 197102131997032001</p>
-                        </div>
-                    </div>
-                `;
-
-                const customStyle = `
-                    @page { size: landscape; margin: 10mm; }
-                    body { font-family: 'Times New Roman', Times, serif; color: #000; }
-                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px; }
-                    .tbl-main th { text-align: center; background: #f3f4f6; }
-                    .c { text-align: center; }
-                    .r { text-align: right; }
-                    .font-bold { font-weight: bold; }
-                `;
-
-                this.printDocument('Lampiran Permintaan Pembayaran', content, customStyle);
+            if (taxRec) {
+                if (taxRec.ppn) ppn = taxPpnVal || taxVal;
+                const tName = (taxRec.jenis_pph || '').toUpperCase();
+                if (tName.includes('21')) pph21 = taxVal;
+                else if (tName.includes('22')) pph22 = taxVal;
+                else if (tName.includes('23')) pph23 = taxVal;
+                else if (tName.includes('4 AYAT') || tName.includes('4(2)')) pph42 = taxVal;
+            } else {
+                pph21 = Number(item.pph || item.nilai_pajak || 0);
             }
+        } else if (!item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0)) {
+            pph21 = Number(item.pph || item.nilai_pajak || 0);
+        }
+
+        const pot = ppn + pph21 + pph22 + pph23 + pph42;
+        const dibayar = bruto - pot;
+
+        totBruto += bruto; totPPN += ppn; totPPh21 += pph21; totPPh22 += pph22; totPPh23 += pph23; totPPh42 += pph42; totPotongan += pot; totDibayar += dibayar;
+
+        return `
+            <tr>
+                <td class="c">${idx + 1}</td>
+                <td>${rek.kode}</td>
+                <td><b>${item.uraian || '-'}</b></td>
+                <td>${item.nama_penerima || '-'}</td>
+                <td class="c">${item.bank || '-'}</td>
+                <td>${item.nama_penerima || '-'}</td> <!-- Kolom Nama Rekening -->
+                <td class="c">${item.no_rekening || '-'}</td>
+                <td class="r">${Utils.formatNumber(bruto)}</td>
+                <td class="r">${ppn ? Utils.formatNumber(ppn) : '-'}</td>
+                <td class="r">${pph21 ? Utils.formatNumber(pph21) : '-'}</td>
+                <td class="r">${pph22 ? Utils.formatNumber(pph22) : '-'}</td>
+                <td class="r">${pph23 ? Utils.formatNumber(pph23) : '-'}</td>
+                <td class="r">${pph42 ? Utils.formatNumber(pph42) : '-'}</td>
+                <td class="r font-semibold">${pot ? Utils.formatNumber(pot) : '-'}</td>
+                <td class="r font-bold">${Utils.formatNumber(dibayar)}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const content = `
+        <div class="header" style="text-align: center; font-weight: bold; font-size: 11pt; margin-bottom: 15px;">
+            LAMPIRAN PERMINTAAN PEMBAYARAN
+        </div>
+
+        <table class="meta-info" style="width: 100%; border: none; margin-bottom: 10px; font-size: 9pt;">
+            <tr><td style="width: 160px; border:none;">Nama Sub Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${header.sub_kegiatan || '-'}</td></tr>
+            <tr><td style="border:none;">Kode Kegiatan</td><td style="border:none;">:</td><td style="border:none;">5.02.03.2.01.0010</td></tr>
+            <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juli'} 2026</td></tr>
+        </table>
+
+        <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 8pt;">
+            <thead>
+                <tr>
+                    <th rowspan="2">No</th>
+                    <th rowspan="2">Kode Rekening</th>
+                    <th rowspan="2">Keperluan</th>
+                    <th rowspan="2">Nama Penerima</th>
+                    <th rowspan="2">Nama Bank</th>
+                    <th rowspan="2">Nama Rekening</th>
+                    <th rowspan="2">Kode Rekening (Bank)</th>
+                    <th rowspan="2">Jumlah</th>
+                    <th colspan="5">Potongan</th>
+                    <th rowspan="2">Jumlah Potongan</th>
+                    <th rowspan="2">Jumlah yang dibayarkan</th>
+                </tr>
+                <tr>
+                    <th>PPN</th>
+                    <th>PPh Psl 21</th>
+                    <th>PPh Psl 22</th>
+                    <th>PPh Psl 23</th>
+                    <th>PPh Psl 4 Ayat 2</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+            <tfoot>
+                <tr class="font-bold">
+                    <td colspan="7" class="r">Jumlah Total</td>
+                    <td class="r">${Utils.formatNumber(totBruto)}</td>
+                    <td class="r">${totPPN ? Utils.formatNumber(totPPN) : '-'}</td>
+                    <td class="r">${totPPh21 ? Utils.formatNumber(totPPh21) : '-'}</td>
+                    <td class="r">${totPPh22 ? Utils.formatNumber(totPPh22) : '-'}</td>
+                    <td class="r">${totPPh23 ? Utils.formatNumber(totPPh23) : '-'}</td>
+                    <td class="r">${totPPh42 ? Utils.formatNumber(totPPh42) : '-'}</td>
+                    <td class="r">${totPotongan ? Utils.formatNumber(totPotongan) : '-'}</td>
+                    <td class="r">${Utils.formatNumber(totDibayar)}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 9pt;">
+            <div class="ttd-left" style="text-align: center; width: 250px;">
+                <p>Mengetahui</p>
+                <p><b>PPTK</b></p>
+                <br><br><br>
+                <p><u><b>AGIH PRIBADI KUSUMAH, S.E., M.Si</b></u></p>
+                <p>NIP. 198503292011011001</p>
+            </div>
+            <div class="ttd-right" style="text-align: center; width: 250px;">
+                <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${header.bulan || 'Juli'} 2026</p>
+                <p><b>Bendahara</b></p>
+                <br><br><br>
+                <p><u><b>RIKKA FENDRIANI</b></u></p>
+                <p>NIP. 197102131997032001</p>
+            </div>
+        </div>
+    `;
+
+    const customStyle = `
+        @page { size: landscape; margin: 10mm; }
+        body { font-family: 'Times New Roman', Times, serif; color: #000; }
+        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px; }
+        .tbl-main th { text-align: center; background: #f3f4f6; }
+        .c { text-align: center; }
+        .r { text-align: right; }
+        .font-bold { font-weight: bold; }
+    `;
+
+    this.printDocument('Lampiran Permintaan Pembayaran', content, customStyle);
+}
 
             
 
