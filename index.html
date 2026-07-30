@@ -4538,7 +4538,7 @@ renderSignPage(container, itemId) {
                         <td style="${borderDashed} text-align: right; font-weight: 600; white-space: nowrap;">${Utils.formatNumber(r.pagu_calc)}</td>
                         ${monthCols}
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: #15803d; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
-                        <td style="${borderDashed} text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
+                        <td style="${borderDashed text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
                         
                         <td style="${style} ${borderDashed} text-align: center; vertical-align: middle;">
                             <div class="flex justify-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
@@ -6001,6 +6001,8 @@ renderSignPage(container, itemId) {
 
             tambahBarisDetailItem() {
                 const tbody = document.querySelector('#table-detail-items tbody');
+                if (!tbody) return;
+
                 const count = tbody.querySelectorAll('tr').length + 1;
                 const rekenings = DB.get('master_rekening') || [];
                 const masterPajak = DB.get('master_pajak') || [];
@@ -6016,48 +6018,31 @@ renderSignPage(container, itemId) {
                     <td class="p-3 text-center align-middle font-bold">${count}</td>
                     <td class="p-3">
                         <div class="space-y-2">
-                            <select class="form-control item-rekening text-xs font-semibold" required>
-                                <option value="">-- Pilih Kode Rekening DPA --</option>
+                            <select class="form-control item-rekening">
+                                <option value="">-- Pilih Rekening --</option>
                                 ${optsRekening}
                             </select>
-                            <textarea class="form-control item-uraian text-xs" rows="2" placeholder="Uraian / Keperluan Pembayaran"></textarea>
                         </div>
                     </td>
                     <td class="p-3">
-                        <div class="space-y-2">
-                            <select class="form-control item-penyedia text-xs" onchange="app.autofillPenyediaDetail(this)">
-                                <option value="">-- Pilih dari Master Penyedia --</option>
-                                ${optsPenyedia}
-                            </select>
-                            <input type="text" class="form-control item-nama-penerima text-xs" placeholder="Nama Penerima / Rekanan">
-                        </div>
+                        <select class="form-control item-penyedia">
+                            <option value="">-- Pilih Penyedia --</option>
+                            ${optsPenyedia}
+                        </select>
                     </td>
                     <td class="p-3">
-                        <div class="space-y-2">
-                            <input type="text" class="form-control item-bank text-xs" placeholder="Nama Bank (Cth: BJB)">
-                            <input type="text" class="form-control item-norek text-xs font-mono" placeholder="Nomor Rekening">
-                        </div>
+                        <select class="form-control item-pajak">
+                            <option value="">-- Pilih Pajak --</option>
+                            ${optsPajak}
+                        </select>
                     </td>
-                    <td class="p-3">
-                        <input type="text" inputmode="numeric" class="form-control money-input item-jumlah font-bold text-right text-sm" value="0" oninput="app.hitungItemDetail(this)">
-                    </td>
-                    <td class="p-3">
-                        <div class="space-y-2">
-                            <select class="form-control item-pajak-profil text-xs" onchange="app.hitungItemDetail(this)">
-                                <option value="">-- Tanpa Pajak --</option>
-                                ${optsPajak}
-                            </select>
-                            <div class="text-[11px] bg-gray-50 p-1.5 rounded border text-gray-600">
-                                PPN: <span class="val-ppn font-semibold text-gray-900">0</span><br>
-                                PPh: <span class="val-pph font-semibold text-gray-900">0</span>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="p-3 text-center align-middle">
-                        <button type="button" class="btn btn-ghost btn-sm text-danger hover:bg-red-50 p-2" onclick="this.closest('tr').remove();"><i class="ph ph-trash text-lg"></i></button>
+                    <td class="p-3 text-center">
+                        <button type="button" class="btn btn-ghost btn-sm text-danger" onclick="this.closest('tr').remove()"><i class="ph ph-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
+            }
+        }
 
                 tr.querySelector('.money-input').addEventListener('input', function(e) {
                     let val = String(e.target.value).replace(/\D/g, '');
@@ -7114,6 +7099,7 @@ renderSignPage(container, itemId) {
             try { DB.cache['pinned_packages'] = JSON.parse(localStorage.getItem('pf_pinned')) || []; } catch(e) {}
             window.app = new App(); 
         });
+        const app = new App();
     </script>
 </body>
 </html>
