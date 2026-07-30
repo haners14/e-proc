@@ -5872,103 +5872,110 @@ renderSignPage(container, itemId) {
                 document.getElementById('detail_norek').value = opt.getAttribute('data-norek') || '';
             }
 
-            hitungPajakDetailItem() {
-                // 1. Ambil nilai Jumlah dan Nilai Satuan
-                const qty = parseFloat(document.getElementById('detail_jumlah')?.value) || 0;
-                const nilaiSatuan = parseFloat(String(document.getElementById('detail_nilai')?.value || '0').replace(/\D/g, '')) || 0;
-                
-                // 2. Kalkulasi Bruto (Jumlah x Nilai Satuan)
-                const brutoVal = qty * nilaiSatuan;
-                
-                // Update tampilan input Bruto
-                const elBruto = document.getElementById('detail_bruto');
-                if (elBruto) elBruto.value = Utils.formatNumber(brutoVal);
+           hitungPajakDetailItem() {
+    const qty = parseFloat(document.getElementById('detail_jumlah')?.value) || 1;
+    const nilaiSatuan = parseFloat(String(document.getElementById('detail_nilai')?.value || '0').replace(/\D/g, '')) || 0;
+    const brutoVal = qty * nilaiSatuan;
 
-                const pajakSelect = document.getElementById('detail_master_pajak');
-                const optPajak = pajakSelect?.options[pajakSelect.selectedIndex];
+    const pajakSelect = document.getElementById('detail_master_pajak');
+    const optPajak = pajakSelect?.options[pajakSelect.selectedIndex];
 
-                let dpp = 0;
-                let ppn = 0;
-                let pph = 0;
+    let dpp = brutoVal;
+    let ppn = 0;
+    let pph = 0;
 
-                if (optPajak && optPajak.value) {
-                    const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
-                    const isPpn = optPajak.getAttribute('data-ppn') === 'true';
+    if (optPajak && optPajak.value) {
+        const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
+        const isPpn = optPajak.getAttribute('data-ppn') === 'true';
 
-                    if (isPpn) {
-                        dpp = Math.round(brutoVal / 1.11);
-                        ppn = brutoVal - dpp;
-                    } else {
-                        dpp = brutoVal;
-                    }
+        // Perbaikan rumus sesuai standar pelaporan (DPP dari Bruto / 1.11 jika ada PPN)
+        if (isPpn) {
+            dpp = Math.round(brutoVal / 1.11);
+            ppn = brutoVal - dpp;
+        } else {
+            dpp = brutoVal;
+        }
 
-                    pph = Math.round(dpp * (tarif / 100));
-                } else {
-                    dpp = brutoVal;
-                }
+        // PPh dihitung dari DPP, bukan dari Bruto
+        pph = Math.round(dpp * (tarif / 100));
+    }
 
-                // Jumlah Dibayarkan (Bersih) = Bruto dikurangi seluruh potongan (PPN dan PPh)
-                const totalBersih = brutoVal - ppn - pph;
+    const totalBersih = brutoVal - ppn - pph;
 
-                if (document.getElementById('sim_dpp')) document.getElementById('sim_dpp').innerText = `Rp ${Utils.formatNumber(dpp)}`;
-                if (document.getElementById('sim_ppn')) document.getElementById('sim_ppn').innerText = `Rp ${Utils.formatNumber(ppn)}`;
-                if (document.getElementById('sim_pph')) document.getElementById('sim_pph').innerText = `Rp ${Utils.formatNumber(pph)}`;
-                if (document.getElementById('sim_total')) document.getElementById('sim_total').innerText = `Rp ${Utils.formatNumber(totalBersih)}`;
-            }
+    // Update elemen tampilan simulasi
+    if (document.getElementById('detail_bruto')) document.getElementById('detail_bruto').value = Utils.formatNumber(brutoVal);
+    if (document.getElementById('sim_dpp')) document.getElementById('sim_dpp').innerText = `Rp ${Utils.formatNumber(dpp)}`;
+    if (document.getElementById('sim_ppn')) document.getElementById('sim_ppn').innerText = `Rp ${Utils.formatNumber(ppn)}`;
+    if (document.getElementById('sim_pph')) document.getElementById('sim_pph').innerText = `Rp ${Utils.formatNumber(pph)}`;
+    if (document.getElementById('sim_total')) document.getElementById('sim_total').innerText = `Rp ${Utils.formatNumber(totalBersih)}`;
+}
 
             simpanItemPencairanBaru(pencairanId, itemId = null) {
-                const rekeningId = document.getElementById('detail_rekening_id').value;
-                const uraian = document.getElementById('detail_uraian').value;
-                const namaPenerima = document.getElementById('detail_nama_penerima').value;
-                const bank = document.getElementById('detail_bank').value;
-                const noRekening = document.getElementById('detail_norek').value;
-                
-                // Ambil Jumlah dan Harga Satuan
-                const qty = parseFloat(document.getElementById('detail_jumlah').value) || 1;
-                const harga = parseFloat(String(document.getElementById('detail_nilai').value).replace(/\D/g, '')) || 0;
-                const bruto = qty * harga; // Total Bruto
+    const rekeningId = document.getElementById('detail_rekening_id').value;
+    const uraian = document.getElementById('detail_uraian').value;
+    const namaPenerima = document.getElementById('detail_nama_penerima').value;
+    const bank = document.getElementById('detail_bank').value;
+    const noRekening = document.getElementById('detail_norek').value;
+    
+    const qty = parseFloat(document.getElementById('detail_jumlah').value) || 1;
+    const harga = parseFloat(String(document.getElementById('detail_nilai').value).replace(/\D/g, '')) || 0;
+    const bruto = qty * harga; 
 
-                const pajakId = document.getElementById('detail_master_pajak').value;
+    const pajakId = document.getElementById('detail_master_pajak').value;
 
-                if (!rekeningId || !uraian || !namaPenerima || bruto <= 0) {
-                    return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, jumlah dan nilai satuan.', 'error');
-                }
+    if (!rekeningId || !uraian || !namaPenerima || bruto <= 0) {
+        return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, jumlah dan nilai satuan.', 'error');
+    }
 
-                let dpp = bruto;
-                let ppn = 0;
-                let pph = 0;
+    let dpp = bruto;
+    let ppn = 0;
+    let pph = 0;
+    let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
 
-                const pajakSelect = document.getElementById('detail_master_pajak');
-                if (pajakSelect && pajakSelect.value) {
-                    const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
-                    const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
-                    const isPpn = optPajak.getAttribute('data-ppn') === 'true';
+    const pajakSelect = document.getElementById('detail_master_pajak');
+    if (pajakSelect && pajakSelect.value) {
+        const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
+        const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
+        const isPpn = optPajak.getAttribute('data-ppn') === 'true';
+        const jenisPph = (optPajak.getAttribute('data-jenis') || '').toUpperCase();
 
-                    if (isPpn) {
-                        dpp = Math.round(bruto / 1.11);
-                        ppn = bruto - dpp;
-                    }
-                    pph = Math.round(dpp * (tarif / 100));
-                }
+        if (isPpn) {
+            dpp = Math.round(bruto / 1.11);
+            ppn = bruto - dpp;
+        }
+        pph = Math.round(dpp * (tarif / 100));
 
-                const totalPotongan = ppn + pph;
-                const jumlahDibayarkan = bruto - totalPotongan;
+        // Petakan ke kolom jenis PPh spesifik agar tabel lampiran terisi otomatis
+        if (jenisPph.includes('21')) pph21 = pph;
+        else if (jenisPph.includes('22')) pph22 = pph;
+        else if (jenisPph.includes('23')) pph23 = pph;
+        else if (jenisPph.includes('4') || jenisPph.includes('AYAT 2')) pph42 = pph;
+    }
 
-                // Payload disesuaikan agar tersimpan di Supabase
-                const itemPayload = {
-                    pencairan_id: pencairanId,
-                    rekening_id: rekeningId,
-                    uraian: uraian,
-                    nama_penerima: namaPenerima,
-                    bank: bank,
-                    no_rekening: noRekening,
-                    qty: qty,                 // Simpan Jumlah (Quantity)
-                    harga: harga,             // Simpan Nilai Satuan
-                    subtotal: bruto,          // Simpan Total Bruto
-                    pajak_id: pajakId || null,
-                    nilai_pajak: totalPotongan,
-                    total: jumlahDibayarkan
-                };
+    const totalPotongan = ppn + pph;
+    const jumlahDibayarkan = bruto - totalPotongan;
+
+    const itemPayload = {
+        pencairan_id: pencairanId,
+        rekening_id: rekeningId,
+        uraian: uraian,
+        nama_penerima: namaPenerima,
+        bank: bank,
+        no_rekening: noRekening,
+        qty: qty,
+        harga: harga,
+        subtotal: bruto,
+        pajak_id: pajakId || null,
+        nilai_pajak: totalPotongan,
+        ppn: ppn,
+        pph: pph,
+        pajak_ppn: ppn,
+        pajak_pph21: pph21,
+        pajak_pph22: pph22,
+        pajak_pph23: pph23,
+        pajak_pph42: pph42,
+        total: jumlahDibayarkan
+    };
 
                 if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
 
