@@ -6207,7 +6207,7 @@ renderSignPage(container, itemId) {
     let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
 
     const rowsHtml = items.map((item, idx) => {
-        const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-' };
+        const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-', uraian: '-' };
         const bruto = Number(item.subtotal || item.harga || 0);
         
         let ppn = Number(item.pajak_ppn || 0);
@@ -6244,10 +6244,10 @@ renderSignPage(container, itemId) {
             <tr>
                 <td class="c">${idx + 1}</td>
                 <td>${rek.kode}</td>
+                <td>${rek.uraian || '-'}</td>
                 <td><b>${item.uraian || '-'}</b></td>
                 <td>${item.nama_penerima || '-'}</td>
                 <td class="c">${item.bank || '-'}</td>
-                <td>${item.nama_penerima || '-'}</td> <!-- Kolom Nama Rekening -->
                 <td class="c">${item.no_rekening || '-'}</td>
                 <td class="r">${Utils.formatNumber(bruto)}</td>
                 <td class="r">${ppn ? Utils.formatNumber(ppn) : '-'}</td>
@@ -6277,10 +6277,10 @@ renderSignPage(container, itemId) {
                 <tr>
                     <th rowspan="2">No</th>
                     <th rowspan="2">Kode Rekening</th>
+                    <th rowspan="2">Uraian Rekening</th>
                     <th rowspan="2">Keperluan</th>
                     <th rowspan="2">Nama Penerima</th>
                     <th rowspan="2">Nama Bank</th>
-                    <th rowspan="2">Nama Rekening</th>
                     <th rowspan="2">Kode Rekening (Bank)</th>
                     <th rowspan="2">Jumlah</th>
                     <th colspan="5">Potongan</th>
