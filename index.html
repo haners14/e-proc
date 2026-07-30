@@ -2225,6 +2225,8 @@
                     }
                     
                     calculated.push({ ...r, start, end, isManual });
+
+                    });
                 
                 let rows = calculated.map((r,i) => {
                     return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : ''}</td><td>${Utils.formatDateShort(r.start)}</td><td class="font-bold">${Utils.formatDateShort(r.end)}</td><td>${r.duration} hari kerja</td></tr>`
