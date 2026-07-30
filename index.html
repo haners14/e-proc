@@ -2764,7 +2764,113 @@
                 this.init(); 
             }
             
-        updateHeaderUI() {
+
+            exportPaket() {
+    const paketList = DB.get('paket') || [];
+    if (paketList.length === 0) {
+        return this.notify('Tidak ada data paket untuk diexport', 'error');
+    }
+
+    const data = paketList.map((p, idx) => ({
+        "ID Paket": p.id || '',
+        "Nama Pekerjaan": p.name || '',
+        "Uraian / Penanda": p.uraian || '',
+        "Nilai Pagu": Number(p.pagu) || 0,
+        "Metode Pemilihan": p.metode_pemilihan || 'Pengadaan Langsung',
+        "Tahapan": p.stage || 'BELUM PROSES',
+        "Tahun Anggaran": p.tahun_anggaran || '2026',
+        "Lokasi": p.lokasi || '',
+        "MAK": p.mak || '',
+        "Kode RUP": p.kode_rup || '',
+        "Durasi Kontrak (Hari)": Number(p.durasi_kontrak) || 30,
+        "Tanggal Mulai": p.tgl_mulai || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Daftar Paket");
+    XLSX.writeFile(wb, "Data_Master_Paket_Pengadaan.xlsx");
+    this.notify('Data paket berhasil diexport', 'success');
+}
+```[cite: 1, 2]
+
+### 2. Fungsi Import & Update Paket via Excel
+Fungsi ini mendeteksi apakah data paket sudah ada berdasarkan **ID Paket** atau **Nama Pekerjaan**. Jika sudah ada, sistem akan otomatis melakukan *update* (pembaruan data), dan jika belum, sistem akan memasukkannya sebagai data baru[cite: 1, 2].
+
+```javascript
+importPaket(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(firstSheet);
+
+            const existingPackages = DB.get('paket') || [];
+            let countUpdated = 0;
+            let countInserted = 0;
+
+            rows.forEach(r => {
+                const namaPaket = String(r["Nama Pekerjaan"] || r["Nama Paket"] || '').trim();
+                const idPaket = String(r["ID Paket"] || '').trim();
+                if (!namaPaket) return;
+
+                const paguVal = Number(String(r["Nilai Pagu"] || r["Pagu"] || '0').replace(/\D/g, '')) || 0;
+                const durasiVal = Number(r["Durasi Kontrak (Hari)"] || r["Durasi"] || 30);
+                const tglMulaiVal = String(r["Tanggal Mulai"] || r["Tgl Mulai"] || new Date().toISOString().split('T')[0]).trim();
+
+                const payload = {
+                    name: namaPaket,
+                    uraian: String(r["Uraian / Penanda"] || r["Uraian"] || '').trim(),
+                    pagu: paguVal,
+                    metode_pemilihan: String(r["Metode Pemilihan"] || r["Metode"] || 'Pengadaan Langsung').trim(),
+                    stage: String(r["Tahapan"] || 'BELUM PROSES').trim().toUpperCase(),
+                    tahun_anggaran: String(r["Tahun Anggaran"] || '2026').trim(),
+                    lokasi: String(r["Lokasi"] || '').trim(),
+                    mak: String(r["MAK"] || '').trim(),
+                    kode_rup: String(r["Kode RUP"] || '').trim(),
+                    durasi_kontrak: durasiVal,
+                    tgl_mulai: tglMulaiVal
+                };
+
+                // Cek apakah data sudah ada berdasarkan ID atau Nama Paket
+                let existing = null;
+                if (idPaket) {
+                    existing = existingPackages.find(p => String(p.id).toLowerCase() === idPaket.toLowerCase());
+                }
+                if (!existing) {
+                    existing = existingPackages.find(p => String(p.name).toLowerCase() === namaPaket.toLowerCase());
+                }
+
+                if (existing) {
+                    // Update data paket yang sudah ada
+                    DB.update('paket', existing.id, payload);
+                    countUpdated++;
+                } else {
+                    // Masukkan sebagai paket baru
+                    const newId = idPaket || Utils.generateId();
+                    DB.insert('paket', { id: newId, ...DEFAULTS, ...payload });
+                    countInserted++;
+                }
+            });
+
+            this.notify(`Import Selesai! Ditambahkan: ${countInserted}, Diperbarui: ${countUpdated}`, 'success');
+            this.reRenderCurrentView();
+        } catch (err) {
+            console.error(err);
+            this.notify('Gagal memproses file Excel Paket', 'error');
+        } finally {
+            event.target.value = ''; // Reset input file
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+        
+            updateHeaderUI() {
                 // Ambil data user yang sedang login dari localStorage
                 const sessionData = localStorage.getItem('userSession');
                 
