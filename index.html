@@ -4537,7 +4537,9 @@ renderSignPage(container, itemId) {
                         <td style="${borderDashed} text-align: right; font-weight: 600; white-space: nowrap;">${Utils.formatNumber(r.pagu_calc)}</td>
                         ${monthCols}
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: #15803d; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
-                        <td style="${borderDashed text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">${Utils.formatNumber(sisa)}</td>
+                       <td style="${borderDashed} text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">
+                            ${Utils.formatNumber(sisa)}
+                        </td>
                         
                         <td style="${style} ${borderDashed} text-align: center; vertical-align: middle;">
                             <div class="flex justify-center gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
