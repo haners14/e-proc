@@ -3120,14 +3120,7 @@ checkSession() {
     XLSX.writeFile(wb, "Data_Pengajuan_Pencairan_DPA.xlsx");
     this.notify('Data Header dan Detail berhasil diexport', 'success');
 }
-```[cite: 1, 2]
 
----
-
-### 2. Fungsi Download Template Excel
-Memudahkan Anda mendapatkan format excel baku yang sudah terbagi menjadi sheet Header dan Detail[cite: 1, 2].
-
-```javascript
 downloadTemplatePencairan() {
     const wb = XLSX.utils.book_new();
 
@@ -3149,14 +3142,7 @@ downloadTemplatePencairan() {
     XLSX.writeFile(wb, "Template_Import_Pencairan.xlsx");
     this.notify('Template Excel berhasil diunduh', 'success');
 }
-```[cite: 1, 2]
 
----
-
-### 3. Fungsi Import Sesuai Alur (Header Dulu, Baru Detail)
-Fungsi ini akan membaca file Excel Anda, memasukkan data **Header** terlebih dahulu ke database, mencatat ID-nya, lalu mencocokkan dan mengimpor baris **Detail** berdasarkan `Nomor Pengajuan (Relasi)`[cite: 1, 2].
-
-```javascript
 importPencairanExcel(event) {
     const file = event.target.files[0];
     if (!file) return;
