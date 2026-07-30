@@ -2793,10 +2793,6 @@
     this.notify('Data paket berhasil diexport', 'success');
 }
 
-### 2. Fungsi Import & Update Paket via Excel
-Fungsi ini mendeteksi apakah data paket sudah ada berdasarkan **ID Paket** atau **Nama Pekerjaan**. Jika sudah ada, sistem akan otomatis melakukan *update* (pembaruan data), dan jika belum, sistem akan memasukkannya sebagai data baru[cite: 1, 2].
-
-```javascript
 importPaket(event) {
     const file = event.target.files[0];
     if (!file) return;
