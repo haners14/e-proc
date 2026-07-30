@@ -196,6 +196,13 @@
         .draggable-row.dragging { opacity: 0.5; background-color: var(--primary-50); }
         .drag-handle { cursor: grab; font-size: 1.25rem; color: var(--gray-400); display: inline-flex; align-items: center; justify-content: center; width: 24px; }
         .drag-handle:active { cursor: grabbing; color: var(--primary-600); }
+
+        textarea.form-control {
+            resize: vertical;      /* Memungkinkan user memperbesar manual jika mau */
+            min-height: 90px;      /* Tinggi minimum kotak */
+            overflow-y: hidden;    /* Mencegah scrollbar bawaan browser muncul */
+            transition: height 0.1s ease; /* Efek transisi halus saat kotak memanjang */
+        }
     </style>
 </head>
 <body>
@@ -512,6 +519,18 @@
 
         const DB = {
             cache: {}, isReady: false,
+
+            get(table) { 
+        const sbTable = TABLE_MAP[table] || table;
+        // Selalu kembalikan array kosong jika cache belum terisi atau null
+        return this.cache[sbTable] || []; 
+    },
+    
+    getById(table, id) { 
+        const list = this.get(table);
+        return list.find(i => String(i.id) === String(id)) || null; 
+    },
+
             
            async init() {
                 if (this.isReady) return;
@@ -1544,6 +1563,24 @@
                 }
             }
 
+            initAutoResizeTextarea() {
+    const textareas = document.querySelectorAll('#form-kak textarea');
+    textareas.forEach(textarea => {
+        textarea.style.resize = 'vertical';
+        textarea.style.minHeight = '90px';
+        textarea.style.overflowY = 'hidden';
+
+        // Set tinggi awal sesuai konten yang ada
+        textarea.style.height = 'auto';
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+
+        // Tambahkan event listener untuk penyesuaian dinamis saat mengetik
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    });
+}
             renderTabContent() {
                 switch(this.activeTab) {
                     case 'ringkasan': return this.renderRingkasan();
@@ -2553,22 +2590,25 @@
             }
 
             attachKAKEvents() {
-                document.querySelectorAll('.prs-input').forEach(inp => {
-                    inp.addEventListener('change', (e) => {
-                        const tr = e.target.closest('tr');
-                        const idx = parseInt(tr.dataset.index);
-                        const field = e.target.dataset.field;
-                        let val = e.target.value;
-                        if(e.target.type === 'number') val = Number(val) || 0;
-                        
-                        let personnel = this.pkg.personnel || [];
-                        if (personnel[idx]) {
-                            personnel[idx][field] = val;
-                            DB.update('paket', this.packageId, { personnel });
-                        }
+                // 1. Panggil fungsi auto-resize textarea agar kotaknya fleksibel
+                this.initAutoResizeTextarea();
+                // 2. Event listener untuk input personil yang sudah ada
+                    document.querySelectorAll('.prs-input').forEach(inp => {
+                        inp.addEventListener('change', (e) => {
+                            const tr = e.target.closest('tr');
+                            const idx = parseInt(tr.dataset.index);
+                            const field = e.target.dataset.field;
+                            let val = e.target.value;
+                            if(e.target.type === 'number') val = Number(val) || 0;
+                            
+                            let personnel = this.pkg.personnel || [];
+                            if (personnel[idx]) {
+                                personnel[idx][field] = val;
+                                DB.update('paket', this.packageId, { personnel });
+                            }
+                        });
                     });
-                });
-            }
+                }
 
             renderCatatan() {
                 const defaultNotes = `Catatan Fisik:\n- Jenis izin:\n- SBU Konstruksi:\n\nKAK/Spesifikasi Teknis\n1) KAK\n2) Gambar Rencana\n3) RKS dan Spektek\n\nRancangan Kontrak\nInformasi Lainnya\n- BOQ\n\nUraian Singkat\nHPS\nSDP`;
@@ -2776,16 +2816,25 @@ hideLoginOverlay() {
             }
 
 checkSession() {
-                // 1. Sekarang mengecek menggunakan 'userSession' yang benar
-                const sessionData = localStorage.getItem('userSession');
-                const overlay = document.getElementById('login-overlay');
-                
-                if (sessionData) {
-                    if (overlay) overlay.remove(); // Sembunyikan layar login jika ada sesi
-                } else {
-                    if (overlay) overlay.style.display = 'flex'; // Munculkan layar login jika belum ada sesi
-                }
+    const sessionData = localStorage.getItem('userSession');
+    const overlay = document.getElementById('login-overlay');
+    
+    if (sessionData) {
+        if (overlay) overlay.remove();
+        try {
+            const user = JSON.parse(sessionData);
+            // Validasi sederhana keaktifan sesi
+            if (!user || !user.username) {
+                throw new Error("Sesi tidak valid");
             }
+        } catch (e) {
+            localStorage.removeItem('userSession');
+            if (overlay) overlay.style.display = 'flex';
+        }
+    } else {
+        if (overlay) overlay.style.display = 'flex';
+    }
+}
 
             logout() {
                 // 2. Hapus kunci sesi yang baru DAN bersihkan sisa cache lama agar bersih total
@@ -3531,14 +3580,17 @@ checkSession() {
             }
             
           reRenderCurrentView() {
-                if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
-                    this.currentViewInstance.render(this.routerView);
-                } else if (this.crudEngine) {
-                    this.crudEngine.render(this.routerView);
-                } else {
-                    this.navigate(this.currentRoute);
-                }
-            }
+    if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
+        // Pertahankan referensi kontainer utama saat ini agar tidak melompat
+        const container = this.routerView;
+        this.currentViewInstance.render(container);
+    } else if (this.crudEngine) {
+        this.crudEngine.render(this.routerView);
+    } else {
+        this.navigate(this.currentRoute);
+    }
+}
+        }
             
             addHargaRow(packageId) {
                 const pkg = DB.getById('paket', packageId);
@@ -6994,20 +7046,31 @@ renderSignPage(container, itemId) {
                 this.reRenderCurrentView();
             }
 
-            async saveChecklistChanges(pkgId) {
+            async saveChecklistChanges(packageId) {
+                // Ambil semua input tanggal dan nomor dokumen yang sedang diubah di DOM
                 const rows = document.querySelectorAll('tr[data-docid]');
-                for (let row of rows) {
+                
+                rows.forEach(row => {
                     const docId = row.getAttribute('data-docid');
-                    const numInput = row.querySelector('.chk-master-input').value;
-                    const dateInput = row.querySelector('.chk-date-input').value;
-
-                    DB.update('package_documents', docId, {
-                        document_number: numInput,
-                        document_date: dateInput
-                    });
+                    const numInput = row.querySelector('.chk-master-input');
+                    const dateInput = row.querySelector('.chk-date-input');
+                    
+                    if (docId) {
+                        let payload = {};
+                        if (numInput) payload.document_number = numInput.value;
+                        if (dateInput) payload.document_date = dateInput.value;
+                        
+                        // Update langsung ke database / cache lokal tanpa pindah halaman
+                        DB.update('package_documents', docId, payload);
+                    }
+                });
+            
+                this.notify('Perubahan checklist dan tanggal berhasil disimpan', 'success');
+                
+                // Tetap di tab aktif saat ini (tidak memaksa pindah ke tab lain)
+                if (this.currentViewInstance) {
+                    this.currentViewInstance.render(this.routerView);
                 }
-                this.notify('Checklist, nomor, dan tanggal dokumen berhasil disimpan ke database!', 'success');
-                this.reRenderCurrentView();
             }
 
             resetDocumentNumber(docId, docName) {
