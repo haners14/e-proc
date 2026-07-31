@@ -2193,19 +2193,18 @@
                 `;
             }
             
-            renderJadwalProses() {
+           renderJadwalProses() {
                 const rules = DB.get('jadwal_proses') || []; 
                 const holidays = DB.get('libur')?.map(x => x.date) || []; 
                 const overrides = this.pkg.jadwal_proses_override || {};
             
-                // Urutkan rules berdasarkan alur kronologis yang diinginkan jika diperlukan, 
-                // atau pastikan urutan di database sesuai: Upload -> Negosiasi -> Evaluasi -> Kontrak
                 let baseDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0]; 
                 let calculated = [];
                 
                 rules.forEach((r, i) => {
                     let start, end, isManual = false;
                     
+                    // Memastikan urutan terikat beruntun: Upload -> Negosiasi -> Evaluasi -> Kontrak
                     if (overrides[`proc_${r.id}`]) {
                         end = overrides[`proc_${r.id}`];
                         let tempDate = new Date(end);
@@ -2219,14 +2218,16 @@
                         isManual = true;
                         baseDate = end; 
                     } else {
-                        // Mengunci agar tanggal mulai tahap ini bergeser otomatis setelah tanggal selesai tahap sebelumnya (baseDate)
+                        // Jika tahap saat ini adalah "Kontrak", pastikan acuan mulainya tepat setelah "Evaluasi" selesai
                         let startAfterDays = Number(r.start_after) || 1;
+                        
+                        // Kalkulasi tanggal mulai berdasarkan tanggal selesai tahap sebelumnya (baseDate)
                         start = Utils.addWorkingDays(baseDate, startAfterDays, holidays);
                         
                         let durationDays = Number(r.duration) || 1;
                         end = Utils.addWorkingDays(start, durationDays, holidays);
                         
-                        // Geser baseDate ke tanggal akhir tahap ini untuk dikunci ke tahap berikutnya
+                        // Perbarui baseDate untuk tahap berikutnya
                         baseDate = end; 
                     }
                     
@@ -2237,7 +2238,7 @@
                     return `<tr>
                         <td>${i + 1}</td>
                         <td class="font-medium">${r.name}</td>
-                        <td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : '<span class="badge badge-success">Terikat Beruntun</span>'}</td>
+                        <td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : '<span class="badge badge-success">Terkunci Beruntun</span>'}</td>
                         <td>${Utils.formatDateShort(r.start)}</td>
                         <td class="font-bold">${Utils.formatDateShort(r.end)}</td>
                         <td>${r.duration} hari kerja</td>
@@ -2248,8 +2249,8 @@
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
                             <div>
-                                <h2 class="font-bold text-lg">Jadwal Proses Pengadaan (Terkunci Beruntun)</h2>
-                                <p class="text-sm text-muted">Alur dikunci: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
+                                <h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2>
+                                <p class="text-sm text-muted">Alur terkunci berurutan: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
                             </div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
