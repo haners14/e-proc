@@ -2198,37 +2198,53 @@
                 const holidays = DB.get('libur')?.map(x => x.date) || []; 
                 const overrides = this.pkg.jadwal_proses_override || {};
             
-                let baseDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0]; 
+                // Tanggal acuan dasar utama (Tanggal Awal Persiapan / Mulai Paket)
+                const baseStartDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+                
+                let calculatedDates = {};
                 let calculated = [];
                 
                 rules.forEach((r, i) => {
                     let start, end, isManual = false;
+                    const ruleId = r.id || i;
                     
-                    // Memastikan urutan terikat beruntun: Upload -> Negosiasi -> Evaluasi -> Kontrak
-                    if (overrides[`proc_${r.id}`]) {
-                        end = overrides[`proc_${r.id}`];
+                    // Cek apakah ada override manual dari user
+                    if (overrides[`proc_${ruleId}`]) {
+                        end = overrides[`proc_${ruleId}`];
                         let tempDate = new Date(end);
                         let sub = 0;
-                        while(sub < (Number(r.duration) || 1)) {
+                        const dur = Number(r.duration) || 1;
+                        while(sub < dur) {
                             tempDate.setDate(tempDate.getDate() - 1);
                             const isWeekend = tempDate.getDay() === 0 || tempDate.getDay() === 6;
                             if(!isWeekend && !holidays.includes(tempDate.toISOString().split('T')[0])) sub++;
                         }
                         start = tempDate.toISOString().split('T')[0];
                         isManual = true;
-                        baseDate = end; 
+                        calculatedDates[r.name] = end;
                     } else {
-                        // Jika tahap saat ini adalah "Kontrak", pastikan acuan mulainya tepat setelah "Evaluasi" selesai
-                        let startAfterDays = Number(r.start_after) || 1;
+                        // Tentukan titik acuan dasar (bisa dari Tanggal Awal atau tahap sebelumnya)
+                        let referenceDate = baseStartDate;
                         
-                        // Kalkulasi tanggal mulai berdasarkan tanggal selesai tahap sebelumnya (baseDate)
-                        start = Utils.addWorkingDays(baseDate, startAfterDays, holidays);
+                        // Jika r.previous atau r.acuan diatur menunjuk ke tahap lain
+                        const acuanSebelumnya = r.previous || r.acuan;
+                        if (acuanSebelumnya && acuanSebelumnya !== '-' && acuanSebelumnya !== 'Tanggal Awal' && calculatedDates[acuanSebelumnya]) {
+                            referenceDate = calculatedDates[acuanSebelumnya];
+                        } else if (i > 0 && !acuanSebelumnya) {
+                            // Default berurutan dari tahap persis di atasnya jika acuan kosong
+                            const prevName = rules[i - 1].name;
+                            if (calculatedDates[prevName]) {
+                                referenceDate = calculatedDates[prevName];
+                            }
+                        }
+            
+                        const startAfterDays = Number(r.start_after) || 0;
+                        start = Utils.addWorkingDays(referenceDate, startAfterDays, holidays);
                         
-                        let durationDays = Number(r.duration) || 1;
+                        const durationDays = Number(r.duration) || 1;
                         end = Utils.addWorkingDays(start, durationDays, holidays);
                         
-                        // Perbarui baseDate untuk tahap berikutnya
-                        baseDate = end; 
+                        calculatedDates[r.name] = end;
                     }
                     
                     calculated.push({ ...r, start, end, isManual });
@@ -2238,19 +2254,20 @@
                     return `<tr>
                         <td>${i + 1}</td>
                         <td class="font-medium">${r.name}</td>
-                        <td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : '<span class="badge badge-success">Terkunci Beruntun</span>'}</td>
+                        <td class="text-xs text-muted">${r.previous || r.acuan || 'Tanggal Awal'}</td>
+                        <td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : '<span class="badge badge-success">Sesuai Selisih Acuan</span>'}</td>
                         <td>${Utils.formatDateShort(r.start)}</td>
                         <td class="font-bold">${Utils.formatDateShort(r.end)}</td>
-                        <td>${r.duration} hari kerja</td>
+                        <td>${r.start_after} hari + ${r.duration || 1} hari kerja</td>
                     </tr>`;
                 }).join('');
                 
                 return `
-                    <div class="card p-6 max-w-4xl mx-auto">
+                    <div class="card p-6 max-w-5xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
                             <div>
-                                <h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2>
-                                <p class="text-sm text-muted">Alur terkunci berurutan: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
+                                <h2 class="font-bold text-lg">Jadwal Proses Pengadaan Berbasis Selisih Acuan</h2>
+                                <p class="text-sm text-muted">Setiap tahapan dikalkulasi secara akurat berdasarkan selisih hari kerja dari titik acuannya.</p>
                             </div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
@@ -2258,7 +2275,7 @@
                             </div>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>No</th><th>Proses</th><th>Status Alur</th><th>Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
+                            <thead><tr><th>No</th><th>Proses</th><th>Acuan / Ikut</th><th>Status</th><th>Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
                             <tbody>${rows}</tbody>
                         </table>
                     </div>
