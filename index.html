@@ -6483,25 +6483,36 @@ renderSignPage(container, itemId) {
                 return 'Umum';
             }
 
-            selectTemplate(documentCode, pkg, templateId = null) {
+           selectTemplate(documentCode, pkg, templateId = null) {
                 const templates = DB.get('template') || [];
                 const jenisPaket = (pkg.jenis_pengadaan || 'Barang').toLowerCase();
             
-                // 1. Cari template yang kodenya sama DAN jenisnya cocok dengan jenis pengadaan paket
+                // Normalisasi jenis paket agar cocok dengan master dokumen
+                let normalizedType = 'Barang';
+                if (jenisPaket.includes('konstruksi')) {
+                    normalizedType = 'Konstruksi';
+                } else if (jenisPaket.includes('konsultansi')) {
+                    // Mendukung master dokumen yang tertulis 'Konsultansi' maupun 'Jasa Konsultansi'
+                    normalizedType = 'Konsultansi'; 
+                } else if (jenisPaket.includes('lainnya')) {
+                    normalizedType = 'Jasa Lainnya';
+                }
+            
+                // 1. Cari template yang kodenya sama persis DAN jenisnya cocok secara fleksibel
                 const matchedByType = templates.find(t => 
                     (t.code || '').toUpperCase() === (documentCode || '').toUpperCase() &&
-                    (t.type || '').toLowerCase() === jenisPaket
+                    (t.type || '').toLowerCase().includes(normalizedType.toLowerCase())
                 );
             
                 if (matchedByType) return matchedByType;
             
-                // 2. Fallback jika ada template spesifik berdasarkan ID yang dipilih manual
+                // 2. Fallback jika user memilih template manual lewat ID
                 if (templateId) {
                     const found = templates.find(t => String(t.id) === String(templateId));
                     if (found) return found;
                 }
                 
-                // 3. Fallback terakhir cari berdasarkan kode dokumen standar saja
+                // 3. Fallback terakhir: Ambil template berdasarkan kode dokumen apa saja yang tersedia
                 return templates.find(t => (t.code || '').toUpperCase() === (documentCode || '').toUpperCase()) || templates[0];
             }
             resolveDocumentMaster(reference, pkgId) {
