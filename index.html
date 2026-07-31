@@ -2758,6 +2758,40 @@
         }
 
         class App {
+
+            selectTemplate(documentCode, pkg, templateId = null) {
+    const templates = DB.get('template') || [];
+    
+    // Ambil jenis pengadaan dari paket (default 'Barang' jika kosong)
+    const jenisRaw = (pkg.jenis_pengadaan || pkg.jenis || 'Barang').toLowerCase();
+    
+    // Normalisasi string agar cocok dengan master template (Konsultansi, Konstruksi, Barang, Jasa Lainnya)
+    let jenisNormalized = 'Barang';
+    if (jenisRaw.includes('konstruksi')) {
+        jenisNormalized = 'Konstruksi';
+    } else if (jenisRaw.includes('konsultansi')) {
+        jenisNormalized = 'Konsultansi';
+    } else if (jenisRaw.includes('lainnya')) {
+        jenisNormalized = 'Jasa Lainnya';
+    }
+
+    // 1. Cari template yang kodenya sama persis DAN jenisnya sesuai dengan hasil normalisasi
+    const matched = templates.find(t => 
+        (t.code || '').toUpperCase() === (documentCode || '').toUpperCase() &&
+        (t.type || '').toLowerCase() === jenisNormalized.toLowerCase()
+    );
+
+    if (matched) return matched;
+
+    // 2. Fallback: Cari berdasarkan ID spesifik jika diatur manual
+    if (templateId) {
+        const found = templates.find(t => String(t.id) === String(templateId));
+        if (found) return found;
+    }
+    
+    // 3. Fallback terakhir: Cari berdasarkan kode dokumen apa saja yang tersedia
+    return templates.find(t => (t.code || '').toUpperCase() === (documentCode || '').toUpperCase()) || templates[0];
+}
             constructor() { 
                 this.routerView = document.getElementById('router-view'); 
                 this.currentRoute = ''; 
