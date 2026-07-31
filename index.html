@@ -2194,55 +2194,70 @@
             }
             
             renderJadwalProses() {
-                const rules = DB.get('jadwal_proses'); 
-                const holidays = DB.get('libur').map(x=>x.date); 
+                const rules = DB.get('jadwal_proses') || []; 
+                const holidays = DB.get('libur')?.map(x => x.date) || []; 
                 const overrides = this.pkg.jadwal_proses_override || {};
-
-                // REVISI 4: Acuan proses selalu dari Tanggal Awal Persiapan
-                let base = this.pkg.tgl_awal || this.pkg.tgl_mulai; 
+            
+                // Urutkan rules berdasarkan alur kronologis yang diinginkan jika diperlukan, 
+                // atau pastikan urutan di database sesuai: Upload -> Negosiasi -> Evaluasi -> Kontrak
+                let baseDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0]; 
                 let calculated = [];
                 
-                rules.forEach((r,i) => {
+                rules.forEach((r, i) => {
                     let start, end, isManual = false;
                     
                     if (overrides[`proc_${r.id}`]) {
                         end = overrides[`proc_${r.id}`];
-                        // Estimasi start dari manual end (kurangi durasi)
                         let tempDate = new Date(end);
                         let sub = 0;
-                        while(sub < r.duration) {
+                        while(sub < (Number(r.duration) || 1)) {
                             tempDate.setDate(tempDate.getDate() - 1);
                             const isWeekend = tempDate.getDay() === 0 || tempDate.getDay() === 6;
                             if(!isWeekend && !holidays.includes(tempDate.toISOString().split('T')[0])) sub++;
                         }
                         start = tempDate.toISOString().split('T')[0];
                         isManual = true;
-                        base = end; 
+                        baseDate = end; 
                     } else {
-                        start = Utils.addWorkingDays(base, r.start_after, holidays);
-                        end = Utils.addWorkingDays(start, r.duration, holidays);
-                        base = end; 
+                        // Mengunci agar tanggal mulai tahap ini bergeser otomatis setelah tanggal selesai tahap sebelumnya (baseDate)
+                        let startAfterDays = Number(r.start_after) || 1;
+                        start = Utils.addWorkingDays(baseDate, startAfterDays, holidays);
+                        
+                        let durationDays = Number(r.duration) || 1;
+                        end = Utils.addWorkingDays(start, durationDays, holidays);
+                        
+                        // Geser baseDate ke tanggal akhir tahap ini untuk dikunci ke tahap berikutnya
+                        baseDate = end; 
                     }
                     
                     calculated.push({ ...r, start, end, isManual });
-
-                    });
+                });
                 
-                let rows = calculated.map((r,i) => {
-                    return `<tr><td>${i+1}</td><td class="font-medium">${r.name}</td><td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : ''}</td><td>${Utils.formatDateShort(r.start)}</td><td class="font-bold">${Utils.formatDateShort(r.end)}</td><td>${r.duration} hari kerja</td></tr>`
+                let rows = calculated.map((r, i) => {
+                    return `<tr>
+                        <td>${i + 1}</td>
+                        <td class="font-medium">${r.name}</td>
+                        <td>${r.isManual ? '<span class="badge badge-warning">Manual</span>' : '<span class="badge badge-success">Terikat Beruntun</span>'}</td>
+                        <td>${Utils.formatDateShort(r.start)}</td>
+                        <td class="font-bold">${Utils.formatDateShort(r.end)}</td>
+                        <td>${r.duration} hari kerja</td>
+                    </tr>`;
                 }).join('');
                 
                 return `
                     <div class="card p-6 max-w-4xl mx-auto">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div><h2 class="font-bold text-lg">Jadwal Proses Pengadaan</h2><p class="text-sm text-muted">Berdasarkan Tanggal Awal Persiapan. Bisa dioverride secara manual.</p></div>
+                            <div>
+                                <h2 class="font-bold text-lg">Jadwal Proses Pengadaan (Terkunci Beruntun)</h2>
+                                <p class="text-sm text-muted">Alur dikunci: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
+                            </div>
                             <div class="flex gap-2">
                                 <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
                                 <button class="btn btn-outline btn-sm" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal</button>
                             </div>
                         </div>
                         <table class="data-table">
-                            <thead><tr><th>No</th><th>Proses</th><th>Status</th><th>Mulai</th><th>Tanggal Akhir (Disimpan)</th><th>Durasi</th></tr></thead>
+                            <thead><tr><th>No</th><th>Proses</th><th>Status Alur</th><th>Mulai</th><th>Tanggal Akhir</th><th>Durasi</th></tr></thead>
                             <tbody>${rows}</tbody>
                         </table>
                     </div>
