@@ -2193,13 +2193,13 @@
                 `;
             }
             
-          renderJadwalProses() {
+         renderJadwalProses() {
     const rules = DB.get('jadwal_proses') || []; 
     const holidays = DB.get('libur')?.map(x => x.date) || []; 
     const overrides = this.pkg.jadwal_proses_override || {};
 
-    // Urutkan tahapan secara eksplisit sesuai alur baku: Upload -> Negosiasi -> Evaluasi -> Kontrak
-    const targetOrder = ['upload', 'negosiasi', 'evaluasi', 'kontrak'];
+    // Urutan prioritas alur: Upload -> Evaluasi -> Negosiasi -> Kontrak
+    const targetOrder = ['upload', 'evaluasi', 'negosiasi', 'kontrak'];
     let sortedRules = [...rules].sort((a, b) => {
         const nameA = (a.name || '').toLowerCase();
         const nameB = (b.name || '').toLowerCase();
@@ -2235,7 +2235,7 @@
             const durationDays = Number(r.duration) || 1;
             end = Utils.addWorkingDays(start, durationDays, holidays);
             
-            currentBaseDate = end; // Mengunci tahap berikutnya agar mulai setelah tahap ini selesai
+            currentBaseDate = end; // Mengunci tahap berikutnya berurutan dari tahap ini
         }
         
         calculated.push({ ...r, start, end, isManual });
@@ -2256,8 +2256,8 @@
         <div class="card p-6 max-w-5xl mx-auto">
             <div class="flex justify-between items-center mb-6 border-b pb-2">
                 <div>
-                    <h2 class="font-bold text-lg">Jadwal Proses Pengadaan Otomatis Berurutan</h2>
-                    <p class="text-sm text-muted">Alur dikunci otomatis: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
+                    <h2 class="font-bold text-lg">Jadwal Proses Pengadaan Berurutan</h2>
+                    <p class="text-sm text-muted">Alur dikunci otomatis: Upload $\rightarrow$ Evaluasi $\rightarrow$ Negosiasi $\rightarrow$ Kontrak.</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
