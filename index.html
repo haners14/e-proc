@@ -6483,19 +6483,27 @@ renderSignPage(container, itemId) {
                 return 'Umum';
             }
 
-            selectTemplate(code, pkg, preferredId = null) {
-                const type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
-                const remote = DB.get('template');
-                const all = [...remote, ...BUILTIN_TEMPLATES.filter(b => !remote.some(t => t.code === b.code))];
-                const byCode = all.filter(t => t.code === code);
+            selectTemplate(documentCode, pkg, templateId = null) {
+                const templates = DB.get('template') || [];
+                const jenisPaket = (pkg.jenis_pengadaan || 'Barang').toLowerCase();
+            
+                // 1. Cari template yang kodenya sama DAN jenisnya cocok dengan jenis pengadaan paket
+                const matchedByType = templates.find(t => 
+                    (t.code || '').toUpperCase() === (documentCode || '').toUpperCase() &&
+                    (t.type || '').toLowerCase() === jenisPaket
+                );
+            
+                if (matchedByType) return matchedByType;
+            
+                // 2. Fallback jika ada template spesifik berdasarkan ID yang dipilih manual
+                if (templateId) {
+                    const found = templates.find(t => String(t.id) === String(templateId));
+                    if (found) return found;
+                }
                 
-                return byCode.find(t => this.normalizeProcurementType(t.type) === type)
-                    || byCode.find(t => t.id === preferredId && (!t.type || this.normalizeProcurementType(t.type) === type))
-                    || byCode.find(t => !t.type || this.normalizeProcurementType(t.type) === 'Umum')
-                    || byCode[0]
-                    || null;
+                // 3. Fallback terakhir cari berdasarkan kode dokumen standar saja
+                return templates.find(t => (t.code || '').toUpperCase() === (documentCode || '').toUpperCase()) || templates[0];
             }
-
             resolveDocumentMaster(reference, pkgId) {
                 const records = DB.get('package_documents');
                 let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (d.document_name === reference || d.document_code === reference));
