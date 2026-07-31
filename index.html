@@ -2759,37 +2759,41 @@
 
         class App {
 
-            selectTemplate(documentCode, pkg, templateId = null) {
+           selectTemplate(documentCode, pkg, templateId = null) {
     const templates = DB.get('template') || [];
     
-    // Ambil jenis pengadaan dari paket (default 'Barang' jika kosong)
-    const jenisRaw = (pkg.jenis_pengadaan || pkg.jenis || 'Barang').toLowerCase();
+    // Pastikan paket dan propertinya terbaca dengan aman
+    const packageObj = pkg || {};
+    const jenisRaw = String(packageObj.jenis_pengadaan || packageObj.jenis || 'Barang').toLowerCase();
     
-    // Normalisasi string agar cocok dengan master template (Konsultansi, Konstruksi, Barang, Jasa Lainnya)
-    let jenisNormalized = 'Barang';
+    // Tentukan kata kunci inti (keyword) berdasarkan jenis pengadaan
+    let keyword = 'barang';
     if (jenisRaw.includes('konstruksi')) {
-        jenisNormalized = 'Konstruksi';
+        keyword = 'konstruksi';
     } else if (jenisRaw.includes('konsultansi')) {
-        jenisNormalized = 'Konsultansi';
+        keyword = 'konsultansi';
     } else if (jenisRaw.includes('lainnya')) {
-        jenisNormalized = 'Jasa Lainnya';
+        keyword = 'jasa lainnya';
     }
 
-    // 1. Cari template yang kodenya sama persis DAN jenisnya sesuai dengan hasil normalisasi
-    const matched = templates.find(t => 
-        (t.code || '').toUpperCase() === (documentCode || '').toUpperCase() &&
-        (t.type || '').toLowerCase() === jenisNormalized.toLowerCase()
-    );
+    // Cari template yang KODE dokumennya sama DAN jenis di master mengandung kata kunci inti
+    const matched = templates.find(t => {
+        const tCode = (t.code || '').trim().toUpperCase();
+        const tType = (t.type || '').trim().toLowerCase();
+        const targetCode = (documentCode || '').trim().toUpperCase();
+
+        return tCode === targetCode && tType.includes(keyword);
+    });
 
     if (matched) return matched;
 
-    // 2. Fallback: Cari berdasarkan ID spesifik jika diatur manual
+    // Fallback ID manual jika ada
     if (templateId) {
         const found = templates.find(t => String(t.id) === String(templateId));
         if (found) return found;
     }
     
-    // 3. Fallback terakhir: Cari berdasarkan kode dokumen apa saja yang tersedia
+    // Fallback terakhir berdasarkan kode dokumen
     return templates.find(t => (t.code || '').toUpperCase() === (documentCode || '').toUpperCase()) || templates[0];
 }
             constructor() { 
