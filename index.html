@@ -2194,78 +2194,83 @@
             }
             
           renderJadwalProses() {
-                const rules = DB.get('jadwal_proses') || []; 
-                const holidays = DB.get('libur')?.map(x => x.date) || []; 
-                const overrides = this.pkg.jadwal_proses_override || {};
-            
-                // Titik acuan awal dasar paket (Tanggal Awal Persiapan)
-                let currentBaseDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0];
-                let calculated = [];
-                
-                rules.forEach((r, i) => {
-                    let start, end, isManual = false;
-                    const ruleId = r.id || i;
-                    
-                    // Cek apakah ada override tanggal akhir manual dari user
-                    if (overrides[`proc_${ruleId}`]) {
-                        end = overrides[`proc_${ruleId}`];
-                        let tempDate = new Date(end);
-                        let sub = 0;
-                        const dur = Number(r.duration) || 1;
-                        while(sub < dur) {
-                            tempDate.setDate(tempDate.getDate() - 1);
-                            const isWeekend = tempDate.getDay() === 0 || tempDate.getDay() === 6;
-                            if(!isWeekend && !holidays.includes(tempDate.toISOString().split('T')[0])) sub++;
-                        }
-                        start = tempDate.toISOString().split('T')[0];
-                        isManual = true;
-                        currentBaseDate = end; // Geser acuan ke tanggal selesai manual ini
-                    } else {
-                        // Kalkulasi tanggal mulai berdasarkan selisih hari kerja (start_after) dari acuan sebelumnya
-                        const startAfterDays = Number(r.start_after) || 0;
-                        start = Utils.addWorkingDays(currentBaseDate, startAfterDays, holidays);
-                        
-                        // Kalkulasi tanggal selesai berdasarkan durasi hari kerja
-                        const durationDays = Number(r.duration) || 1;
-                        end = Utils.addWorkingDays(start, durationDays, holidays);
-                        
-                        // KUNCI UTAMA: Jadikan tanggal selesai tahap ini sebagai acuan (baseDate) untuk tahap berikutnya
-                        currentBaseDate = end;
-                    }
-                    
-                    calculated.push({ ...r, start, end, isManual });
-                });
-                
-                let rows = calculated.map((r, i) => {
-                    return `<tr>
-                        <td>${i + 1}</td>
-                        <td class="font-medium">${r.name}</td>
-                        <td><span class="badge badge-success">Beruntun dari Acuan</span></td>
-                        <td>${Utils.formatDateShort(r.start)}</td>
-                        <td class="font-bold">${Utils.formatDateShort(r.end)}</td>
-                        <td>+${r.start_after} hari (Durasi: ${r.duration || 1} hari)</td>
-                    </tr>`;
-                }).join('');
-                
-                return `
-                    <div class="card p-6 max-w-5xl mx-auto">
-                        <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <div>
-                                <h2 class="font-bold text-lg">Jadwal Proses Pengadaan Beruntun</h2>
-                                <p class="text-sm text-muted">Tahapan dikunci otomatis berurutan: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
-                            </div>
-                            <div class="flex gap-2">
-                                <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
-                                <button class="btn btn-outline btn-sm" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal</button>
-                            </div>
-                        </div>
-                        <table class="data-table">
-                            <thead><tr><th>No</th><th>Proses</th><th>Status Alur</th><th>Mulai</th><th>Tanggal Akhir</th><th>Selisih & Durasi</th></tr></thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                    </div>
-                `;
+    const rules = DB.get('jadwal_proses') || []; 
+    const holidays = DB.get('libur')?.map(x => x.date) || []; 
+    const overrides = this.pkg.jadwal_proses_override || {};
+
+    // Urutkan tahapan secara eksplisit sesuai alur baku: Upload -> Negosiasi -> Evaluasi -> Kontrak
+    const targetOrder = ['upload', 'negosiasi', 'evaluasi', 'kontrak'];
+    let sortedRules = [...rules].sort((a, b) => {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        const indexA = targetOrder.findIndex(o => nameA.includes(o));
+        const indexB = targetOrder.findIndex(o => nameB.includes(o));
+        return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
+    });
+
+    let currentBaseDate = this.pkg.tgl_awal || this.pkg.tgl_mulai || new Date().toISOString().split('T')[0];
+    let calculated = [];
+    
+    sortedRules.forEach((r, i) => {
+        let start, end, isManual = false;
+        const ruleId = r.id || i;
+        
+        if (overrides[`proc_${ruleId}`]) {
+            end = overrides[`proc_${ruleId}`];
+            let tempDate = new Date(end);
+            let sub = 0;
+            const dur = Number(r.duration) || 1;
+            while(sub < dur) {
+                tempDate.setDate(tempDate.getDate() - 1);
+                const isWeekend = tempDate.getDay() === 0 || tempDate.getDay() === 6;
+                if(!isWeekend && !holidays.includes(tempDate.toISOString().split('T')[0])) sub++;
             }
+            start = tempDate.toISOString().split('T')[0];
+            isManual = true;
+            currentBaseDate = end;
+        } else {
+            const startAfterDays = Number(r.start_after) || 0;
+            start = Utils.addWorkingDays(currentBaseDate, startAfterDays, holidays);
+            
+            const durationDays = Number(r.duration) || 1;
+            end = Utils.addWorkingDays(start, durationDays, holidays);
+            
+            currentBaseDate = end; // Mengunci tahap berikutnya agar mulai setelah tahap ini selesai
+        }
+        
+        calculated.push({ ...r, start, end, isManual });
+    });
+    
+    let rows = calculated.map((r, i) => {
+        return `<tr>
+            <td>${i + 1}</td>
+            <td class="font-medium">${r.name}</td>
+            <td><span class="badge badge-success">Terkunci Berurutan</span></td>
+            <td>${Utils.formatDateShort(r.start)}</td>
+            <td class="font-bold">${Utils.formatDateShort(r.end)}</td>
+            <td>+${r.start_after} hari (Durasi: ${r.duration || 1} hari)</td>
+        </tr>`;
+    }).join('');
+    
+    return `
+        <div class="card p-6 max-w-5xl mx-auto">
+            <div class="flex justify-between items-center mb-6 border-b pb-2">
+                <div>
+                    <h2 class="font-bold text-lg">Jadwal Proses Pengadaan Otomatis Berurutan</h2>
+                    <p class="text-sm text-muted">Alur dikunci otomatis: Upload $\rightarrow$ Negosiasi $\rightarrow$ Evaluasi $\rightarrow$ Kontrak.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
+                    <button class="btn btn-outline btn-sm" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal</button>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>No</th><th>Proses</th><th>Status Alur</th><th>Mulai</th><th>Tanggal Akhir</th><th>Selisih & Durasi</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    `;
+}
 
             renderKalender() {
                 const rules = DB.get('waktu');
