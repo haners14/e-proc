@@ -515,6 +515,23 @@
             {id:'SPK', code:'SPK', name:'Rancangan SPK', file_url:'templates/4_RANCANGAN_SPK_TEMPLATE_revised.docx'},
             {id:'UND_KONTRAK', code:'UND_KONTRAK', name:'Undangan Kontrak', file_url:'templates/UND_KONTRAK.docx'},
             {id:'UND_PENGADAAN', code:'UND_PENGADAAN', name:'Undangan Pengadaan', file_url:'templates/UND_PENGADAAN.docx'}
+            {id:'BA_KEMAJUAN',code:'BA_KEMAJUAN',name:'BA Kemajuan Pekerjaan',file_url:'templates/BA_KEMAJUAN.docx'},
+            {id:'BA_PEMERIKSAAN',code:'BA_PEMERIKSAAN',name:'BA Pemeriksaan Hasil Pekerjaan',file_url:'templates/BA_PEMERIKSAAN.docx'},
+            {id:'KPP3',code:'KPP3',name:'Kelengkapan Pengajuan Pihak Ketiga',file_url:'templates/KPP3.docx'},
+                {id:'BA_KEMAJUAN',
+code:'BA_KEMAJUAN',
+name:'BA Kemajuan Pekerjaan',
+file_url:'templates/BA_KEMAJUAN.docx'},
+
+{id:'BA_PEMERIKSAAN',
+code:'BA_PEMERIKSAAN',
+name:'BA Pemeriksaan Hasil Pekerjaan',
+file_url:'templates/BA_PEMERIKSAAN.docx'},
+
+{id:'KPP3',
+code:'KPP3',
+name:'Kelengkapan Pengajuan Pihak Ketiga',
+file_url:'templates/KPP3.docx'},
         ];
 
         const DB = {
@@ -2342,12 +2359,39 @@
 
             renderChecklist() {
             const docs = [
-                'Nota Dinas', 'Undangan Reviu', 'BA Reviu Dokumen Persiapan', 'Uraian Singkat',
-                'KAK', 'HPS/RAB', 'SDP', 'Undangan Pengadaan Langsung', 'BA Evaluasi',
-                'Undangan Verifikasi', 'BA Pembuktian Kualifikasi', 'Undangan Negosiasi',
-                'BA Negosiasi', 'BA Hasil Pemilihan', 'SPPBJ', 'Undangan Penandatanganan Kontrak',
-                'Rancangan Kontrak', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP'
-            ];
+                        'Nota Dinas',
+                        'Undangan Reviu',
+                        'BA Reviu Dokumen Persiapan',
+                        'Uraian Singkat',
+                        'KAK',
+                        'HPS/RAB',
+                        'SDP',
+                        'Undangan Pengadaan Langsung',
+                        'BA Evaluasi',
+                        'Undangan Verifikasi',
+                        'BA Pembuktian Kualifikasi',
+                        'Undangan Negosiasi',
+                        'BA Negosiasi',
+                        'BA Hasil Pemilihan',
+                        'SPPBJ',
+                        'Undangan Penandatanganan Kontrak',
+                        'Rancangan Kontrak',
+                        'SPK',
+                        'SSUK',
+                        'SSKK',
+                        'SPMK',
+                    
+                        // TAMBAHAN BARU
+                        'BA Kemajuan Pekerjaan',
+                        'BA Pemeriksaan Hasil Pekerjaan',
+                    
+                        'BAST',
+                    
+                        // TAMBAHAN BARU
+                        'Kelengkapan Pengajuan Pihak Ketiga',
+                    
+                        'BAP'
+                    ];
 
             const registers = docs.map(doc => {
                 let reg = DB.get("package_documents").find(r =>
@@ -2356,9 +2400,11 @@
                 );
 
                 if (!reg) {
-                    reg = DB.insert("package_documents", {
+                   reg = DB.insert("package_documents", {
                         package_id: this.packageId,
                         document_name: doc,
+                        document_code: app.documentCode(doc),
+                        template_id: app.selectTemplate(app.documentCode(doc), this.pkg)?.id || null,
                         status: "DRAFT",
                         generated: false,
                         version: 1
@@ -2367,15 +2413,49 @@
                 return reg;
             });
 
+                const urutanDokumen = {
+    'Nota Dinas': 1,
+    'Undangan Reviu': 2,
+    'BA Reviu Dokumen Persiapan': 3,
+    'Uraian Singkat': 4,
+    'KAK': 5,
+    'HPS/RAB': 6,
+    'SDP': 7,
+    'Undangan Pengadaan Langsung': 8,
+    'BA Evaluasi': 9,
+    'Undangan Verifikasi': 10,
+    'BA Pembuktian Kualifikasi': 11,
+    'Undangan Negosiasi': 12,
+    'BA Negosiasi': 13,
+    'BA Hasil Pemilihan': 14,
+    'SPPBJ': 15,
+    'Undangan Penandatanganan Kontrak': 16,
+    'Rancangan Kontrak': 17,
+    'SPK': 18,
+    'SSUK': 19,
+    'SSKK': 20,
+    'SPMK': 21,
+
+    'BA Kemajuan Pekerjaan': 22,
+    'BA Pemeriksaan Hasil Pekerjaan': 23,
+    'BAST': 24,
+    'Kelengkapan Pengajuan Pihak Ketiga': 25,
+    'BAP': 26
+};
             // Urutkan checklist kronologis
             const sorted = registers.sort((a, b) => {
-                const dateA = a.document_date || app.calculateDocumentMeta(this.pkg, a.document_name).date || "9999-12-31";
-                const dateB = b.document_date || app.calculateDocumentMeta(this.pkg, b.document_name).date || "9999-12-31";
-                const timeA = new Date(dateA).getTime();
-                const timeB = new Date(dateB).getTime();
-                if (timeA === timeB) return a.document_name.localeCompare(b.document_name);
-                return timeA - timeB;
-            });
+    const da = new Date(a.document_date || '2100-01-01');
+    const db = new Date(b.document_date || '2100-01-01');
+
+    // Urutkan berdasarkan tanggal terlebih dahulu
+    if (da.getTime() !== db.getTime()) {
+        return da - db;
+    }
+
+    // Jika tanggal sama, gunakan urutan dokumen
+    return (urutanDokumen[a.document_name] || 999) -
+           (urutanDokumen[b.document_name] || 999);
+});
 
             const rowsHtml = sorted.map(master => {
                 const done = ['FINAL','SIGNED','GENERATED','UPLOADED'].includes(String(master.status || '').toUpperCase());
@@ -2410,10 +2490,46 @@
                     </td>
                     <td>${Utils.getBadge(master.status || 'DRAFT')}</td>
                     <td>
-                        <button class="btn btn-outline btn-sm text-primary w-full" onclick="app.runDocumentEngine('${master.id}','${this.packageId}')">
-                            <i class="ph ph-magic-wand"></i> Generate
-                        </button>
-                    </td>
+    <div class="flex gap-1">
+
+        <!-- Generate -->
+        <button
+            class="btn btn-primary btn-sm"
+            title="Generate Dokumen"
+            onclick="app.runDocumentEngine('${master.id}','${this.packageId}')">
+            <i class="ph ph-magic-wand"></i>
+        </button>
+
+        <!-- Preview -->
+        <button
+            class="btn btn-outline btn-sm"
+            title="Preview Data"
+            onclick="app.previewDocument('${master.id}','${this.packageId}')">
+            <i class="ph ph-eye"></i>
+        </button>
+
+        <!-- History -->
+        <button
+            class="btn btn-outline btn-sm"
+            title="Riwayat"
+            onclick="app.showDocumentHistory('${master.id}')">
+            <i class="ph ph-clock-counter-clockwise"></i>
+        </button>
+
+        <!-- Download -->
+        ${
+            master.generated_document_id
+            ? `<button
+                    class="btn btn-outline btn-sm"
+                    title="Download"
+                    onclick="app.downloadGenerated('${master.generated_document_id}')">
+                    <i class="ph ph-download-simple"></i>
+               </button>`
+            : ''
+        }
+
+    </div>
+</td>
                 </tr>`;
             }).join('');
 
@@ -6530,6 +6646,9 @@ renderSignPage(container, itemId) {
                     'SPMK':'SPMK',
                     'BAST':'BAST',
                     'BAP':'BAP'
+                    "BA Kemajuan Pekerjaan":"BA_KEMAJUAN",
+                    "BA Pemeriksaan Hasil Pekerjaan":"BA_PEMERIKSAAN",
+                    "Kelengkapan Pengajuan Pihak Ketiga":"KPP3",
                 };
                 return aliases[name] || String(name).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g,'').toUpperCase();
             }
@@ -6707,6 +6826,58 @@ renderSignPage(container, itemId) {
                     addLog(`<button class="btn btn-outline btn-sm mt-4" onclick="DOM.closeModal()">Tutup</button>`);
                 }
             }
+
+            showDocumentHistory(masterId){
+
+    const master = DB.getById("package_documents", masterId);
+
+    if(!master){
+        this.notify("Dokumen tidak ditemukan","error");
+        return;
+    }
+
+    const history = DB.get("documents")
+        .filter(d =>
+            d.package_id === master.package_id &&
+            d.doc_type === master.document_code
+        )
+        .sort((a,b)=> (b.version||0)-(a.version||0));
+
+    if(history.length===0){
+        this.notify("Belum ada riwayat dokumen","info");
+        return;
+    }
+
+    const html = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Versi</th>
+                    <th>Tanggal</th>
+                    <th>Status</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${history.map(h=>`
+                <tr>
+                    <td>v${h.version}</td>
+                    <td>${Utils.formatDate(h.date)}</td>
+                    <td>${Utils.getBadge(h.status)}</td>
+                    <td>
+                        <a href="${h.file_url}" download="${h.filename}">
+                            ${h.filename}
+                        </a>
+                    </td>
+                </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+
+    DOM.openModal("Riwayat Dokumen",html,"");
+
+}
 
             prepareDocumentPayload(pkgId, docName, master = null) {
                 const pkg = DB.getById('paket', pkgId);
@@ -6927,12 +7098,23 @@ renderSignPage(container, itemId) {
     let calcDate = ''; 
     
     if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
-        calcDate = pkg.tgl_mulai;
-    } else if ((doc === 'BAST' || doc === 'BAP') && pkg.tgl_selesai) {
-        calcDate = pkg.tgl_selesai;
-    } else if (doc === 'Uraian Singkat') {
-        calcDate = dates['KAK'] || pkg.tgl_awal || '';
-    } else {
+    calcDate = pkg.tgl_mulai;
+
+} else if (
+    [
+        'BA Kemajuan Pekerjaan',
+        'BA Pemeriksaan Hasil Pekerjaan',
+        'BAST',
+        'BAP',
+        'Kelengkapan Pengajuan Pihak Ketiga'
+    ].includes(doc)
+    && pkg.tgl_selesai
+) {
+    calcDate = pkg.tgl_selesai;
+
+} else if (doc === 'Uraian Singkat') {
+    calcDate = dates['KAK'] || pkg.tgl_awal || '';
+} else {
         for (const [k, v] of Object.entries(dates)) { 
             const names = doc === 'BA Reviu Dokumen Persiapan' ? ['BA Reviu Dok Persiapan','BA Reviu Dokumen Persiapan','BA Reviu'] : [doc];
             if (names.some(name => name.toLowerCase() === k.toLowerCase() || k.toLowerCase().includes(name.toLowerCase()))) { 
@@ -6947,13 +7129,33 @@ renderSignPage(container, itemId) {
 
     // 2. Logika Penomoran Dokumen
     const aliases = {
-        'Nota Dinas': 'NOTA_DINAS', 'Uraian Singkat': 'URAIAN_SINGKAT', 'KAK': 'KAK',
-        'HPS/RAB': 'HPS_RAB', 'Rancangan Kontrak': 'RANCANGAN_KONTRAK', 'BA Reviu Dokumen Persiapan': 'BA_REVIU',
-        'SDP': 'SDP', 'BA Evaluasi': 'BA_EVALUASI', 'Undangan Verifikasi': 'UND_VERIFIKASI',
-        'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN', 'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
-        'BA Negosiasi': 'BA_NEGOSIASI', 'BA Hasil Pemilihan': 'BA_HASIL', 'SPPBJ': 'SPPBJ',
-        'SPK': 'SPK', 'SSUK': 'SSUK', 'SSKK': 'SSKK', 'SPMK': 'SPMK', 'BAST': 'BAST', 'BAP': 'BAP'
-    };
+    'Nota Dinas': 'NOTA_DINAS',
+    'Uraian Singkat': 'URAIAN_SINGKAT',
+    'KAK': 'KAK',
+    'HPS/RAB': 'HPS_RAB',
+    'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
+    'BA Reviu Dokumen Persiapan': 'BA_REVIU',
+    'SDP': 'SDP',
+    'BA Evaluasi': 'BA_EVALUASI',
+    'Undangan Verifikasi': 'UND_VERIFIKASI',
+    'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
+    'Undangan Negosiasi': 'UNDANGAN_NEGOSIASI',
+    'BA Negosiasi': 'BA_NEGOSIASI',
+    'BA Hasil Pemilihan': 'BA_HASIL',
+    'SPPBJ': 'SPPBJ',
+    'SPK': 'SPK',
+    'SSUK': 'SSUK',
+    'SSKK': 'SSKK',
+    'SPMK': 'SPMK',
+
+    // TAMBAHAN
+    'BA Kemajuan Pekerjaan': 'BA_KEMAJUAN',
+    'BA Pemeriksaan Hasil Pekerjaan': 'BA_PEMERIKSAAN',
+    'Kelengkapan Pengajuan Pihak Ketiga': 'KPP3',
+
+    'BAST': 'BAST',
+    'BAP': 'BAP'
+};
         
     const code = aliases[doc] || doc.replace(/ /g, '_').toUpperCase();
     const ruleList = DB.get('penomoran') || [];
