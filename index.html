@@ -2297,35 +2297,64 @@ negPPN += negTotal - negSubTotal;
                 const items = this.pkg.items || [];
                 let hpsSub = 0, hpsPPN = 0, penSub = 0, penPPN = 0, negSub = 0, negPPN = 0;
 
-                items.forEach((i, index) => {
-                    if(i.is_header) return;
-                    const tax = 1 + (Number(i.pajak) || 0) / 100;
-                   const tax = 1 + (Number(i.pajak) || 0) / 100;
+               items.forEach((i, index) => {
 
-const hpsSubTotal =
-    Number(i.vol_hps) * Number(i.harga_hps);
+    if(i.is_header) return;
 
-const penSubTotal =
-    Number(i.vol_pen) * Number(i.harga_pen);
+    const tax = 1 + (Number(i.pajak) || 0) / 100;
 
-const negSubTotal =
-    Number(i.vol_neg) * Number(i.harga_neg);
+    // =========================
+    // HPS
+    // =========================
 
-const hpsTotal = hpsSubTotal * tax;
-const penTotal = penSubTotal * tax;
-const negTotal = negSubTotal * tax;
+    const hpsSubTotal =
+        Number(i.vol_hps || 0) *
+        Number(i.harga_hps || 0);
 
-hpsSub += hpsSubTotal;
-penSub += penSubTotal;
-negSub += negSubTotal;
+    const hpsTotal =
+        hpsSubTotal * tax;
 
-hpsPPN += hpsTotal - hpsSubTotal;
-penPPN += penTotal - penSubTotal;
-negPPN += negTotal - negSubTotal;
-                    
-                    const rowEl = document.getElementById(`row-total-${index}`);
-                    if (rowEl) rowEl.innerText = Utils.formatCurrency(hpsT);
-                });
+    hpsSub += hpsSubTotal;
+    hpsPPN += hpsTotal - hpsSubTotal;
+
+    // =========================
+    // PENAWARAN
+    // =========================
+
+    const penSubTotal =
+        Number(i.vol_pen || 0) *
+        Number(i.harga_pen || 0);
+
+    const penTotal =
+        penSubTotal * tax;
+
+    penSub += penSubTotal;
+    penPPN += penTotal - penSubTotal;
+
+    // =========================
+    // NEGOSIASI
+    // =========================
+
+    const negSubTotal =
+        Number(i.vol_neg || 0) *
+        Number(i.harga_neg || 0);
+
+    const negTotal =
+        negSubTotal * tax;
+
+    negSub += negSubTotal;
+    negPPN += negTotal - negSubTotal;
+
+    // =========================
+    // UPDATE TOTAL PER BARIS
+    // =========================
+
+    const row = document.getElementById(`row-total-${index}`);
+    if(row){
+        row.textContent = Utils.formatCurrency(hpsTotal);
+    }
+
+});
 
                 const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
                 setEl('sub-hps', Utils.formatCurrency(hpsSub));
