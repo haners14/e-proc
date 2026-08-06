@@ -140,19 +140,26 @@
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
        .spreadsheet-container{
+
     width:100%;
-    overflow:auto;
 
-    min-height:calc(100vh - 360px);
+    overflow-x:auto;
 
-    border:1px solid var(--border-color);
+    overflow-y:auto;
+
+    border:1px solid #dbe3ef;
+
     border-radius:12px;
-    background:#fff;
+
 }
        .spreadsheet{
-    width:100%;
+
+    min-width:1800px;
+
+    width:max-content;
+
     border-collapse:collapse;
-    table-layout:fixed;
+
 }
         .spreadsheet tfoot td{
     background:#fff;
@@ -164,6 +171,11 @@
     position:sticky;
     bottom:0;
     z-index:4;
+}
+        .money-input{
+
+    min-width:120px;
+
 }
         .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; color: var(--gray-700); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
         
@@ -2133,6 +2145,8 @@ negPPN += negTotal - negSubTotal;
 
 </div>
                   <div class="spreadsheet-container mb-6">
+    <div class="spreadsheet-container">
+
     <table class="spreadsheet" id="table-harga">
 
         <colgroup>
