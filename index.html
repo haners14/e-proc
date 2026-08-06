@@ -169,9 +169,10 @@
 
 }
        .spreadsheet{
-    min-width: 2000px;
-    width: max-content;
-    border-collapse: collapse;
+    min-width:2300px;
+    width:max-content;
+    border-collapse:collapse;
+    table-layout:fixed;
     font-size:14px;
 }
 
@@ -205,22 +206,21 @@
 }
         .spreadsheet th{
     padding:12px 14px;
-
     font-size:14px;
     font-weight:600;
-
     text-align:center;
     vertical-align:middle;
 
-    white-space:nowrap;
+    border:1px solid #dbe3ef;
+    background:#f8fafc;
 }
         
         .spreadsheet td{
-
     min-height:44px;
-
     vertical-align:middle;
 
+    border:1px solid #e2e8f0;
+    background:#fff;
 }
         .cell-input{
 
@@ -274,6 +274,46 @@
 
     white-space:nowrap;
 
+}
+        .spreadsheet td:last-child,
+.spreadsheet th:last-child{
+
+    width:55px;
+    min-width:55px;
+    max-width:55px;
+
+    text-align:center;
+
+    position:sticky;
+    right:0;
+
+    background:#fff;
+
+    z-index:3;
+
+    border-left:1px solid #dbe3ef;
+}
+        .spreadsheet th:nth-child(4),
+.spreadsheet td:nth-child(4){
+    border-left:2px solid #cbd5e1;
+}
+
+/* awal Penawaran */
+.spreadsheet th:nth-child(7),
+.spreadsheet td:nth-child(7){
+    border-left:2px solid #fbbf24;
+}
+
+/* awal Negosiasi */
+.spreadsheet th:nth-child(10),
+.spreadsheet td:nth-child(10){
+    border-left:2px solid #4ade80;
+}
+
+/* Pajak */
+.spreadsheet th:nth-child(13),
+.spreadsheet td:nth-child(13){
+    border-left:2px solid #cbd5e1;
 }
 
         .timeline-container { display: flex; flex-direction: column; position: relative; padding-left: 12px; }
@@ -2092,11 +2132,20 @@ negPPN += negTotal - negSubTotal;
 
 <!-- ================= AKSI ================= -->
 
-<td>
-    <button class="btn btn-ghost btn-sm text-danger"
-        onclick="app.removeHargaRow('${this.packageId}', ${index})">
+    style="
+        width:55px;
+        min-width:55px;
+        text-align:center;
+    ">
+
+    <button
+        class="btn btn-ghost btn-sm text-danger"
+        onclick="app.removeHargaRow('${this.packageId}',${index})">
+
         <i class="ph ph-trash"></i>
+
     </button>
+
 </td>
                     </tr>
                     `;
@@ -2269,7 +2318,15 @@ negPPN += negTotal - negSubTotal;
         Pajak (%)
     </th>
 
-    <th rowspan="2" style="width:45px"></th>
+   <th rowspan="2"
+    style="
+        width:55px;
+        min-width:55px;
+        max-width:55px;
+        text-align:center;
+    ">
+    Aksi
+</th>
 
 </tr>
 
