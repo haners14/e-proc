@@ -2488,7 +2488,13 @@ file_url:'templates/KPP3.docx'},
                             </button>
                         </div>
                     </td>
-                    <td>${Utils.getBadge(master.status || 'DRAFT')}</td>
+                    <td>
+
+                    <span class="status-badge">
+                        ${Utils.getBadge(master.status || 'DRAFT')}
+                    </span>
+                    
+                    </td>
                     <td>
     <div class="flex gap-1">
 
@@ -2622,23 +2628,28 @@ file_url:'templates/KPP3.docx'},
     // ===========================
     document.querySelectorAll('.chk-master-input').forEach(el => {
 
-        el.addEventListener('change', function(){
+    el.addEventListener('change', function(){
 
         app.showAutoSaveStatus("saving");
 
-            DB.update('package_documents', this.dataset.id,{
-                document_number:this.value
+        try {
+
+            DB.update('package_documents', this.dataset.id, {
+                document_number: this.value
             });
 
             app.showAutoSaveStatus("saved");
 
+        } catch (err) {
+
+            console.error(err);
             app.showAutoSaveStatus("error");
 
-            app.notify("Nomor dokumen tersimpan","success");
-
-        });
+        }
 
     });
+
+});
 
     // ===========================
     // TANGGAL DOKUMEN
