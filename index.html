@@ -150,14 +150,10 @@
     background:#fff;
 }
         .spreadsheet{
-
-            width:max-content;
-        
-            min-width:100%;
-        
-            border-collapse:collapse;
-        
-        }
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+}
 
         .spreadsheet tfoot td{
     background:#fff;
@@ -2033,28 +2029,56 @@ file_url:'templates/KPP3.docx'},
     </button>
 
 </div>
-                    </div>
-                    <div class="spreadsheet-container mb-6" style="overflow-x:auto;">
-                        <table class="spreadsheet" id="table-harga">
-                            <thead style="position: sticky; top: 0; z-index: 10;">
-                                <tr>
-                                    <th rowspan="2" style="width:40px">No</th>
-                                    <th rowspan="2" style="min-width: 200px;">Uraian Pekerjaan / Spesifikasi</th>
-                                    <th rowspan="2" style="width:60px">Sat</th>
-                                    <th colspan="2" class="text-center bg-primary-100 text-primary-700">Tahap HPS</th>
-                                    <th colspan="2" class="text-center bg-warning-100 text-warning-700">Tahap Penawaran</th>
-                                    <th colspan="2" class="text-center bg-success-100 text-success-700">Tahap Negosiasi</th>
-                                    <th rowspan="2" style="width:70px">Pajak (%)</th>
-                                    <th rowspan="2" style="min-width:140px; text-align:right;">Total HPS</th>
-                                    <th rowspan="2" style="width:50px"></th>
-                                </tr>
-                                <tr>
-                                    <th class="bg-primary-50 text-xs">Vol</th><th class="bg-primary-50 text-xs">Harga Sat.</th>
-                                    <th class="bg-warning-50 text-xs">Vol</th><th class="bg-warning-50 text-xs">Harga Sat.</th>
-                                    <th class="bg-success-50 text-xs">Vol</th><th class="bg-success-50 text-xs">Harga Sat.</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                  <div class="spreadsheet-container mb-6">
+    <table class="spreadsheet" id="table-harga">
+
+        <colgroup>
+            <col style="width:50px">      <!-- No -->
+            <col>                         <!-- Uraian -->
+            <col style="width:70px">      <!-- Sat -->
+
+            <col style="width:70px">      <!-- Vol HPS -->
+            <col style="width:130px">     <!-- Harga HPS -->
+
+            <col style="width:70px">      <!-- Vol Penawaran -->
+            <col style="width:130px">     <!-- Harga Penawaran -->
+
+            <col style="width:70px">      <!-- Vol Negosiasi -->
+            <col style="width:130px">     <!-- Harga Negosiasi -->
+
+            <col style="width:70px">      <!-- Pajak -->
+            <col style="width:150px">     <!-- Total -->
+            <col style="width:50px">      <!-- Aksi -->
+        </colgroup>
+
+        <thead style="position:sticky;top:0;z-index:10;">
+            <tr>
+                <th rowspan="2">No</th>
+                <th rowspan="2">Uraian Pekerjaan / Spesifikasi</th>
+                <th rowspan="2">Sat</th>
+
+                <th colspan="2" class="text-center bg-primary-100 text-primary-700">Tahap HPS</th>
+                <th colspan="2" class="text-center bg-warning-100 text-warning-700">Tahap Penawaran</th>
+                <th colspan="2" class="text-center bg-success-100 text-success-700">Tahap Negosiasi</th>
+
+                <th rowspan="2">Pajak (%)</th>
+                <th rowspan="2" class="text-right">Total HPS</th>
+                <th rowspan="2"></th>
+            </tr>
+
+            <tr>
+                <th class="bg-primary-50 text-xs">Vol</th>
+                <th class="bg-primary-50 text-xs">Harga Sat.</th>
+
+                <th class="bg-warning-50 text-xs">Vol</th>
+                <th class="bg-warning-50 text-xs">Harga Sat.</th>
+
+                <th class="bg-success-50 text-xs">Vol</th>
+                <th class="bg-success-50 text-xs">Harga Sat.</th>
+            </tr>
+        </thead>
+
+        <tbody>
                                 ${trs}
 
                                 ${items.length < 15 ? `
