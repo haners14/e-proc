@@ -151,7 +151,8 @@
 
     white-space:nowrap;
 
-    min-width:150px;
+    min-width:130px;
+    width:130px;
 
 }
         
@@ -188,11 +189,46 @@
     margin:auto;
 }
         .spreadsheet{
-    min-width:2300px;
     width:max-content;
+    min-width:1850px;
     border-collapse:collapse;
     table-layout:auto;
     font-size:14px;
+}
+        .col-vol{
+    width:70px;
+    min-width:70px;
+    max-width:70px;
+    text-align:center;
+}
+
+.col-price{
+    width:120px;
+    min-width:120px;
+    max-width:120px;
+    text-align:right;
+}
+
+.col-total{
+    width:140px;
+    min-width:140px;
+    max-width:140px;
+    text-align:right;
+    font-weight:600;
+}
+
+.col-tax{
+    width:60px;
+    min-width:60px;
+    max-width:60px;
+    text-align:center;
+}
+
+.col-action{
+    width:50px;
+    min-width:50px;
+    max-width:50px;
+    text-align:center;
 }
 
         .spreadsheet tfoot td{
@@ -219,9 +255,8 @@
     z-index:4;
 }
         .money-input{
-
-    min-width:120px;
-
+    width:100%;
+    min-width:90px;
 }
         .spreadsheet th{
     padding:12px 14px;
@@ -294,23 +329,17 @@
     white-space:nowrap;
 
 }
-        .spreadsheet td:last-child,
-.spreadsheet th:last-child{
-
-    width:55px;
-    min-width:55px;
-    max-width:55px;
+        .spreadsheet .col-action{
+    width:50px;
+    min-width:50px;
+    max-width:50px;
 
     position:sticky;
     right:0;
 
     background:#fff;
-
-    border-left:1px solid #dbe3ef;
-
+    z-index:20;
     text-align:center;
-    vertical-align:middle;
-    padding:0;
 }
         
         .spreadsheet th:nth-child(4),
