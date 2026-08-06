@@ -158,7 +158,20 @@
             border-collapse:collapse;
         
         }
+
+        .spreadsheet tfoot td{
+    background:#fff;
+    font-weight:700;
+    border-top:2px solid #d1d5db;
+}
+
+.spreadsheet tfoot{
+    position:sticky;
+    bottom:0;
+    z-index:4;
+}
         .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; color: var(--gray-700); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
+        
         .spreadsheet td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 0; position: relative; }
         .cell-input{
 
@@ -2043,27 +2056,76 @@ file_url:'templates/KPP3.docx'},
                             </thead>
                             <tbody>
                                 ${trs}
-                                <tr>
-                                    <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">Subtotal (Sebelum Pajak)</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50" id="sub-hps">${Utils.formatCurrency(hpsSub)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold bg-warning-50" id="sub-pen">${Utils.formatCurrency(penSub)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold bg-success-50" id="sub-neg">${Utils.formatCurrency(negSub)}</td>
-                                    <td colspan="3" class="cell-readonly bg-gray-50"></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">Total Pajak (PPN/PPh)</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-primary-50" id="tax-hps">+ ${Utils.formatCurrency(hpsPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-warning-50" id="tax-pen">+ ${Utils.formatCurrency(penPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-success-50" id="tax-neg">+ ${Utils.formatCurrency(negPPN)}</td>
-                                    <td colspan="3" class="cell-readonly bg-gray-50"></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="3" class="cell-readonly text-right font-bold text-sm">TOTAL KESELURUHAN</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-primary-700 bg-primary-100 text-sm" id="grand-hps">${Utils.formatCurrency(hpsSub+hpsPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-warning-700 bg-warning-100 text-sm" id="grand-pen">${Utils.formatCurrency(penSub+penPPN)}</td>
-                                    <td colspan="2" class="cell-readonly text-right font-bold text-success-700 bg-success-100 text-sm" id="grand-neg">${Utils.formatCurrency(negSub+negPPN)}</td>
-                                    <td colspan="3" class="cell-readonly bg-gray-100"></td>
-                                </tr>
+
+                                ${items.length < 15 ? `
+<tr class="empty-space">
+    <td colspan="12"></td>
+</tr>
+` : ''}
+
+</tbody>
+
+<tfoot>
+
+    <tr>
+        <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">
+            Subtotal (Sebelum Pajak)
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50" id="sub-hps">
+            ${Utils.formatCurrency(hpsSub)}
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold bg-warning-50" id="sub-pen">
+            ${Utils.formatCurrency(penSub)}
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold bg-success-50" id="sub-neg">
+            ${Utils.formatCurrency(negSub)}
+        </td>
+
+        <td colspan="3"></td>
+    </tr>
+
+    <tr>
+        <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">
+            Total Pajak (PPN/PPh)
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-primary-50" id="tax-hps">
+            + ${Utils.formatCurrency(hpsPPN)}
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-warning-50" id="tax-pen">
+            + ${Utils.formatCurrency(penPPN)}
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-success-50" id="tax-neg">
+            + ${Utils.formatCurrency(negPPN)}
+        </td>
+
+        <td colspan="3"></td>
+    </tr>
+
+    <tr>
+        <td colspan="3" class="cell-readonly text-right font-bold text-sm">
+            TOTAL KESELURUHAN
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold text-primary-700 bg-primary-100 text-sm" id="grand-hps">
+            ${Utils.formatCurrency(hpsSub+hpsPPN)}
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold text-warning-700 bg-warning-100 text-sm" id="grand-pen">
+            ${Utils.formatCurrency(penSub+penPPN)}
+        </td>
+
+        <td colspan="2" class="cell-readonly text-right font-bold text-success-700 bg-success-100 text-sm" id="grand-neg">
+            ${Utils.formatCurrency(negSub+negPPN)}
+        </td>
+
+        <td colspan="3"></td>
+    </tr>
                             </tbody>
                         </table>
                     </div>
