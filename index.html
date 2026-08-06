@@ -2004,7 +2004,30 @@ file_url:'templates/KPP3.docx'},
                                 <div class="flex items-center gap-1"><i class="ph ph-dots-six-vertical drag-handle"></i> ${index + 1}</div>
                             </td>
                             <td colspan="12"><input type="text" class="cell-input hrg-input" style="font-weight:bold" data-field="uraian" value="${i.uraian}" placeholder="Contoh: Pekerjaan Non Personil"></td>
-                            <td><button class="btn btn-ghost btn-sm text-danger" onclick="app.removeHargaRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
+                            <td
+    style="
+        width:55px;
+        min-width:55px;
+        max-width:55px;
+        text-align:center;
+        vertical-align:middle;
+        padding:0;
+    "
+><button
+        class="btn btn-ghost btn-sm text-danger"
+        onclick="app.removeHargaRow('${this.packageId}', ${index})"
+        style="
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            width:100%;
+            height:100%;
+            margin:auto;
+        "
+    >
+        <i class="ph ph-trash"></i>
+    </button>
+</td>
                         </tr>
                         `;
                     }
@@ -2274,22 +2297,24 @@ negPPN += negTotal - negSubTotal;
     <table class="spreadsheet" id="table-harga">
 
         <colgroup>
-            <col style="width:auto">      <!-- No -->
-            <col style="width:auto">     <!-- Uraian -->
-            <col style="width:auto">      <!-- Sat -->
+            <col style="width:55px">     <!-- No -->
+<col style="width:320px">    <!-- Uraian -->
+<col style="width:70px">     <!-- Sat -->
 
-            <col style="width:auto">      <!-- Vol HPS -->
-            <col style="width:auto">     <!-- Harga HPS -->
+<col style="width:60px">
+<col style="width:120px">
+<col style="width:145px">
 
-            <col style="width:auto">      <!-- Vol Penawaran -->
-            <col style="width:auto">     <!-- Harga Penawaran -->
+<col style="width:60px">
+<col style="width:120px">
+<col style="width:145px">
 
-            <col style="width:auto">      <!-- Vol Negosiasi -->
-            <col style="width:auto">     <!-- Harga Negosiasi -->
+<col style="width:60px">
+<col style="width:120px">
+<col style="width:145px">
 
-            <col style="width:auto">      <!-- Pajak -->
-            <col style="width:auto">     <!-- Total -->
-            <col style="width:auto">      <!-- Aksi -->
+<col style="width:60px">     <!-- Pajak -->
+<col style="width:55px">     <!-- Aksi -->
         </colgroup>
 
        <thead style="position:sticky;top:0;z-index:10;">
