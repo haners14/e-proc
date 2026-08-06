@@ -139,6 +139,22 @@
         .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
+        .total-cell{
+
+    text-align:right;
+
+    padding-right:18px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+    min-width:150px;
+
+}
+        
        .spreadsheet-container{
 
     width:100%;
@@ -153,18 +169,28 @@
 
 }
        .spreadsheet{
-
-    min-width:1800px;
-
-    width:max-content;
-
-    border-collapse:collapse;
-
+    min-width: 2000px;
+    width: max-content;
+    border-collapse: collapse;
+    font-size:14px;
 }
+
         .spreadsheet tfoot td{
-    background:#fff;
-    font-weight:700;
+
+    background:#f8fafc;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    height:48px;
+
+    padding:12px 14px;
+
     border-top:2px solid #d1d5db;
+
+    white-space:nowrap;
+
 }
 
 .spreadsheet tfoot{
@@ -177,9 +203,25 @@
     min-width:120px;
 
 }
-        .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; color: var(--gray-700); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
+        .spreadsheet th{
+    padding:12px 14px;
+
+    font-size:14px;
+    font-weight:600;
+
+    text-align:center;
+    vertical-align:middle;
+
+    white-space:nowrap;
+}
         
-        .spreadsheet td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 0; position: relative; }
+        .spreadsheet td{
+
+    min-height:44px;
+
+    vertical-align:middle;
+
+}
         .cell-input{
 
             width:100%;
@@ -206,7 +248,33 @@
         
         }
         .cell-input:focus { box-shadow: inset 0 0 0 2px var(--primary-600); background: var(--primary-50); }
-        .cell-readonly { padding: var(--space-3); background: var(--gray-50); color: var(--gray-700); font-weight: 500; }
+        .cell-readonly{
+    padding:10px 14px;
+    background:var(--gray-50);
+    color:var(--gray-700);
+
+    font-size:14px;
+    font-weight:600;
+    line-height:1.5;
+
+    text-align:right;
+    white-space:nowrap;
+}
+        .total-cell{
+
+    text-align:right;
+
+    padding-right:18px;
+
+    min-width:150px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+}
 
         .timeline-container { display: flex; flex-direction: column; position: relative; padding-left: 12px; }
         .timeline-container::before { content: ''; position: absolute; left: 18px; top: 8px; bottom: 8px; width: 2px; background: var(--gray-200); z-index: 0; }
@@ -1964,7 +2032,7 @@ negPPN += negTotal - negSubTotal;
         value="${Utils.formatNumber(i.harga_hps)}">
 </td>
 
-<td class="cell-readonly bg-primary-100 text-right font-bold">
+<td class="cell-readonly total-cell bg-primary-100">
     ${Utils.formatCurrency(hpsTotal)}
 </td>
 
@@ -1986,7 +2054,7 @@ negPPN += negTotal - negSubTotal;
         value="${Utils.formatNumber(i.harga_pen)}">
 </td>
 
-<td class="cell-readonly bg-warning-100 text-right font-bold">
+<td class="cell-readonly bg-warning-100">
     ${Utils.formatCurrency(penTotal)}
 </td>
 
@@ -2008,7 +2076,7 @@ negPPN += negTotal - negSubTotal;
         value="${Utils.formatNumber(i.harga_neg)}">
 </td>
 
-<td class="cell-readonly bg-success-100 text-right font-bold">
+<td class="cell-readonly bg-success-100">
     ${Utils.formatCurrency(negTotal)}
 </td>
 
@@ -2236,64 +2304,108 @@ negPPN += negTotal - negSubTotal;
 <tfoot>
 
     <tr>
-        <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">
-            Subtotal (Sebelum Pajak)
-        </td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold bg-primary-50" id="sub-hps">
-            ${Utils.formatCurrency(hpsSub)}
-        </td>
+    <td colspan="3"
+        class="cell-readonly text-right font-semibold">
+        SUBTOTAL (SEBELUM PAJAK)
+    </td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold bg-warning-50" id="sub-pen">
-            ${Utils.formatCurrency(penSub)}
-        </td>
+    <!-- HPS -->
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-primary-50"
+        id="sub-hps">
+        ${Utils.formatCurrency(hpsSub)}
+    </td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold bg-success-50" id="sub-neg">
-            ${Utils.formatCurrency(negSub)}
-        </td>
+    <!-- Penawaran -->
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-warning-50"
+        id="sub-pen">
+        ${Utils.formatCurrency(penSub)}
+    </td>
 
-        <td colspan="3"></td>
-    </tr>
+    <!-- Negosiasi -->
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-success-50"
+        id="sub-neg">
+        ${Utils.formatCurrency(negSub)}
+    </td>
+
+    <!-- Pajak -->
+    <td></td>
+
+    <!-- Hapus -->
+    <td></td>
+
+</tr>
+    <tr>
+
+    <td colspan="3"
+        class="cell-readonly text-right font-semibold">
+        TOTAL PAJAK (PPN/PPh)
+    </td>
+
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-primary-50"
+        id="tax-hps">
+        + ${Utils.formatCurrency(hpsPPN)}
+    </td>
+
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-warning-50"
+        id="tax-pen">
+        + ${Utils.formatCurrency(penPPN)}
+    </td>
+
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-success-50"
+        id="tax-neg">
+        + ${Utils.formatCurrency(negPPN)}
+    </td>
+
+    <td></td>
+    <td></td>
+
+</tr>
 
     <tr>
-        <td colspan="3" class="cell-readonly text-right font-bold uppercase text-xs">
-            Total Pajak (PPN/PPh)
-        </td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-primary-50" id="tax-hps">
-            + ${Utils.formatCurrency(hpsPPN)}
-        </td>
+    <td colspan="3"
+        class="cell-readonly text-right font-semibold">
+        TOTAL KESELURUHAN
+    </td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-warning-50" id="tax-pen">
-            + ${Utils.formatCurrency(penPPN)}
-        </td>
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-primary-100"
+        id="grand-hps">
+        ${Utils.formatCurrency(hpsSub+hpsPPN)}
+    </td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold text-gray-500 bg-success-50" id="tax-neg">
-            + ${Utils.formatCurrency(negPPN)}
-        </td>
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-warning-100"
+        id="grand-pen">
+        ${Utils.formatCurrency(penSub+penPPN)}
+    </td>
 
-        <td colspan="3"></td>
-    </tr>
+    <td></td>
+    <td></td>
+    <td class="cell-readonly total-cell bg-success-100"
+        id="grand-neg">
+        ${Utils.formatCurrency(negSub+negPPN)}
+    </td>
 
-    <tr>
-        <td colspan="3" class="cell-readonly text-right font-bold text-sm">
-            TOTAL KESELURUHAN
-        </td>
+    <td></td>
+    <td></td>
 
-        <td colspan="2" class="cell-readonly text-right font-bold text-primary-700 bg-primary-100 text-sm" id="grand-hps">
-            ${Utils.formatCurrency(hpsSub+hpsPPN)}
-        </td>
-
-        <td colspan="2" class="cell-readonly text-right font-bold text-warning-700 bg-warning-100 text-sm" id="grand-pen">
-            ${Utils.formatCurrency(penSub+penPPN)}
-        </td>
-
-        <td colspan="2" class="cell-readonly text-right font-bold text-success-700 bg-success-100 text-sm" id="grand-neg">
-            ${Utils.formatCurrency(negSub+negPPN)}
-        </td>
-
-        <td colspan="3"></td>
-    </tr>
+</tr>
                         
                         </table>
                     </div>
