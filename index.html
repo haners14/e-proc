@@ -152,7 +152,7 @@
        .spreadsheet{
     width:100%;
     border-collapse:collapse;
-    table-layout:fixed;
+    table-layout:auto;
 }
 
         .spreadsheet tfoot td{
@@ -2034,7 +2034,7 @@ file_url:'templates/KPP3.docx'},
 
         <colgroup>
             <col style="width:50px">      <!-- No -->
-            <col>                         <!-- Uraian -->
+            <col style="width:auto">     <!-- Uraian -->
             <col style="width:70px">      <!-- Sat -->
 
             <col style="width:70px">      <!-- Vol HPS -->
@@ -2107,11 +2107,7 @@ file_url:'templates/KPP3.docx'},
         <tbody>
                                 ${trs}
 
-                                ${items.length < 15 ? `
-<tr class="empty-space">
-    <td colspan="12"></td>
-</tr>
-` : ''}
+                                
 
 </tbody>
 
