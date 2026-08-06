@@ -139,21 +139,17 @@
         .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
-        .spreadsheet-container{
+       .spreadsheet-container{
 
-            width:100%;
-        
-            overflow-x:auto;
-        
-            overflow-y:visible;
-        
-            border:1px solid var(--border-color);
-        
-            border-radius:var(--radius-md);
-        
-            background:white;
-        
-        }
+    height:auto !important;
+
+    max-height:none !important;
+
+    overflow-x:auto;
+
+    overflow-y:visible;
+
+}
         .spreadsheet{
 
             width:max-content;
