@@ -1903,15 +1903,82 @@ file_url:'templates/KPP3.docx'},
                             <h2 class="font-bold text-lg text-main">Rincian Harga</h2>
                             <p class="text-sm text-muted">Ketik untuk simpan otomatis. Mendukung Copy-Paste (Ctrl+V) langsung dari Excel. <br><span class="text-primary-600 font-semibold"><i class="ph ph-hand-swipe-right"></i> Anda dapat drag-and-drop baris untuk mengubah urutannya.</span></p>
                         </div>
-                        <div class="flex gap-2">
-                            <input type="file" id="import-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importHPS(event, '${this.packageId}')">
-                            <button class="btn btn-outline" onclick="app.downloadTemplateHPS()"><i class="ph ph-download"></i> Template Excel</button>
-                            <button class="btn btn-outline" onclick="document.getElementById('import-excel').click()"><i class="ph ph-upload"></i> Import Excel</button>
-                            
-                            <button class="btn btn-primary" onclick="app.openDocumentOutput('HPS/RAB','${this.packageId}','HPS')"><i class="ph ph-file-pdf"></i> Cetak / Generate HPS</button>
-                            <button class="btn btn-outline" onclick="app.addHargaHeader('${this.packageId}')"><i class="ph ph-list"></i> Tambah Header</button>
-                            <button class="btn btn-outline" onclick="app.addHargaRow('${this.packageId}')"><i class="ph ph-plus"></i> Tambah Baris</button>
-                        </div>
+                       <div class="flex gap-2 flex-wrap">
+
+    <!-- IMPORT -->
+    <input
+        type="file"
+        id="import-excel"
+        accept=".xlsx,.xls"
+        style="display:none"
+        onchange="app.importHPS(event,'${this.packageId}')">
+
+    <button
+        class="btn btn-outline"
+        onclick="document.getElementById('import-excel').click()">
+
+        <i class="ph ph-upload"></i>
+
+        Import Excel
+
+    </button>
+
+    <!-- EXPORT DATA -->
+    <button
+        class="btn btn-outline"
+        onclick="app.exportHPSExcel('${this.packageId}')">
+
+        <i class="ph ph-export"></i>
+
+        Export Data
+
+    </button>
+
+    <!-- TEMPLATE -->
+    <button
+        class="btn btn-outline"
+        onclick="app.downloadTemplateHPS()">
+
+        <i class="ph ph-download"></i>
+
+        Download Template
+
+    </button>
+
+    <!-- GENERATE -->
+    <button
+        class="btn btn-primary"
+        onclick="app.openDocumentOutput('HPS/RAB','${this.packageId}','HPS')">
+
+        <i class="ph ph-file-doc"></i>
+
+        Generate HPS
+
+    </button>
+
+    <!-- HEADER -->
+    <button
+        class="btn btn-outline"
+        onclick="app.addHargaHeader('${this.packageId}')">
+
+        <i class="ph ph-list"></i>
+
+        Tambah Header
+
+    </button>
+
+    <!-- DETAIL -->
+    <button
+        class="btn btn-outline"
+        onclick="app.addHargaRow('${this.packageId}')">
+
+        <i class="ph ph-plus"></i>
+
+        Tambah Detail
+
+    </button>
+
+</div>
                     </div>
                     <div class="spreadsheet-container mb-6" style="max-height: 500px;">
                         <table class="spreadsheet" id="table-harga">
@@ -3961,6 +4028,19 @@ importPencairanExcel(event) {
                 if (this.currentViewInstance && typeof this.currentViewInstance.render === 'function') {
                     this.currentViewInstance.render(this.routerView);
                 }
+            }
+
+            exportHPSExcel(packageId) {
+
+                const pkg = DB.getById("paket", packageId);
+            
+                if (!pkg) {
+                    this.notify("Paket tidak ditemukan", "error");
+                    return;
+                }
+            
+                console.log(pkg);
+            
             }
 
             addHargaHeader(packageId) {
