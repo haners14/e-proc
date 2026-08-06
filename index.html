@@ -4030,18 +4030,92 @@ importPencairanExcel(event) {
                 }
             }
 
-            exportHPSExcel(packageId) {
+            exportHPSExcel(packageId){
 
-                const pkg = DB.getById("paket", packageId);
-            
-                if (!pkg) {
-                    this.notify("Paket tidak ditemukan", "error");
-                    return;
-                }
-            
-                console.log(pkg);
-            
-            }
+    const pkg = DB.getById("paket", packageId);
+
+    if(!pkg){
+        this.notify("Paket tidak ditemukan","error");
+        return;
+    }
+
+    const rows=[];
+
+    rows.push([
+        "No",
+        "Jenis",
+        "Uraian",
+        "Satuan",
+
+        "Volume HPS",
+        "Harga HPS",
+        "Jumlah HPS",
+
+        "Volume Penawaran",
+        "Harga Penawaran",
+        "Jumlah Penawaran",
+
+        "Volume Negosiasi",
+        "Harga Negosiasi",
+        "Jumlah Negosiasi",
+
+        "PPN",
+        "PPh",
+        "Keterangan"
+    ]);
+
+    (pkg.items || []).forEach((item,index)=>{
+
+        const jHps=(Number(item.vol_hps)||0)*(Number(item.harga_hps)||0);
+
+        const jPen=(Number(item.vol_pen)||0)*(Number(item.harga_pen)||0);
+
+        const jNeg=(Number(item.vol_neg)||0)*(Number(item.harga_neg)||0);
+
+        rows.push([
+
+            index+1,
+
+            item.is_header ? "HEADER" : "DETAIL",
+
+            item.uraian || "",
+
+            item.sat || "",
+
+            item.vol_hps || 0,
+            item.harga_hps || 0,
+            jHps,
+
+            item.vol_pen || 0,
+            item.harga_pen || 0,
+            jPen,
+
+            item.vol_neg || 0,
+            item.harga_neg || 0,
+            jNeg,
+
+            item.pajak || 11,
+            item.pph || "",
+            item.keterangan || ""
+
+        ]);
+
+    });
+
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+
+    const wb=XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb,ws,"Harga");
+
+    XLSX.writeFile(
+        wb,
+        `Harga_${pkg.name}.xlsx`
+    );
+
+    this.notify("Excel berhasil diexport","success");
+
+}
 
             addHargaHeader(packageId) {
                 const pkg = DB.getById('paket', packageId);
