@@ -172,7 +172,7 @@
     min-width:2300px;
     width:max-content;
     border-collapse:collapse;
-    table-layout:fixed;
+    table-layout:auto;
     font-size:14px;
 }
 
@@ -282,16 +282,15 @@
     min-width:55px;
     max-width:55px;
 
-    text-align:center;
-
     position:sticky;
     right:0;
 
     background:#fff;
 
-    z-index:3;
+    z-index:20;
 
     border-left:1px solid #dbe3ef;
+
 }
         .spreadsheet th:nth-child(4),
 .spreadsheet td:nth-child(4){
@@ -2052,7 +2051,13 @@ negPPN += negTotal - negSubTotal;
                         <td class="cell-readonly text-center">
                             <div class="flex items-center gap-1"><i class="ph ph-dots-six-vertical drag-handle"></i> ${index + 1}</div>
                         </td>
-                        <td><input type="text" class="cell-input hrg-input" data-field="uraian" value="${i.uraian}"></td>
+                        <td style="width:320px;min-width:320px;max-width:320px">
+    <input
+        type="text"
+        class="cell-input hrg-input"
+        data-field="uraian"
+        value="${i.uraian}">
+</td>
                         <td><input type="text" class="cell-input hrg-input text-center" data-field="sat" value="${i.sat}"></td>
                         
                        <!-- ================= HPS ================= -->
@@ -2293,9 +2298,10 @@ negPPN += negTotal - negSubTotal;
 
     <th rowspan="2" style="width:50px">No</th>
 
-    <th rowspan="2" style="min-width:350px">
-        Uraian Pekerjaan / Spesifikasi
-    </th>
+    <th rowspan="2"
+    style="width:320px;min-width:320px;max-width:320px">
+    Uraian Pekerjaan / Spesifikasi
+</th>
 
     <th rowspan="2" style="width:70px">
         Sat
