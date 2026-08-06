@@ -139,8 +139,30 @@
         .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
-        .spreadsheet-container { border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; background: var(--bg-surface); }
-        .spreadsheet { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .spreadsheet-container{
+
+            width:100%;
+        
+            overflow-x:auto;
+        
+            overflow-y:visible;
+        
+            border:1px solid var(--border-color);
+        
+            border-radius:var(--radius-md);
+        
+            background:white;
+        
+        }
+        .spreadsheet{
+
+            width:max-content;
+        
+            min-width:100%;
+        
+            border-collapse:collapse;
+        
+        }
         .spreadsheet th { background: var(--gray-50); padding: var(--space-3); text-align: left; font-weight: 600; color: var(--gray-700); border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); white-space: nowrap; }
         .spreadsheet td { border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); padding: 0; position: relative; }
         .cell-input { width: 100%; height: 100%; border: none; padding: var(--space-3); background: transparent; color: var(--text-main); font-size: inherit; outline: none; transition: background 0.2s; user-select: auto;}
@@ -1980,7 +2002,7 @@ file_url:'templates/KPP3.docx'},
 
 </div>
                     </div>
-                    <div class="spreadsheet-container mb-6" style="max-height: 500px;">
+                    <div class="spreadsheet-container mb-6" style="overflow-x:auto;">
                         <table class="spreadsheet" id="table-harga">
                             <thead style="position: sticky; top: 0; z-index: 10;">
                                 <tr>
