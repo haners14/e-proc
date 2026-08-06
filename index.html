@@ -169,7 +169,14 @@
     border-radius:12px;
 
 }
-       
+       .action-cell{
+    width:55px;
+    min-width:55px;
+    max-width:55px;
+    padding:0;
+    text-align:center;
+    vertical-align:middle;
+}
 
 .action-btn{
     width:32px;
@@ -183,7 +190,7 @@
 }
         .spreadsheet{
     width:max-content;
-    min-width:1550px;
+    min-width:1850px;
     border-collapse:collapse;
     table-layout:auto;
     font-size:14px;
@@ -307,7 +314,21 @@
     text-align:right;
     white-space:nowrap;
 }
-        
+        .total-cell{
+
+    text-align:right;
+
+    padding-right:18px;
+
+    min-width:150px;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+}
         .spreadsheet .col-action{
     width:50px;
     min-width:50px;
@@ -7650,6 +7671,8 @@ renderSignPage(container, itemId) {
                 
                 const ppk = pjb.find(p => p.id === pkg.ppk_id) || { name: '...', nip: '...' };
                 const pp = pjb.find(p => p.id === pkg.pp_id) || { name: '...', nip: '-' };
+                const pptk = pjb.find(p => p.id === pkg.pptk_id) || { name: '-', nip: '-' };
+                const bendahara = pjb.find(p => p.id === pkg.bendahara_id) || { name: '-', nip: '-' };
 
                 const totals = DB.calculatePackageTotals(pkg);
                 const hpsRound = pkg.pembulatan_hps || totals.hps;
@@ -7696,7 +7719,7 @@ renderSignPage(container, itemId) {
                 const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
                 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-                const docCodes = ['NOTA_DINAS', 'HPS_RAB', 'KAK', 'BA_REVIU', 'SDP', 'BA_EVALUASI', 'BA_PEMBUKTIAN', 'UNDANGAN_NEGOSIASI', 'BA_NEGOSIASI', 'UND_PENGADAAN', 'UND_VERIFIKASI', 'UND_REVIU', 'URAIAN_SINGKAT', 'BA_HASIL', 'SPPBJ', 'UND_KONTRAK', 'RANCANGAN_KONTRAK', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP'];
+                const docCodes = ['NOTA_DINAS', 'HPS_RAB', 'KAK', 'BA_REVIU', 'SDP', 'BA_EVALUASI', 'BA_PEMBUKTIAN', 'UNDANGAN_NEGOSIASI', 'BA_NEGOSIASI', 'UND_PENGADAAN', 'UND_VERIFIKASI', 'UND_REVIU', 'URAIAN_SINGKAT', 'BA_HASIL', 'SPPBJ', 'UND_KONTRAK', 'RANCANGAN_KONTRAK', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP', 'BA_KEMAJUAN', 'BA_PEMERIKSAAN', 'KPP3'];
                 const dynamicDocVars = {};
                 const allPackageDocs = DB.get('package_documents').filter(d => d.package_id === pkgId);
                 
@@ -7807,6 +7830,14 @@ renderSignPage(container, itemId) {
                     tanggal_numerik: Utils.formatDate(meta.date),
                     tanggal_negosiasi: Utils.formatDate(meta.date),
                     nama_pp: pp.name || '-',
+                    nama_pptk: pptk.name || '-',
+                    nip_pptk: pptk.nip || '-',
+                    nama_bendahara: bendahara.name || '-',
+                    nip_bendahara: bendahara.nip || '-',
+                    nilai_kontrak_nominal: Utils.formatNumber(negoRound),
+                    nilai_kontrak_terbilang: Utils.toWords(negoRound) + " rupiah",
+                    progress_persen: pkg.progress || 100,
+                    jumlah_hasil_pekerjaan: pkg.jumlah_hasil_pekerjaan || '-',
                     durasi_kontrak: pkg.durasi_kontrak || 30,
                     durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 30),
                     
