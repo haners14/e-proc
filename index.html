@@ -1891,9 +1891,41 @@ file_url:'templates/KPP3.docx'},
                     }
 
                     const tax = 1 + (Number(i.pajak) || 0) / 100;
-                    const hpsT = (Number(i.vol_hps) * Number(i.harga_hps)) * tax; hpsSub += (Number(i.vol_hps) * Number(i.harga_hps)); hpsPPN += hpsT - (Number(i.vol_hps) * Number(i.harga_hps));
-                    const penT = (Number(i.vol_pen) * Number(i.harga_pen)) * tax; penSub += (Number(i.vol_pen) * Number(i.harga_pen)); penPPN += penT - (Number(i.vol_pen) * Number(i.harga_pen));
-                    const negT = (Number(i.vol_neg) * Number(i.harga_neg)) * tax; negSub += (Number(i.vol_neg) * Number(i.harga_neg)); negPPN += negT - (Number(i.vol_neg) * Number(i.harga_neg));
+
+// ================= HPS =================
+
+const hpsSubTotal =
+    Number(i.vol_hps) * Number(i.harga_hps);
+
+const hpsTotal =
+    hpsSubTotal * tax;
+
+hpsSub += hpsSubTotal;
+hpsPPN += hpsTotal - hpsSubTotal;
+
+
+// ================= PENAWARAN =================
+
+const penSubTotal =
+    Number(i.vol_pen) * Number(i.harga_pen);
+
+const penTotal =
+    penSubTotal * tax;
+
+penSub += penSubTotal;
+penPPN += penTotal - penSubTotal;
+
+
+// ================= NEGOSIASI =================
+
+const negSubTotal =
+    Number(i.vol_neg) * Number(i.harga_neg);
+
+const negTotal =
+    negSubTotal * tax;
+
+negSub += negSubTotal;
+negPPN += negTotal - negSubTotal;
 
                     return `
                     <tr data-index="${index}" class="draggable-row" draggable="true">
@@ -1903,18 +1935,89 @@ file_url:'templates/KPP3.docx'},
                         <td><input type="text" class="cell-input hrg-input" data-field="uraian" value="${i.uraian}"></td>
                         <td><input type="text" class="cell-input hrg-input text-center" data-field="sat" value="${i.sat}"></td>
                         
-                        <td class="bg-primary-50 border-l border-primary-200"><input type="number" class="cell-input hrg-input text-center" data-field="vol_hps" value="${i.vol_hps}"></td>
-                        <td class="bg-primary-50"><input type="text" inputmode="numeric" class="cell-input hrg-input money-input text-right" data-field="harga_hps" value="${Utils.formatNumber(i.harga_hps)}"></td>
-                        
-                        <td class="bg-warning-50 border-l border-warning-200"><input type="number" class="cell-input hrg-input text-center" data-field="vol_pen" value="${i.vol_pen}"></td>
-                        <td class="bg-warning-50"><input type="text" inputmode="numeric" class="cell-input hrg-input money-input text-right" data-field="harga_pen" value="${Utils.formatNumber(i.harga_pen)}"></td>
-                        
-                        <td class="bg-success-50 border-l border-success-200"><input type="number" class="cell-input hrg-input text-center" data-field="vol_neg" value="${i.vol_neg}"></td>
-                        <td class="bg-success-50"><input type="text" inputmode="numeric" class="cell-input hrg-input money-input text-right" data-field="harga_neg" value="${Utils.formatNumber(i.harga_neg)}"></td>
-                        
-                        <td class="border-l border-gray-300"><input type="number" class="cell-input hrg-input text-center" data-field="pajak" value="${i.pajak}"></td>
-                        <td class="cell-readonly text-right font-bold bg-gray-50" id="row-total-${index}">${Utils.formatCurrency(hpsT)}</td>
-                        <td><button class="btn btn-ghost btn-sm text-danger" onclick="app.removeHargaRow('${this.packageId}', ${index})"><i class="ph ph-trash"></i></button></td>
+                       <!-- ================= HPS ================= -->
+
+<td class="bg-primary-50 border-l border-primary-200">
+    <input type="number"
+        class="cell-input hrg-input text-center"
+        data-field="vol_hps"
+        value="${i.vol_hps}">
+</td>
+
+<td class="bg-primary-50">
+    <input type="text"
+        inputmode="numeric"
+        class="cell-input hrg-input money-input text-right"
+        data-field="harga_hps"
+        value="${Utils.formatNumber(i.harga_hps)}">
+</td>
+
+<td class="cell-readonly bg-warning-100 text-right font-bold">
+    ${Utils.formatCurrency(penTotal)}
+</td>
+
+
+<!-- ================= PENAWARAN ================= -->
+
+<td class="bg-warning-50 border-l border-warning-200">
+    <input type="number"
+        class="cell-input hrg-input text-center"
+        data-field="vol_pen"
+        value="${i.vol_pen}">
+</td>
+
+<td class="bg-warning-50">
+    <input type="text"
+        inputmode="numeric"
+        class="cell-input hrg-input money-input text-right"
+        data-field="harga_pen"
+        value="${Utils.formatNumber(i.harga_pen)}">
+</td>
+
+<td class="cell-readonly bg-warning-100 text-right font-bold">
+    ${Utils.formatCurrency(penTotal)}
+</td>
+
+
+<!-- ================= NEGOSIASI ================= -->
+
+<td class="bg-success-50 border-l border-success-200">
+    <input type="number"
+        class="cell-input hrg-input text-center"
+        data-field="vol_neg"
+        value="${i.vol_neg}">
+</td>
+
+<td class="bg-success-50">
+    <input type="text"
+        inputmode="numeric"
+        class="cell-input hrg-input money-input text-right"
+        data-field="harga_neg"
+        value="${Utils.formatNumber(i.harga_neg)}">
+</td>
+
+<td class="cell-readonly bg-success-100 text-right font-bold">
+    ${Utils.formatCurrency(negTotal)}
+</td>
+
+
+<!-- ================= PAJAK ================= -->
+
+<td class="border-l border-gray-300">
+    <input type="number"
+        class="cell-input hrg-input text-center"
+        data-field="pajak"
+        value="${i.pajak}">
+</td>
+
+<!-- ================= AKSI ================= -->
+
+<td>
+    <button class="btn btn-ghost btn-sm text-danger"
+        onclick="app.removeHargaRow('${this.packageId}', ${index})">
+        <i class="ph ph-trash"></i>
+    </button>
+</td>
                     </tr>
                     `;
                 }).join('');
@@ -2065,24 +2168,23 @@ file_url:'templates/KPP3.docx'},
         Sat
     </th>
 
-    <th colspan="2" class="text-center bg-primary-100 text-primary-700">
+    <!-- HPS -->
+    <th colspan="3" class="text-center bg-primary-100 text-primary-700">
         Tahap HPS
     </th>
 
-    <th colspan="2" class="text-center bg-warning-100 text-warning-700">
+    <!-- Penawaran -->
+    <th colspan="3" class="text-center bg-warning-100 text-warning-700">
         Tahap Penawaran
     </th>
 
-    <th colspan="2" class="text-center bg-success-100 text-success-700">
+    <!-- Negosiasi -->
+    <th colspan="3" class="text-center bg-success-100 text-success-700">
         Tahap Negosiasi
     </th>
 
     <th rowspan="2" style="width:70px">
         Pajak (%)
-    </th>
-
-    <th rowspan="2" style="width:150px">
-        Total HPS
     </th>
 
     <th rowspan="2" style="width:45px"></th>
@@ -2091,14 +2193,20 @@ file_url:'templates/KPP3.docx'},
 
 <tr>
 
-    <th style="width:60px">Vol</th>
-    <th style="width:120px">Harga Sat.</th>
+    <!-- HPS -->
+    <th style="width:70px">Vol</th>
+    <th style="width:130px">Harga Sat.</th>
+    <th style="width:140px">Total</th>
 
-    <th style="width:60px">Vol</th>
-    <th style="width:120px">Harga Sat.</th>
+    <!-- Penawaran -->
+    <th style="width:70px">Vol</th>
+    <th style="width:130px">Harga Sat.</th>
+    <th style="width:140px">Total</th>
 
-    <th style="width:60px">Vol</th>
-    <th style="width:120px">Harga Sat.</th>
+    <!-- Negosiasi -->
+    <th style="width:70px">Vol</th>
+    <th style="width:130px">Harga Sat.</th>
+    <th style="width:140px">Total</th>
 
 </tr>
 
@@ -2192,9 +2300,28 @@ file_url:'templates/KPP3.docx'},
                 items.forEach((i, index) => {
                     if(i.is_header) return;
                     const tax = 1 + (Number(i.pajak) || 0) / 100;
-                    const hpsT = (Number(i.vol_hps) * Number(i.harga_hps)) * tax; hpsSub += (Number(i.vol_hps) * Number(i.harga_hps)); hpsPPN += hpsT - (Number(i.vol_hps) * Number(i.harga_hps));
-                    const penT = (Number(i.vol_pen) * Number(i.harga_pen)) * tax; penSub += (Number(i.vol_pen) * Number(i.harga_pen)); penPPN += penT - (Number(i.vol_pen) * Number(i.harga_pen));
-                    const negT = (Number(i.vol_neg) * Number(i.harga_neg)) * tax; negSub += (Number(i.vol_neg) * Number(i.harga_neg)); negPPN += negT - (Number(i.vol_neg) * Number(i.harga_neg));
+                   const tax = 1 + (Number(i.pajak) || 0) / 100;
+
+const hpsSubTotal =
+    Number(i.vol_hps) * Number(i.harga_hps);
+
+const penSubTotal =
+    Number(i.vol_pen) * Number(i.harga_pen);
+
+const negSubTotal =
+    Number(i.vol_neg) * Number(i.harga_neg);
+
+const hpsTotal = hpsSubTotal * tax;
+const penTotal = penSubTotal * tax;
+const negTotal = negSubTotal * tax;
+
+hpsSub += hpsSubTotal;
+penSub += penSubTotal;
+negSub += negSubTotal;
+
+hpsPPN += hpsTotal - hpsSubTotal;
+penPPN += penTotal - penSubTotal;
+negPPN += negTotal - negSubTotal;
                     
                     const rowEl = document.getElementById(`row-total-${index}`);
                     if (rowEl) rowEl.innerText = Utils.formatCurrency(hpsT);
