@@ -626,6 +626,7 @@
                 const map = { 
                     'SELESAI': 'badge-success', 'KONTRAK': 'badge-success', 'AKTIF': 'badge-success', 'FINAL': 'badge-success',
                     'BELUM PROSES': 'badge-neutral', 'PROSES SPSE': 'badge-info',
+                    'PENCAIRAN': 'badge-warning', // <-- TAMBAHAN: Badge untuk Pencairan
                     'NEGOSIASI': 'badge-warning', 'DRAFT': 'badge-warning', 'PROSES': 'badge-warning',
                     'PERSIAPAN': 'badge-info', 'KLARIFIKASI': 'badge-info', 'REVIU': 'badge-info',
                     'PEMILIHAN': 'badge-neutral', 'NONAKTIF': 'badge-neutral', 'BATAL': 'badge-danger'
@@ -1008,7 +1009,28 @@ file_url:'templates/KPP3.docx'},
             libur: { title: 'Hari Libur Nasional', table: 'libur', fields: [{ key: 'date', label: 'Tanggal', type: 'date', required: true, formatter: Utils.formatDate }, { key: 'desc', label: 'Keterangan', type: 'text', required: true }] },
             waktu: { title: 'Master Waktu Dokumen', table: 'waktu', fields: [{ key: 'name', label: 'Tahap/Dokumen', type: 'text', required: true }, { key: 'previous', label: 'Mengikuti Jadwal Sebelumnya', type: 'text', required: true }, { key: 'days', label: 'Selisih Hari Kerja', type: 'number', required: true }, { key: 'anchor', label: 'Acuan', type: 'select', options: ['mulai', 'selesai'] }] },
             jadwal_proses: { title: 'Master Jadwal Proses', table: 'jadwal_proses', fields: [{ key: 'name', label: 'Proses', type: 'select', options: ['Persiapan', 'Upload', 'Evaluasi', 'Negosiasi', 'Kontrak'], required: true }, { key: 'start_after', label: 'Mulai setelah (hari kerja)', type: 'number', required: true }, { key: 'duration', label: 'Durasi (hari kerja)', type: 'number', required: true }] },
-            paket: { title: 'Daftar Paket Pengadaan', table: 'paket', fields: [{ key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, { key: 'lokasi', label: 'Lokasi', type: 'text' }, { key: 'mak', label: 'MAK', type: 'text' }, { key: 'kode_rup', label: 'Kode RUP', type: 'text' }, { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, { key: 'stage', label: 'Tahapan', type: 'select', options: ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'SELESAI'], formatter: Utils.getBadge }, { key: 'tahun_anggaran', label: 'T.A', type: 'text' }] },
+            paket: { 
+                title: 'Daftar Paket Pengadaan', 
+                table: 'paket', 
+                fields: [
+                    { key: 'id', label: 'ID Paket', type: 'text', readOnly: true }, 
+                    { key: 'name', label: 'Nama Pekerjaan', type: 'text', required: true }, 
+                    { key: 'lokasi', label: 'Lokasi', type: 'text' }, 
+                    { key: 'mak', label: 'MAK', type: 'text' }, 
+                    { key: 'kode_rup', label: 'Kode RUP', type: 'text' }, 
+                    { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, 
+                    { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, 
+                    { 
+                        key: 'stage', 
+                        label: 'Tahapan', 
+                        type: 'select', 
+                        // <-- TAMBAHAN: 'PENCAIRAN' sebelum 'SELESAI'
+                        options: ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'PENCAIRAN', 'SELESAI'], 
+                        formatter: Utils.getBadge 
+                    }, 
+                    { key: 'tahun_anggaran', label: 'T.A', type: 'text' }
+                ] 
+            },
         users: { 
                 title: 'Manajemen Pengguna', 
                 table: 'users', 
@@ -1105,6 +1127,7 @@ file_url:'templates/KPP3.docx'},
                                 <option value="BELUM PROSES" ${this.statusFilter === 'BELUM PROSES' ? 'selected' : ''}>BELUM PROSES</option>
                                 <option value="PROSES SPSE" ${this.statusFilter === 'PROSES SPSE' ? 'selected' : ''}>PROSES SPSE</option>
                                 <option value="KONTRAK" ${this.statusFilter === 'KONTRAK' ? 'selected' : ''}>KONTRAK</option>
+                                <option value="PENCAIRAN" ${this.statusFilter === 'PENCAIRAN' ? 'selected' : ''}>PENCAIRAN</option>
                                 <option value="SELESAI" ${this.statusFilter === 'SELESAI' ? 'selected' : ''}>SELESAI</option>
                             </select>
                         </div>
@@ -1206,7 +1229,14 @@ file_url:'templates/KPP3.docx'},
                     }
 
                     let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
-                    const rowColors = {'BELUM PROSES':'#f8fafc','PROSES SPSE':'#eff6ff','KONTRAK':'#f0fdf4','SELESAI':'#f0fdf4'};
+                    // Bagian rowColors di dalam method renderTable():
+                    const rowColors = {
+                        'BELUM PROSES': '#f8fafc',
+                        'PROSES SPSE': '#eff6ff',
+                        'KONTRAK': '#f0fdf4',
+                        'PENCAIRAN': '#fef9c3', // <-- TAMBAHAN: Warna kuning muda untuk tahap pencairan
+                        'SELESAI': '#f0fdf4'
+                    };
                     const rowStyle = this.schemaKey === 'paket' ? ` style="background:${rowColors[item.stage] || '#fff'}"` : '';
                     
                     let act = '';
@@ -1450,12 +1480,12 @@ file_url:'templates/KPP3.docx'},
                 const packages = DB.get('paket') || [];
                 const pinnedIds = DB.cache['pinned_packages'] || [];
                 
-                // Pisahkan paket secara spesifik berdasarkan status
+                // Pisahkan paket berdasarkan status
                 const spsePackages = packages.filter(p => p.stage === 'PROSES SPSE');
                 const kontrakPackages = packages.filter(p => p.stage === 'KONTRAK');
+                const pencairanPackages = packages.filter(p => p.stage === 'PENCAIRAN'); // <-- TAMBAHAN
                 const selesaiPackages = packages.filter(p => p.stage === 'SELESAI');
 
-                // Helper function untuk merender kartu paket agar rapi dan seragam
                 const renderPackageCards = (pkgList, emptyMessage) => {
                     if (!pkgList || pkgList.length === 0) {
                         return `
@@ -1510,43 +1540,51 @@ file_url:'templates/KPP3.docx'},
                             <button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar'); setTimeout(()=>app.crudEngine.showForm(), 250);"><i class="ph ph-plus-circle"></i> Tambah Paket Baru</button>
                         </div>
                         
-                        <!-- 4 Kartu Statistik Terpisah -->
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4);">
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--primary-500);">
-                                <div class="flex items-center gap-3 mb-2 text-primary">
-                                    <i class="ph-fill ph-briefcase text-xl"></i> 
+                        <!-- 5 Kartu Statistik Terpisah -->
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-4);">
+                            <div class="card p-4 border-l-4" style="border-left-color: var(--primary-500);">
+                                <div class="flex items-center gap-2 mb-1 text-primary">
+                                    <i class="ph-fill ph-briefcase text-lg"></i> 
                                     <span class="font-bold text-xs uppercase tracking-wider">Total Paket</span>
                                 </div>
-                                <div class="text-2xl font-bold mb-1">${packages.length} Paket</div>
-                                <div class="text-xs text-muted">Tahun Anggaran 2026</div>
+                                <div class="text-xl font-bold mb-1">${packages.length} Paket</div>
+                                <div class="text-xs text-muted">TA 2026</div>
                             </div>
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--info-500);">
-                                <div class="flex items-center gap-3 mb-2" style="color: var(--info-500);">
-                                    <i class="ph-fill ph-spinner-gap text-xl"></i> 
+                            <div class="card p-4 border-l-4" style="border-left-color: var(--info-500);">
+                                <div class="flex items-center gap-2" style="color: var(--info-500);">
+                                    <i class="ph-fill ph-spinner-gap text-lg"></i> 
                                     <span class="font-bold text-xs uppercase tracking-wider">Proses SPSE</span>
                                 </div>
-                                <div class="text-2xl font-bold mb-1">${spsePackages.length} Paket</div>
-                                <div class="text-xs text-muted">Sedang tahap pemilihan</div>
+                                <div class="text-xl font-bold mb-1">${spsePackages.length} Paket</div>
+                                <div class="text-xs text-muted">Pemilihan</div>
                             </div>
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--warning-500);">
-                                <div class="flex items-center gap-3 mb-2 text-warning">
-                                    <i class="ph-fill ph-file-text text-xl"></i> 
-                                    <span class="font-bold text-xs uppercase tracking-wider">Tahap Kontrak</span>
+                            <div class="card p-4 border-l-4" style="border-left-color: var(--warning-500);">
+                                <div class="flex items-center gap-2 text-warning">
+                                    <i class="ph-fill ph-file-text text-lg"></i> 
+                                    <span class="font-bold text-xs uppercase tracking-wider">Kontrak</span>
                                 </div>
-                                <div class="text-2xl font-bold mb-1">${kontrakPackages.length} Paket</div>
-                                <div class="text-xs text-muted">Pelaksanaan & negosiasi</div>
+                                <div class="text-xl font-bold mb-1">${kontrakPackages.length} Paket</div>
+                                <div class="text-xs text-muted">Pelaksanaan</div>
                             </div>
-                            <div class="card p-5 border-l-4" style="border-left-color: var(--success-500);">
-                                <div class="flex items-center gap-3 mb-2 text-success">
-                                    <i class="ph-fill ph-check-circle text-xl"></i> 
+                            <div class="card p-4 border-l-4" style="border-left-color: #d97706;">
+                                <div class="flex items-center gap-2" style="color: #d97706;">
+                                    <i class="ph-fill ph-money text-lg"></i> 
+                                    <span class="font-bold text-xs uppercase tracking-wider">Pencairan</span>
+                                </div>
+                                <div class="text-xl font-bold mb-1">${pencairanPackages.length} Paket</div>
+                                <div class="text-xs text-muted">Proses bayar</div>
+                            </div>
+                            <div class="card p-4 border-l-4" style="border-left-color: var(--success-500);">
+                                <div class="flex items-center gap-2 text-success">
+                                    <i class="ph-fill ph-check-circle text-lg"></i> 
                                     <span class="font-bold text-xs uppercase tracking-wider">Selesai</span>
                                 </div>
-                                <div class="text-2xl font-bold mb-1">${selesaiPackages.length} Paket</div>
-                                <div class="text-xs text-muted">Telah terkontrak penuh</div>
+                                <div class="text-xl font-bold mb-1">${selesaiPackages.length} Paket</div>
+                                <div class="text-xs text-muted">Tuntas</div>
                             </div>
                         </div>
 
-                        <!-- SECTION 1: DAFTAR PAKET PROSES SPSE -->
+                        <!-- SECTION 1: PROSES SPSE -->
                         <div>
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="font-semibold text-lg text-gray-800 flex items-center gap-2">
@@ -1561,7 +1599,7 @@ file_url:'templates/KPP3.docx'},
                             </div>
                         </div>
 
-                        <!-- SECTION 2: DAFTAR PAKET KONTRAK -->
+                        <!-- SECTION 2: TAHAP KONTRAK -->
                         <div>
                             <div class="flex justify-between items-center mb-4">
                                 <h2 class="font-semibold text-lg text-gray-800 flex items-center gap-2">
@@ -1573,6 +1611,21 @@ file_url:'templates/KPP3.docx'},
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
                                 ${renderPackageCards(kontrakPackages, 'Belum ada paket dengan status KONTRAK saat ini.')}
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: TAHAP PENCAIRAN -->
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="font-semibold text-lg text-gray-800 flex items-center gap-2">
+                                    <i class="ph-fill ph-money" style="color: #d97706;"></i>
+                                    <span>Daftar Paket: TAHAP PENCAIRAN</span> 
+                                    <span class="badge badge-warning ml-1" style="background:#fef9c3; color:#a16207; border-color:#fde047;">${pencairanPackages.length} Paket</span>
+                                </h2>
+                                <button class="btn btn-outline btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua</button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                                ${renderPackageCards(pencairanPackages, 'Belum ada paket dengan status PENCAIRAN saat ini.')}
                             </div>
                         </div>
                     </div>
@@ -3870,6 +3923,39 @@ hideLoginOverlay() {
         setTimeout(() => overlay.remove(), 300);
     }
 }
+            advanceStage(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg) {
+                    return this.notify('Paket tidak ditemukan', 'error');
+                }
+
+                // Urutan 5 Tahapan Lengkap (Termasuk PENCAIRAN)
+                const stages = ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'PENCAIRAN', 'SELESAI'];
+                const currentStage = (pkg.stage || 'BELUM PROSES').toString().toUpperCase();
+                const currentIndex = stages.indexOf(currentStage);
+
+                if (currentIndex !== -1 && currentIndex < stages.length - 1) {
+                    const nextStage = stages[currentIndex + 1];
+                    let progressVal = Number(pkg.progress) || 0;
+
+                    // Penyesuaian persentase progress otomatis sesuai tahap baru
+                    if (nextStage === 'PROSES SPSE') progressVal = Math.max(progressVal, 25);
+                    if (nextStage === 'KONTRAK')     progressVal = Math.max(progressVal, 50);
+                    if (nextStage === 'PENCAIRAN')   progressVal = Math.max(progressVal, 75);
+                    if (nextStage === 'SELESAI')     progressVal = 100;
+
+                    // Simpan ke Supabase & Cache Lokal
+                    DB.update('paket', packageId, { 
+                        stage: nextStage, 
+                        progress: progressVal 
+                    });
+
+                    this.notify(`Paket berhasil naik ke tahap: ${nextStage}`, 'success');
+                    this.reRenderCurrentView();
+                } else {
+                    this.notify('Paket ini sudah berada di tahap akhir (SELESAI)', 'info');
+                }
+            }
 
             togglePasswordVisibility() {
                 const passInput = document.getElementById('login-pass');
