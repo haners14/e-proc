@@ -737,20 +737,6 @@
             {id:'BA_KEMAJUAN',code:'BA_KEMAJUAN',name:'BA Kemajuan Pekerjaan',file_url:'templates/BA_KEMAJUAN.docx'},
             {id:'BA_PEMERIKSAAN',code:'BA_PEMERIKSAAN',name:'BA Pemeriksaan Hasil Pekerjaan',file_url:'templates/BA_PEMERIKSAAN.docx'},
             {id:'KPP3',code:'KPP3',name:'Kelengkapan Pengajuan Pihak Ketiga',file_url:'templates/KPP3.docx'},
-                {id:'BA_KEMAJUAN',
-code:'BA_KEMAJUAN',
-name:'BA Kemajuan Pekerjaan',
-file_url:'templates/BA_KEMAJUAN.docx'},
-
-{id:'BA_PEMERIKSAAN',
-code:'BA_PEMERIKSAAN',
-name:'BA Pemeriksaan Hasil Pekerjaan',
-file_url:'templates/BA_PEMERIKSAAN.docx'},
-
-{id:'KPP3',
-code:'KPP3',
-name:'Kelengkapan Pengajuan Pihak Ketiga',
-file_url:'templates/KPP3.docx'},
         ];
 
         const DB = {
@@ -1304,7 +1290,7 @@ file_url:'templates/KPP3.docx'},
                     const today = new Date().toISOString().split('T')[0];
                     const pjb = DB.get('pejabat'); 
                     const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'BELUM PROSES', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), items:[], checklists:[], notes: '', jadwal_override: {}, jadwal_proses_override: {} });
+                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'BELUM PROSES', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), pa_id:first('PA/KPA'), items:[], checklists:[], notes: '', jadwal_override: {}, jadwal_proses_override: {} });
                     app.navigate('workspace', newPkg.id); return;
                 }
                 const item = id ? DB.getById(this.schema.table, id) : {};
@@ -2131,6 +2117,7 @@ file_url:'templates/KPP3.docx'},
                 const ppList = pjbs.filter(p => p.role === 'Pejabat Pengadaan' || p.role === 'Pokja');
                 const pptkList = pjbs.filter(p => p.role === 'PPTK');
                 const benList = pjbs.filter(p => p.role === 'Bendahara');
+                const paList = pjbs.filter(p => p.role === 'PA/KPA');
 
                 const getOpts = (list, selectedId) => `<option value="">-- Pilih Pejabat --</option>` + list.map(p => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.name} - ${p.nip}</option>`).join('');
                 
@@ -2149,6 +2136,7 @@ file_url:'templates/KPP3.docx'},
                                 <div class="form-group"><label class="form-label">Pejabat Pengadaan (PP) / Pokja</label><select name="pp_id" class="form-control">${getOpts(ppList, this.pkg.pp_id)}</select></div>
                                 <div class="form-group"><label class="form-label">Pejabat Pelaksana Teknis Kegiatan (PPTK)</label><select name="pptk_id" class="form-control">${getOpts(pptkList, this.pkg.pptk_id)}</select></div>
                                 <div class="form-group"><label class="form-label">Bendahara</label><select name="bendahara_id" class="form-control">${getOpts(benList, this.pkg.bendahara_id)}</select></div>
+                                <div class="form-group"><label class="form-label">Pengguna Anggaran (PA/KPA)</label><select name="pa_id" class="form-control">${getOpts(paList, this.pkg.pa_id)}</select></div>
                             </form>
                         </div>
 
@@ -3187,13 +3175,36 @@ negPPN += negTotal - negSubTotal;
                     ];
 
             const registers = docs.map(doc => {
-                let reg = DB.get("package_documents").find(r =>
+                const key = doc.trim().toUpperCase();
+                const matches = DB.get("package_documents").filter(r =>
                     r.package_id === this.packageId &&
-                    (r.document_name || "").trim().toUpperCase() === doc.toUpperCase()
+                    (r.document_name || "").trim().toUpperCase() === key
                 );
 
-                if (!reg) {
-                   reg = DB.insert("package_documents", {
+                let reg;
+                if (matches.length > 0) {
+                    // Bisa saja ada lebih dari satu baris untuk dokumen yang sama
+                    // (misal karena race-condition saat sinkronisasi Supabase).
+                    // Pilih yang paling "lengkap" sebagai baris utama agar status
+                    // ceklis yang sudah dicentang tidak terlihat hilang/ter-reset,
+                    // lalu bersihkan duplikatnya supaya tidak terus menumpuk.
+                    reg = matches.reduce((best, cur) => {
+                        if (!best) return cur;
+                        const doneStatuses = ['FINAL', 'SIGNED', 'GENERATED', 'UPLOADED'];
+                        const bestDone = doneStatuses.includes(String(best.status || '').toUpperCase());
+                        const curDone = doneStatuses.includes(String(cur.status || '').toUpperCase());
+                        if (curDone && !bestDone) return cur;
+                        if (bestDone && !curDone) return best;
+                        const bestTime = new Date(best.created_at || 0).getTime();
+                        const curTime = new Date(cur.created_at || 0).getTime();
+                        return curTime < bestTime ? cur : best;
+                    }, null);
+
+                    matches.forEach(m => {
+                        if (m.id !== reg.id) DB.delete("package_documents", m.id);
+                    });
+                } else {
+                    reg = DB.insert("package_documents", {
                         package_id: this.packageId,
                         document_name: doc,
                         document_code: app.documentCode(doc),
@@ -3450,11 +3461,26 @@ negPPN += negTotal - negSubTotal;
 
         el.addEventListener('change', function(){
 
-            DB.update('package_documents', this.dataset.id,{
-                document_date:this.value
-            });
+            app.showAutoSaveStatus("saving");
 
-            app.notify("Tanggal dokumen tersimpan","success");
+            try {
+
+                DB.update('package_documents', this.dataset.id,{
+                    document_date:this.value
+                });
+
+                app.notify("Tanggal dokumen tersimpan","success");
+                app.showAutoSaveStatus("saved");
+
+                // Urutkan ulang tabel ceklis sesuai tanggal terbaru yang baru diedit
+                app.reRenderCurrentView();
+
+            } catch (err) {
+
+                console.error(err);
+                app.showAutoSaveStatus("error");
+
+            }
 
         });
 
@@ -7687,7 +7713,11 @@ renderSignPage(container, itemId) {
         }
             resolveDocumentMaster(reference, pkgId) {
                 const records = DB.get('package_documents');
-                let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (d.document_name === reference || d.document_code === reference));
+                const refKey = String(reference || '').trim().toUpperCase();
+                let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (
+                    (d.document_name || '').trim().toUpperCase() === refKey ||
+                    (d.document_code || '').trim().toUpperCase() === refKey
+                ));
                 if (!master) {
                     const code = this.documentCode(reference);
                     const pkg = DB.getById('paket', pkgId);
@@ -7878,6 +7908,7 @@ renderSignPage(container, itemId) {
                 const pp = pjb.find(p => p.id === pkg.pp_id) || { name: '...', nip: '-' };
                 const pptk = pjb.find(p => p.id === pkg.pptk_id) || { name: '-', nip: '-' };
                 const bendahara = pjb.find(p => p.id === pkg.bendahara_id) || { name: '-', nip: '-' };
+                const pa = pjb.find(p => p.id === pkg.pa_id) || pjb.find(p => p.role === 'PA/KPA') || { name: '-', nip: '-' };
 
                 const totals = DB.calculatePackageTotals(pkg);
                 const hpsRound = pkg.pembulatan_hps || totals.hps;
@@ -8022,6 +8053,10 @@ renderSignPage(container, itemId) {
 
                     
                     lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 30} Hari Kalender`,
+
+                    nama_pa: pa.name || '-', nip_pa: pa.nip || '-',
+                    nama_kpa: pa.name || '-', nip_kpa: pa.nip || '-',
+                    nama_pengguna_anggaran: pa.name || '-', nip_pengguna_anggaran: pa.nip || '-',
                     
                     items: itemsPayload,
                     
