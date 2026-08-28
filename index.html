@@ -7226,102 +7226,114 @@ renderSignPage(container, itemId) {
     if (document.getElementById('sim_total')) document.getElementById('sim_total').innerText = `Rp ${Utils.formatNumber(totalBersih)}`;
 }
 
-            simpanItemPencairanBaru(pencairanId, itemId = null) {
-    const rekeningId = document.getElementById('detail_rekening_id').value;
-    const uraian = document.getElementById('detail_uraian').value;
-    const namaPenerima = document.getElementById('detail_nama_penerima').value;
-    const bank = document.getElementById('detail_bank').value;
-    const noRekening = document.getElementById('detail_norek').value;
-    
-    const qty = parseFloat(document.getElementById('detail_jumlah').value) || 1;
-    const harga = parseFloat(String(document.getElementById('detail_nilai').value).replace(/\D/g, '')) || 0;
-    const bruto = qty * harga; 
+            async simpanItemPencairanBaru(pencairanId, itemId = null) {
+                const rekeningId = document.getElementById('detail_rekening_id')?.value || '';
+                const uraian = document.getElementById('detail_uraian')?.value?.trim() || '';
+                const namaPenerima = document.getElementById('detail_nama_penerima')?.value?.trim() || '';
+                const bank = document.getElementById('detail_bank')?.value?.trim() || '';
+                const noRekening = document.getElementById('detail_norek')?.value?.trim() || '';
+                const qty = parseFloat(document.getElementById('detail_jumlah')?.value) || 1;
+                const harga = parseFloat(String(document.getElementById('detail_nilai')?.value || '0').replace(/\D/g, '')) || 0;
+                const bruto = qty * harga;
+                const pajakId = document.getElementById('detail_master_pajak')?.value || '';
 
-    const pajakId = document.getElementById('detail_master_pajak').value;
+                if (!pencairanId || !rekeningId || !uraian || !namaPenerima || bruto <= 0) {
+                    return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, jumlah dan nilai satuan.', 'error');
+                }
 
-    if (!rekeningId || !uraian || !namaPenerima || bruto <= 0) {
-        return this.notify('Harap lengkapi kode rekening, uraian, nama penerima, jumlah dan nilai satuan.', 'error');
-    }
+                let dpp = bruto, ppn = 0, pph = 0;
+                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
+                const pajakSelect = document.getElementById('detail_master_pajak');
+                if (pajakSelect && pajakSelect.value) {
+                    const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
+                    const tarif = parseFloat(optPajak?.getAttribute('data-tarif')) || 0;
+                    const isPpn = optPajak?.getAttribute('data-ppn') === 'true';
+                    const jenisPph = (optPajak?.getAttribute('data-jenis') || '').toUpperCase();
+                    if (isPpn) {
+                        dpp = Math.round(bruto / 1.11);
+                        ppn = bruto - dpp;
+                    }
+                    pph = Math.round(dpp * (tarif / 100));
+                    if (jenisPph.includes('21')) pph21 = pph;
+                    else if (jenisPph.includes('22')) pph22 = pph;
+                    else if (jenisPph.includes('23')) pph23 = pph;
+                    else if (jenisPph.includes('4') || jenisPph.includes('AYAT 2')) pph42 = pph;
+                }
 
-    let dpp = bruto;
-    let ppn = 0;
-    let pph = 0;
-    let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
-
-    const pajakSelect = document.getElementById('detail_master_pajak');
-    if (pajakSelect && pajakSelect.value) {
-        const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
-        const tarif = parseFloat(optPajak.getAttribute('data-tarif')) || 0;
-        const isPpn = optPajak.getAttribute('data-ppn') === 'true';
-        const jenisPph = (optPajak.getAttribute('data-jenis') || '').toUpperCase();
-
-        if (isPpn) {
-            dpp = Math.round(bruto / 1.11);
-            ppn = bruto - dpp;
-        }
-        pph = Math.round(dpp * (tarif / 100));
-
-        // Petakan ke kolom jenis PPh spesifik agar tabel lampiran terisi otomatis
-        if (jenisPph.includes('21')) pph21 = pph;
-        else if (jenisPph.includes('22')) pph22 = pph;
-        else if (jenisPph.includes('23')) pph23 = pph;
-        else if (jenisPph.includes('4') || jenisPph.includes('AYAT 2')) pph42 = pph;
-    }
-
-    const totalPotongan = ppn + pph;
-    const jumlahDibayarkan = bruto - totalPotongan;
-
-    const itemPayload = {
-        pencairan_id: pencairanId,
-        rekening_id: rekeningId,
-        uraian: uraian,
-        nama_penerima: namaPenerima,
-        bank: bank,
-        no_rekening: noRekening,
-        qty: qty,
-        harga: harga,
-        subtotal: bruto,
-        pajak_id: pajakId || null,
-        nilai_pajak: totalPotongan,
-        ppn: ppn,
-        pph: pph,
-        pajak_ppn: ppn,
-        pajak_pph21: pph21,
-        pajak_pph22: pph22,
-        pajak_pph23: pph23,
-        pajak_pph42: pph42,
-        total: jumlahDibayarkan
-    };
+                const totalPotongan = ppn + pph;
+                const jumlahDibayarkan = bruto - totalPotongan;
+                const payload = {
+                    pencairan_id: String(pencairanId),
+                    rekening_id: rekeningId || null,
+                    uraian,
+                    nama_penerima: namaPenerima,
+                    bank,
+                    no_rekening: noRekening,
+                    qty,
+                    harga,
+                    subtotal: bruto,
+                    pajak_id: pajakId || null,
+                    nilai_pajak: totalPotongan,
+                    ppn,
+                    pph,
+                    pajak_ppn: ppn,
+                    pajak_pph21: pph21,
+                    pajak_pph22: pph22,
+                    pajak_pph23: pph23,
+                    pajak_pph42: pph42,
+                    total: jumlahDibayarkan
+                };
 
                 if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
 
-                if (itemId) {
-                    const index = DB.cache['pencairan_items'].findIndex(i => String(i.id) === String(itemId));
-                    if (index > -1) {
-                        DB.cache['pencairan_items'][index] = { ...DB.cache['pencairan_items'][index], ...itemPayload };
+                try {
+                    let response;
+                    let savedItem;
+
+                    if (itemId) {
+                        response = await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${encodeURIComponent(itemId)}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!response.ok) throw new Error(await response.text());
+
+                        const index = DB.cache['pencairan_items'].findIndex(i => String(i.id) === String(itemId));
+                        if (index > -1) DB.cache['pencairan_items'][index] = { ...DB.cache['pencairan_items'][index], ...payload };
+                        this.notify('Item rincian berhasil diperbarui', 'success');
+                    } else {
+                        savedItem = {
+                            id: Utils.generateId(),
+                            created_at: new Date().toISOString(),
+                            ...payload
+                        };
+                        response = await fetch(`${SUPABASE_URL}pencairan_items`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
+                            body: JSON.stringify(savedItem)
+                        });
+                        if (!response.ok) throw new Error(await response.text());
+
+                        DB.cache['pencairan_items'].unshift(savedItem);
+                        this.notify('Item rincian berhasil ditambahkan dan tersimpan ke database', 'success');
                     }
 
-                    fetch(`${SUPABASE_URL}pencairan_items?id=eq.${itemId}`, {
-                        method: 'PATCH',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-                        body: JSON.stringify(itemPayload)
-                    }).catch(e => console.error(e));
-
-                    this.notify('Item rincian berhasil diperbarui', 'success');
-                } else {
-                    const newItem = { id: Utils.generateId(), created_at: new Date().toISOString(), ...itemPayload };
-                    DB.cache['pencairan_items'].unshift(newItem);
-
-                    fetch(`${SUPABASE_URL}pencairan_items`, {
-                        method: 'POST',
-                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-                        body: JSON.stringify(newItem)
-                    }).catch(e => console.error(e));
-
-                    this.notify('Item rincian berhasil ditambahkan', 'success');
+                    this.formDetailPencairan(pencairanId);
+                } catch (err) {
+                    console.error('Gagal menyimpan item pencairan:', err);
+                    const message = String(err?.message || err || 'Unknown error');
+                    this.notify(`Gagal menyimpan item ke database: ${message.substring(0, 180)}`, 'error');
                 }
-
-                this.formDetailPencairan(pencairanId);
             }
 
             tambahBarisDetailItem() {
