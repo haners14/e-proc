@@ -824,7 +824,7 @@
     // Schema public.pencairan_items:
     // id, created_at, pencairan_id, rekening_id, uraian, qty, harga, subtotal,
     // pajak_id, nilai_pajak, total, nama_penerima, bank, no_rekening, ppn, pph,
-    // tanda_tangan, status_ttd, npwp_nik.
+    // tanda_tangan, status_ttd.
     // Jangan kirim field lokal/legacy lain ke Supabase.
     let syncPayload = payload;
     if (sbTable === 'pencairan_items' && payload && typeof payload === 'object') {
@@ -4174,6 +4174,7 @@ checkSession() {
     const pencairanItems = DB.get('pencairan_items') || [];
     const rekenings = DB.get('master_rekening') || [];
     const masterPajak = DB.get('master_pajak') || [];
+    const daftarPenyedia = DB.get('penyedia') || [];
 
     if (pencairanList.length === 0) {
         return this.notify('Tidak ada data pengajuan untuk diexport', 'error');
@@ -4193,13 +4194,15 @@ checkSession() {
         const header = pencairanList.find(h => String(h.id) === String(item.pencairan_id)) || {};
         const rek = rekenings.find(r => String(r.id) === String(item.rekening_id)) || {};
         const taxRec = masterPajak.find(p => String(p.id) === String(item.pajak_id)) || {};
+        const penyediaRec = daftarPenyedia.find(p => String(p.name || '').trim().toLowerCase() === String(item.nama_penerima || '').trim().toLowerCase());
+        const npwpNik = penyediaRec?.npwp || '';
 
         detailRows.push({
             "Nomor Pengajuan (Relasi)": header.nomor || '',
             "Kode Rekening": rek.kode || '',
             "Uraian Keperluan": item.uraian || '',
             "Nama Penerima": item.nama_penerima || '',
-            "NPWP / NIK": item.npwp_nik || '',
+            "NPWP / NIK": npwpNik,
             "Bank": item.bank || '',
             "Nomor Rekening Bank": item.no_rekening || '',
             "Jumlah (Qty)": item.qty || 1,
@@ -4344,7 +4347,6 @@ importPencairanExcel(event) {
                     rekening_id: rekMatch ? rekMatch.id : null,
                     uraian: String(r["Uraian Keperluan"] || '').trim(),
                     nama_penerima: String(r["Nama Penerima"] || '').trim(),
-                    npwp_nik: String(r["NPWP / NIK"] || '').trim() || null,
                     bank: String(r["Bank"] || '').trim(),
                     no_rekening: String(r["Nomor Rekening Bank"] || '').trim(),
                     qty: qty,
@@ -6967,6 +6969,8 @@ renderSignPage(container, itemId) {
                 const pencairanItems = DB.get('pencairan_items') || [];
 
                 const existingItem = itemId ? pencairanItems.find(i => i.id === itemId) : null;
+                const existingPenyedia = existingItem ? daftarPenyedia.find(p => String(p.name || '').trim().toLowerCase() === String(existingItem.nama_penerima || '').trim().toLowerCase()) : null;
+                const existingNpwpNik = existingPenyedia?.npwp || '';
 
                 // Hitung realisasi per rekening untuk informasi sisa pagu
                 let realisasiMap = {};
@@ -7096,8 +7100,8 @@ renderSignPage(container, itemId) {
                                 </div>
                             </div>
                             <div class="form-group mb-0 mt-2">
-                                <label class="form-label text-xs">NPWP / NIK</label>
-                                <input type="text" id="detail_npwp_nik" class="form-control text-xs font-mono" value="${existingItem ? existingItem.npwp_nik || '' : ''}" placeholder="Masukkan NPWP / NIK">
+                                <label class="form-label text-xs">NPWP / NIK <span class="text-muted">(dari Master Penyedia)</span></label>
+                                <input type="text" id="detail_npwp_nik" class="form-control text-xs font-mono bg-gray-100" value="${existingNpwpNik}" readonly>
                             </div>
                         </div>
 
@@ -7251,7 +7255,6 @@ renderSignPage(container, itemId) {
                 const namaPenerima = document.getElementById('detail_nama_penerima')?.value?.trim() || '';
                 const bank = document.getElementById('detail_bank')?.value?.trim() || '';
                 const noRekening = document.getElementById('detail_norek')?.value?.trim() || '';
-                const npwpNik = document.getElementById('detail_npwp_nik')?.value?.trim() || '';
                 const qty = parseFloat(document.getElementById('detail_jumlah')?.value) || 1;
                 const harga = parseFloat(String(document.getElementById('detail_nilai')?.value || '0').replace(/\D/g, '')) || 0;
                 const bruto = qty * harga;
@@ -7286,7 +7289,6 @@ renderSignPage(container, itemId) {
                     nama_penerima: namaPenerima,
                     bank,
                     no_rekening: noRekening,
-                    npwp_nik: npwpNik || null,
                     qty,
                     harga,
                     subtotal: bruto,
@@ -7557,11 +7559,14 @@ renderSignPage(container, itemId) {
     const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
     const rekenings = DB.get('master_rekening') || [];
     const masterPajak = DB.get('master_pajak') || [];
+    const daftarPenyedia = DB.get('penyedia') || [];
 
     let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
 
     const rowsHtml = items.map((item, idx) => {
         const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-', uraian: '-' };
+        const penyediaRec = daftarPenyedia.find(p => String(p.name || '').trim().toLowerCase() === String(item.nama_penerima || '').trim().toLowerCase());
+        const npwpNik = penyediaRec?.npwp || '-';
         const bruto = Number(item.subtotal || item.harga || 0);
         
         let ppn = Number(item.pajak_ppn || 0);
@@ -7600,7 +7605,7 @@ renderSignPage(container, itemId) {
                 <td>${rek.kode}</td>
                 <td>${rek.uraian || '-'}</td>
                 <td><b>${item.uraian || '-'}</b></td>
-                <td><b>${item.nama_penerima || '-'}</b><br><span style="font-size:7pt;">NPWP/NIK: ${item.npwp_nik || '-'}</span></td>
+                <td><b>${item.nama_penerima || '-'}</b><br><span style="font-size:7pt;">NPWP/NIK: ${npwpNik}</span></td>
                 <td class="c">${item.bank || '-'}</td>
                 <td class="c">${item.no_rekening || '-'}</td>
                 <td class="r">${Utils.formatNumber(bruto)}</td>
