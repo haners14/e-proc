@@ -820,6 +820,18 @@
            async _sync(method, localTable, payload = null, id = null) {
     const sbTable = TABLE_MAP[localTable] || localTable;
     let url = `${SUPABASE_URL}${sbTable}`;
+
+    // Sanitasi kolom lokal yang tidak ada di schema Supabase pencairan_items.
+    // Field tersebut tetap boleh ada di cache untuk kebutuhan laporan.
+    let syncPayload = payload;
+    if (sbTable === 'pencairan_items' && payload && typeof payload === 'object') {
+        syncPayload = { ...payload };
+        delete syncPayload.pajak_pph21;
+        delete syncPayload.pajak_pph22;
+        delete syncPayload.pajak_pph23;
+        delete syncPayload.pajak_pph42;
+    }
+
     if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
 
     const options = { 
@@ -831,7 +843,7 @@
             'Prefer': 'resolution=merge-duplicates' // <-- Ubah dari return=minimal ke merge-duplicates agar tidak error 409/400 saat upsert
         } 
     };
-    if (payload && method !== 'DELETE') options.body = JSON.stringify(payload);
+    if (syncPayload && method !== 'DELETE') options.body = JSON.stringify(syncPayload);
     try { await fetch(url, options); } catch(e) { console.error('Sync Error', e); }
 },
 
@@ -7290,6 +7302,15 @@ renderSignPage(container, itemId) {
                     let response;
                     let savedItem;
 
+                    // Kolom pajak_pph21/22/23/42 tidak tersedia di tabel Supabase.
+                    // Tetap dipertahankan di cache lokal untuk kebutuhan laporan,
+                    // tetapi jangan dikirim ke API agar POST/PATCH tidak ditolak.
+                    const dbPayload = { ...payload };
+                    delete dbPayload.pajak_pph21;
+                    delete dbPayload.pajak_pph22;
+                    delete dbPayload.pajak_pph23;
+                    delete dbPayload.pajak_pph42;
+
                     if (itemId) {
                         response = await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${encodeURIComponent(itemId)}`, {
                             method: 'PATCH',
@@ -7299,7 +7320,7 @@ renderSignPage(container, itemId) {
                                 'Content-Type': 'application/json',
                                 'Prefer': 'return=representation'
                             },
-                            body: JSON.stringify(payload)
+                            body: JSON.stringify(dbPayload)
                         });
                         if (!response.ok) throw new Error(await response.text());
 
@@ -7312,6 +7333,11 @@ renderSignPage(container, itemId) {
                             created_at: new Date().toISOString(),
                             ...payload
                         };
+                        const dbSavedItem = { ...savedItem };
+                        delete dbSavedItem.pajak_pph21;
+                        delete dbSavedItem.pajak_pph22;
+                        delete dbSavedItem.pajak_pph23;
+                        delete dbSavedItem.pajak_pph42;
                         response = await fetch(`${SUPABASE_URL}pencairan_items`, {
                             method: 'POST',
                             headers: {
@@ -7320,7 +7346,7 @@ renderSignPage(container, itemId) {
                                 'Content-Type': 'application/json',
                                 'Prefer': 'return=representation'
                             },
-                            body: JSON.stringify(savedItem)
+                            body: JSON.stringify(dbSavedItem)
                         });
                         if (!response.ok) throw new Error(await response.text());
 
