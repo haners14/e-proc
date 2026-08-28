@@ -824,7 +824,7 @@
     // Schema public.pencairan_items:
     // id, created_at, pencairan_id, rekening_id, uraian, qty, harga, subtotal,
     // pajak_id, nilai_pajak, total, nama_penerima, bank, no_rekening, ppn, pph,
-    // tanda_tangan, status_ttd.
+    // tanda_tangan, status_ttd, npwp_nik.
     // Jangan kirim field lokal/legacy lain ke Supabase.
     let syncPayload = payload;
     if (sbTable === 'pencairan_items' && payload && typeof payload === 'object') {
@@ -4199,6 +4199,7 @@ checkSession() {
             "Kode Rekening": rek.kode || '',
             "Uraian Keperluan": item.uraian || '',
             "Nama Penerima": item.nama_penerima || '',
+            "NPWP / NIK": item.npwp_nik || '',
             "Bank": item.bank || '',
             "Nomor Rekening Bank": item.no_rekening || '',
             "Jumlah (Qty)": item.qty || 1,
@@ -4229,8 +4230,8 @@ downloadTemplatePencairan() {
 
     // Sheet 2: Detail
     const wsDetail = XLSX.utils.aoa_to_sheet([
-        ["Nomor Pengajuan (Relasi)", "Kode Rekening", "Uraian Keperluan", "Nama Penerima", "Bank", "Nomor Rekening Bank", "Jumlah (Qty)", "Nilai Satuan (Harga)", "Profil Pajak"],
-        ["001/SPP-LS/BKAD/2026", "5.02.03.2.01.0007.5.1.02.02.001.00080", "Pembayaran Honorarium Pengelola Keuangan", "Budi Santoso", "Bank BJB", "1234567890", 1, 2500000, "Honorarium ASN Golongan III"]
+        ["Nomor Pengajuan (Relasi)", "Kode Rekening", "Uraian Keperluan", "Nama Penerima", "NPWP / NIK", "Bank", "Nomor Rekening Bank", "Jumlah (Qty)", "Nilai Satuan (Harga)", "Profil Pajak"],
+        ["001/SPP-LS/BKAD/2026", "5.02.03.2.01.0007.5.1.02.02.001.00080", "Pembayaran Honorarium Pengelola Keuangan", "Budi Santoso", "01.234.567.8-901.000", "Bank BJB", "1234567890", 1, 2500000, "Honorarium ASN Golongan III"]
     ]);
 
     XLSX.utils.book_append_sheet(wb, wsHeader, "Header Pengajuan");
@@ -4343,6 +4344,7 @@ importPencairanExcel(event) {
                     rekening_id: rekMatch ? rekMatch.id : null,
                     uraian: String(r["Uraian Keperluan"] || '').trim(),
                     nama_penerima: String(r["Nama Penerima"] || '').trim(),
+                    npwp_nik: String(r["NPWP / NIK"] || '').trim() || null,
                     bank: String(r["Bank"] || '').trim(),
                     no_rekening: String(r["Nomor Rekening Bank"] || '').trim(),
                     qty: qty,
@@ -7027,7 +7029,7 @@ renderSignPage(container, itemId) {
                 }).join('');
 
                 const optsPenyedia = daftarPenyedia.map(p => `
-                    <option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">
+                    <option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}" data-npwp="${p.npwp || '-'}">
                         ${p.name} (Bank: ${p.bank || '-'} - ${p.no_rekening || '-'})
                     </option>
                 `).join('');
@@ -7092,6 +7094,10 @@ renderSignPage(container, itemId) {
                                     <label class="form-label text-xs">Nomor Rekening</label>
                                     <input type="text" id="detail_norek" class="form-control text-xs font-mono" value="${existingItem ? existingItem.no_rekening || '' : ''}" required>
                                 </div>
+                            </div>
+                            <div class="form-group mb-0 mt-2">
+                                <label class="form-label text-xs">NPWP / NIK</label>
+                                <input type="text" id="detail_npwp_nik" class="form-control text-xs font-mono" value="${existingItem ? existingItem.npwp_nik || '' : ''}" placeholder="Masukkan NPWP / NIK">
                             </div>
                         </div>
 
@@ -7197,6 +7203,8 @@ renderSignPage(container, itemId) {
                 document.getElementById('detail_nama_penerima').value = opt.getAttribute('data-nama') || '';
                 document.getElementById('detail_bank').value = opt.getAttribute('data-bank') || '';
                 document.getElementById('detail_norek').value = opt.getAttribute('data-norek') || '';
+                const npwpNikEl = document.getElementById('detail_npwp_nik');
+                if (npwpNikEl) npwpNikEl.value = opt.getAttribute('data-npwp') || '';
             }
 
            hitungPajakDetailItem() {
@@ -7243,6 +7251,7 @@ renderSignPage(container, itemId) {
                 const namaPenerima = document.getElementById('detail_nama_penerima')?.value?.trim() || '';
                 const bank = document.getElementById('detail_bank')?.value?.trim() || '';
                 const noRekening = document.getElementById('detail_norek')?.value?.trim() || '';
+                const npwpNik = document.getElementById('detail_npwp_nik')?.value?.trim() || '';
                 const qty = parseFloat(document.getElementById('detail_jumlah')?.value) || 1;
                 const harga = parseFloat(String(document.getElementById('detail_nilai')?.value || '0').replace(/\D/g, '')) || 0;
                 const bruto = qty * harga;
@@ -7277,6 +7286,7 @@ renderSignPage(container, itemId) {
                     nama_penerima: namaPenerima,
                     bank,
                     no_rekening: noRekening,
+                    npwp_nik: npwpNik || null,
                     qty,
                     harga,
                     subtotal: bruto,
@@ -7351,7 +7361,7 @@ renderSignPage(container, itemId) {
 
                 const optsRekening = rekenings.filter(r => r.jenis === 'Detail').map(r => `<option value="${r.id}">${r.kode} - ${r.uraian}</option>`).join('');
                 const optsPajak = masterPajak.map(p => `<option value="${p.id}" data-tarif="${p.tarif}" data-jenis="${p.jenis_pph}">${p.profil} (${p.jenis_pph} ${p.tarif}%)</option>`).join('');
-                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
+                const optsPenyedia = penyedias.map(p => `<option value="${p.id}" data-nama="${p.name}" data-bank="${p.bank || '-'}" data-norek="${p.no_rekening || '-'}" data-npwp="${p.npwp || '-'}">${p.name} (Rek: ${p.no_rekening || '-'})</option>`).join('');
 
                 const tr = document.createElement('tr');
                 tr.className = 'item-row border-b bg-white';
@@ -7397,6 +7407,8 @@ renderSignPage(container, itemId) {
                 tr.querySelector('.item-nama-penerima').value = opt.getAttribute('data-nama') || '';
                 tr.querySelector('.item-bank').value = opt.getAttribute('data-bank') || '';
                 tr.querySelector('.item-norek').value = opt.getAttribute('data-norek') || '';
+                const np = tr.querySelector('.item-npwp-nik');
+                if (np) np.value = opt.getAttribute('data-npwp') || '';
             }
 
             hitungItemDetail(el) {
@@ -7435,6 +7447,7 @@ renderSignPage(container, itemId) {
                     const namaPenerima = row.querySelector('.item-nama-penerima')?.value?.trim() || '';
                     const bank = row.querySelector('.item-bank')?.value?.trim() || '';
                     const noRekening = row.querySelector('.item-norek')?.value?.trim() || '';
+                    const npwpNik = row.querySelector('.item-npwp-nik')?.value?.trim() || '';
                     const bruto = parseFloat(String(row.querySelector('.item-jumlah')?.value || '').replace(/\D/g, '')) || 0;
                     const pajakId = row.querySelector('.item-pajak-profil')?.value || '';
                     const ppn = parseFloat(String(row.querySelector('.val-ppn')?.innerText || '').replace(/\D/g, '')) || 0;
@@ -7587,7 +7600,7 @@ renderSignPage(container, itemId) {
                 <td>${rek.kode}</td>
                 <td>${rek.uraian || '-'}</td>
                 <td><b>${item.uraian || '-'}</b></td>
-                <td>${item.nama_penerima || '-'}</td>
+                <td><b>${item.nama_penerima || '-'}</b><br><span style="font-size:7pt;">NPWP/NIK: ${item.npwp_nik || '-'}</span></td>
                 <td class="c">${item.bank || '-'}</td>
                 <td class="c">${item.no_rekening || '-'}</td>
                 <td class="r">${Utils.formatNumber(bruto)}</td>
