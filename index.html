@@ -821,15 +821,19 @@
     const sbTable = TABLE_MAP[localTable] || localTable;
     let url = `${SUPABASE_URL}${sbTable}`;
 
-    // Sanitasi kolom lokal yang tidak ada di schema Supabase pencairan_items.
-    // Field tersebut tetap boleh ada di cache untuk kebutuhan laporan.
+    // Schema public.pencairan_items:
+    // id, created_at, pencairan_id, rekening_id, uraian, qty, harga, subtotal,
+    // pajak_id, nilai_pajak, total, nama_penerima, bank, no_rekening, ppn, pph,
+    // tanda_tangan, status_ttd.
+    // Jangan kirim field lokal/legacy lain ke Supabase.
     let syncPayload = payload;
     if (sbTable === 'pencairan_items' && payload && typeof payload === 'object') {
-        syncPayload = { ...payload };
-        delete syncPayload.pajak_pph21;
-        delete syncPayload.pajak_pph22;
-        delete syncPayload.pajak_pph23;
-        delete syncPayload.pajak_pph42;
+        const allowed = [
+            'id','created_at','pencairan_id','rekening_id','uraian','qty','harga','subtotal',
+            'pajak_id','nilai_pajak','total','nama_penerima','bank','no_rekening','ppn','pph',
+            'tanda_tangan','status_ttd'
+        ];
+        syncPayload = Object.fromEntries(allowed.filter(k => Object.prototype.hasOwnProperty.call(payload, k)).map(k => [k, payload[k]]));
     }
 
     if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
@@ -4348,11 +4352,6 @@ importPencairanExcel(event) {
                     nilai_pajak: totalPotongan,
                     ppn: ppn,
                     pph: pph,
-                    pajak_ppn: ppn,
-                    pajak_pph21: pph21,
-                    pajak_pph22: pph22,
-                    pajak_pph23: pph23,
-                    pajak_pph42: pph42,
                     total: jumlahDibayarkan,
                     created_at: new Date().toISOString()
                 };
@@ -6254,7 +6253,7 @@ renderSignPage(container, itemId) {
                                     if (taxRecord) {
                                         const taxName = (taxRecord.jenis_pph || taxRecord.profil || '').toUpperCase();
                                         const taxValue = Number(item.nilai_pajak) || 0;
-                                        const taxPPN = Number(item.pajak_ppn) || 0;
+                                        const taxPPN = Number(item.ppn ?? item.pajak_ppn) || 0;
 
                                         if (isLalu) {
                                             pajak.ppn.lalu += taxPPN;
@@ -6274,14 +6273,14 @@ renderSignPage(container, itemId) {
                                 } else {
                                     // Fallback kalau pakai cara lama yang disisipkan di kolom langsung
                                     if(isLalu) {
-                                        pajak.ppn.lalu += Number(item.pajak_ppn) || 0;
+                                        pajak.ppn.lalu += Number(item.ppn ?? item.pajak_ppn) || 0;
                                         pajak.pph21.lalu += Number(item.pajak_pph21) || 0;
                                         pajak.pph22.lalu += Number(item.pajak_pph22) || 0;
                                         pajak.pph23.lalu += Number(item.pajak_pph23) || 0;
                                         pajak.pph42.lalu += Number(item.pajak_pph42) || 0;
                                     }
                                     if(isIni) {
-                                        pajak.ppn.ini += Number(item.pajak_ppn) || 0;
+                                        pajak.ppn.ini += Number(item.ppn ?? item.pajak_ppn) || 0;
                                         pajak.pph21.ini += Number(item.pajak_pph21) || 0;
                                         pajak.pph22.ini += Number(item.pajak_pph22) || 0;
                                         pajak.pph23.ini += Number(item.pajak_pph23) || 0;
@@ -7254,27 +7253,24 @@ renderSignPage(container, itemId) {
                 }
 
                 let dpp = bruto, ppn = 0, pph = 0;
-                let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
                 const pajakSelect = document.getElementById('detail_master_pajak');
                 if (pajakSelect && pajakSelect.value) {
                     const optPajak = pajakSelect.options[pajakSelect.selectedIndex];
                     const tarif = parseFloat(optPajak?.getAttribute('data-tarif')) || 0;
                     const isPpn = optPajak?.getAttribute('data-ppn') === 'true';
-                    const jenisPph = (optPajak?.getAttribute('data-jenis') || '').toUpperCase();
                     if (isPpn) {
                         dpp = Math.round(bruto / 1.11);
                         ppn = bruto - dpp;
                     }
                     pph = Math.round(dpp * (tarif / 100));
-                    if (jenisPph.includes('21')) pph21 = pph;
-                    else if (jenisPph.includes('22')) pph22 = pph;
-                    else if (jenisPph.includes('23')) pph23 = pph;
-                    else if (jenisPph.includes('4') || jenisPph.includes('AYAT 2')) pph42 = pph;
                 }
 
                 const totalPotongan = ppn + pph;
                 const jumlahDibayarkan = bruto - totalPotongan;
-                const payload = {
+
+                // Payload HARUS mengikuti schema public.pencairan_items.
+                // Tidak ada pajak_ppn / pajak_pph21 / pajak_pph22 / pajak_pph23 / pajak_pph42.
+                const dbPayload = {
                     pencairan_id: String(pencairanId),
                     rekening_id: rekeningId || null,
                     uraian,
@@ -7288,31 +7284,14 @@ renderSignPage(container, itemId) {
                     nilai_pajak: totalPotongan,
                     ppn,
                     pph,
-                    pajak_ppn: ppn,
-                    pajak_pph21: pph21,
-                    pajak_pph22: pph22,
-                    pajak_pph23: pph23,
-                    pajak_pph42: pph42,
                     total: jumlahDibayarkan
                 };
 
                 if (!DB.cache['pencairan_items']) DB.cache['pencairan_items'] = [];
 
                 try {
-                    let response;
-                    let savedItem;
-
-                    // Kolom pajak_pph21/22/23/42 tidak tersedia di tabel Supabase.
-                    // Tetap dipertahankan di cache lokal untuk kebutuhan laporan,
-                    // tetapi jangan dikirim ke API agar POST/PATCH tidak ditolak.
-                    const dbPayload = { ...payload };
-                    delete dbPayload.pajak_pph21;
-                    delete dbPayload.pajak_pph22;
-                    delete dbPayload.pajak_pph23;
-                    delete dbPayload.pajak_pph42;
-
                     if (itemId) {
-                        response = await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${encodeURIComponent(itemId)}`, {
+                        const response = await fetch(`${SUPABASE_URL}pencairan_items?id=eq.${encodeURIComponent(itemId)}`, {
                             method: 'PATCH',
                             headers: {
                                 'apikey': SUPABASE_KEY,
@@ -7325,20 +7304,18 @@ renderSignPage(container, itemId) {
                         if (!response.ok) throw new Error(await response.text());
 
                         const index = DB.cache['pencairan_items'].findIndex(i => String(i.id) === String(itemId));
-                        if (index > -1) DB.cache['pencairan_items'][index] = { ...DB.cache['pencairan_items'][index], ...payload };
-                        this.notify('Item rincian berhasil diperbarui', 'success');
+                        if (index > -1) {
+                            DB.cache['pencairan_items'][index] = { ...DB.cache['pencairan_items'][index], ...dbPayload, id: itemId };
+                        }
+                        this.notify('Item rincian berhasil diperbarui dan tersimpan ke database', 'success');
                     } else {
-                        savedItem = {
-                            id: Utils.generateId(),
+                        const id = Utils.generateId();
+                        const savedItem = {
+                            id,
                             created_at: new Date().toISOString(),
-                            ...payload
+                            ...dbPayload
                         };
-                        const dbSavedItem = { ...savedItem };
-                        delete dbSavedItem.pajak_pph21;
-                        delete dbSavedItem.pajak_pph22;
-                        delete dbSavedItem.pajak_pph23;
-                        delete dbSavedItem.pajak_pph42;
-                        response = await fetch(`${SUPABASE_URL}pencairan_items`, {
+                        const response = await fetch(`${SUPABASE_URL}pencairan_items`, {
                             method: 'POST',
                             headers: {
                                 'apikey': SUPABASE_KEY,
@@ -7346,10 +7323,11 @@ renderSignPage(container, itemId) {
                                 'Content-Type': 'application/json',
                                 'Prefer': 'return=representation'
                             },
-                            body: JSON.stringify(dbSavedItem)
+                            body: JSON.stringify(savedItem)
                         });
                         if (!response.ok) throw new Error(await response.text());
 
+                        // Masukkan ke cache hanya SETELAH database berhasil.
                         DB.cache['pencairan_items'].unshift(savedItem);
                         this.notify('Item rincian berhasil ditambahkan dan tersimpan ke database', 'success');
                     }
@@ -7446,72 +7424,81 @@ renderSignPage(container, itemId) {
                 tr.querySelector('.val-pph').innerText = Utils.formatNumber(pph);
             }
 
-            saveDetailPencairan(pencairanId) {
-                const existingItems = DB.get('pencairan_items') || [];
-                const filtered = existingItems.filter(i => i.pencairan_id !== pencairanId);
-                DB.cache['pencairan_items'] = filtered;
-
-                fetch(`${SUPABASE_URL}pencairan_items?pencairan_id=eq.${pencairanId}`, {
-                    method: 'DELETE',
-                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-                }).catch(e => console.error(e));
-
-                const rows = document.querySelectorAll('.item-row');
+            async saveDetailPencairan(pencairanId) {
+                const rows = [...document.querySelectorAll('.item-row')];
+                const payloads = [];
                 let totalHeader = 0;
 
                 rows.forEach(row => {
-                    const rekeningId = row.querySelector('.item-rekening').value;
-                    const uraian = row.querySelector('.item-uraian').value;
-                    const namaPenerima = row.querySelector('.item-nama-penerima').value;
-                    const bank = row.querySelector('.item-bank').value;
-                    const noRekening = row.querySelector('.item-norek').value;
-                    const bruto = parseFloat(String(row.querySelector('.item-jumlah').value).replace(/\D/g, '')) || 0;
-                    const pajakId = row.querySelector('.item-pajak-profil').value;
-                    
-                    const ppn = parseFloat(row.querySelector('.val-ppn').innerText.replace(/\D/g, '')) || 0;
-                    const pph = parseFloat(row.querySelector('.val-pph').innerText.replace(/\D/g, '')) || 0;
-                    const totalPotongan = pph;
+                    const rekeningId = row.querySelector('.item-rekening')?.value || '';
+                    const uraian = row.querySelector('.item-uraian')?.value?.trim() || '';
+                    const namaPenerima = row.querySelector('.item-nama-penerima')?.value?.trim() || '';
+                    const bank = row.querySelector('.item-bank')?.value?.trim() || '';
+                    const noRekening = row.querySelector('.item-norek')?.value?.trim() || '';
+                    const bruto = parseFloat(String(row.querySelector('.item-jumlah')?.value || '').replace(/\D/g, '')) || 0;
+                    const pajakId = row.querySelector('.item-pajak-profil')?.value || '';
+                    const ppn = parseFloat(String(row.querySelector('.val-ppn')?.innerText || '').replace(/\D/g, '')) || 0;
+                    const pph = parseFloat(String(row.querySelector('.val-pph')?.innerText || '').replace(/\D/g, '')) || 0;
+                    const qty = Number(row.querySelector('.item-qty')?.value) || 1;
+                    const harga = Number(String(row.querySelector('.item-harga')?.value || '').replace(/\D/g, '')) || (bruto / qty);
+                    const totalPotongan = ppn + pph;
                     const jumlahDibayarkan = bruto - totalPotongan;
 
+                    if (!rekeningId || !uraian || !namaPenerima || bruto <= 0) return;
                     totalHeader += jumlahDibayarkan;
-
-                    let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
-                    if (pajakId) {
-                        const optText = row.querySelector('.item-pajak-profil').options[row.querySelector('.item-pajak-profil').selectedIndex].text.toUpperCase();
-                        if (optText.includes('21')) pph21 = pph;
-                        else if (optText.includes('22')) pph22 = pph;
-                        else if (optText.includes('23')) pph23 = pph;
-                        else if (optText.includes('4 AYAT') || optText.includes('4(2)')) pph42 = pph;
-                    }
-
-                    const itemPayload = {
-                        pencairan_id: pencairanId,
-                        rekening_id: rekeningId || null,
-                        uraian: uraian,
-                        nama_penerima: namaPenerima,
-                        bank: bank,
-                        no_rekening: noRekening,
-                        qty: Number(row.querySelector('.item-qty')?.value) || 1,
-                        harga: Number(row.querySelector('.item-harga')?.value) || bruto,
+                    payloads.push({
+                        id: Utils.generateId(),
+                        created_at: new Date().toISOString(),
+                        pencairan_id: String(pencairanId),
+                        rekening_id: rekeningId,
+                        uraian,
+                        qty,
+                        harga,
                         subtotal: bruto,
                         pajak_id: pajakId || null,
                         nilai_pajak: totalPotongan,
-                        pajak_ppn: ppn,
-                        pajak_pph21: pph21,
-                        pajak_pph22: pph22,
-                        pajak_pph23: pph23,
-                        pajak_pph42: pph42,
-                        total: jumlahDibayarkan
-                    };
-
-                    DB.insert('pencairan_items', itemPayload);
+                        total: jumlahDibayarkan,
+                        nama_penerima: namaPenerima,
+                        bank,
+                        no_rekening: noRekening,
+                        ppn,
+                        pph
+                    });
                 });
 
-                DB.update('pencairan', pencairanId, { total: totalHeader, status: 'Final' });
+                try {
+                    // PENTING: tunggu DELETE selesai sebelum INSERT agar tidak terjadi race condition.
+                    const delRes = await fetch(`${SUPABASE_URL}pencairan_items?pencairan_id=eq.${encodeURIComponent(pencairanId)}`, {
+                        method: 'DELETE',
+                        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                    });
+                    if (!delRes.ok) throw new Error(await delRes.text());
 
-                DOM.closeModal();
-                this.notify('Rincian item pencairan berhasil disimpan', 'success');
-                this.renderPengajuan(this.routerView);
+                    if (payloads.length > 0) {
+                        const postRes = await fetch(`${SUPABASE_URL}pencairan_items`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
+                            body: JSON.stringify(payloads)
+                        });
+                        if (!postRes.ok) throw new Error(await postRes.text());
+                    }
+
+                    const others = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) !== String(pencairanId));
+                    DB.cache['pencairan_items'] = [...payloads, ...others];
+                    DB.update('pencairan', pencairanId, { total: totalHeader, status: 'Final' });
+
+                    DOM.closeModal();
+                    this.notify('Rincian item pencairan berhasil disimpan', 'success');
+                    this.renderPengajuan(this.routerView);
+                } catch (err) {
+                    console.error('Gagal menyimpan rincian pencairan:', err);
+                    this.notify(`Gagal menyimpan rincian: ${String(err?.message || err).substring(0, 180)}`, 'error');
+                }
             }
 
             duplicatePencairan(id) {
