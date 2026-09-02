@@ -6667,7 +6667,22 @@ renderSignPage(container, itemId) {
             // ==========================================
           renderPengajuan(container) {
                 const pencairanList = DB.get('pencairan') || [];
-                const pencairanItems = DB.get('pencairan_items') || [];
+const pencairanItems = DB.get('pencairan_items') || [];
+
+const filterBulan = document.getElementById('filter-pencairan-bulan')?.value || '';
+const filterSub = document.getElementById('filter-pencairan-sub')?.value || '';
+
+const filteredList = pencairanList.filter(d => {
+    const bulan = new Date(d.tanggal).getMonth() + 1;
+
+    const cocokBulan =
+        !filterBulan || bulan === Number(filterBulan);
+
+    const cocokSub =
+        !filterSub || d.sub_kegiatan === filterSub;
+
+    return cocokBulan && cocokSub;
+});
 
                 let rows = pencairanList.map((d, i) => {
                     const items = pencairanItems.filter(item => item.pencairan_id === d.id);
