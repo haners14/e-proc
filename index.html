@@ -3786,42 +3786,55 @@ negPPN += negTotal - negSubTotal;
         class App {
 
            selectTemplate(documentCode, pkg, templateId = null) {
-    const templates = DB.get('template') || [];
-    
-    // Pastikan paket dan propertinya terbaca dengan aman
-    const packageObj = pkg || {};
-    const jenisRaw = String(packageObj.jenis_pengadaan || packageObj.jenis || 'Barang').toLowerCase();
-    
-    // Tentukan kata kunci inti (keyword) berdasarkan jenis pengadaan
-    let keyword = 'barang';
-    if (jenisRaw.includes('konstruksi')) {
-        keyword = 'konstruksi';
-    } else if (jenisRaw.includes('konsultansi')) {
-        keyword = 'konsultansi';
-    } else if (jenisRaw.includes('lainnya')) {
-        keyword = 'jasa lainnya';
-    }
+            // KODE DOKUMEN adalah sumber kebenaran utama.
+            // template_id lama hanya boleh dipakai jika KODENYA sama.
+            const dbTemplates = DB.get('template') || [];
+            const builtinTemplates = (typeof BUILTIN_TEMPLATES !== 'undefined' ? BUILTIN_TEMPLATES : []);
+            const templates = [
+                ...dbTemplates,
+                ...builtinTemplates.filter(b => !dbTemplates.some(t =>
+                    String(t.code || '').trim().toUpperCase() === String(b.code || '').trim().toUpperCase()
+                ))
+            ];
 
-    // Cari template yang KODE dokumennya sama DAN jenis di master mengandung kata kunci inti
-    const matched = templates.find(t => {
-        const tCode = (t.code || '').trim().toUpperCase();
-        const tType = (t.type || '').trim().toLowerCase();
-        const targetCode = (documentCode || '').trim().toUpperCase();
+            const code = String(documentCode || '').trim().toUpperCase();
+            if (!code) return null;
 
-        return tCode === targetCode && tType.includes(keyword);
-    });
+            const packageObj = pkg || {};
+            const jenisRaw = String(packageObj.jenis_pengadaan || packageObj.jenis || '').trim().toLowerCase();
+            let type = 'Umum';
+            if (jenisRaw.includes('konstruksi')) type = 'Konstruksi';
+            else if (jenisRaw.includes('konsultansi')) type = 'Konsultansi';
+            else if (jenisRaw.includes('barang')) type = 'Barang';
+            else if (jenisRaw.includes('lain')) type = 'Jasa Lainnya';
 
-    if (matched) return matched;
+            // 1. Cari berdasarkan KODE dokumen terlebih dahulu.
+            const sameCode = templates.filter(t =>
+                String(t.code || '').trim().toUpperCase() === code
+            );
+            if (!sameCode.length) return null;
 
-    // Fallback ID manual jika ada
-    if (templateId) {
-        const found = templates.find(t => String(t.id) === String(templateId));
-        if (found) return found;
-    }
-    
-    // Fallback terakhir berdasarkan kode dokumen
-    return templates.find(t => (t.code || '').toUpperCase() === (documentCode || '').toUpperCase()) || templates[0];
-}
+            // 2. Prioritaskan KODE + JENIS pengadaan.
+            const typed = sameCode.find(t =>
+                String(t.type || '').trim().toLowerCase() === type.toLowerCase()
+            );
+            if (typed) return typed;
+
+            // 3. Fallback ke template Umum dengan KODE yang sama.
+            const umum = sameCode.find(t =>
+                !t.type || String(t.type).trim().toLowerCase() === 'umum'
+            );
+            if (umum) return umum;
+
+            // 4. template_id hanya boleh dipakai jika kodenya sama.
+            if (templateId) {
+                const found = sameCode.find(t => String(t.id) === String(templateId));
+                if (found) return found;
+            }
+
+            // 5. Jangan pernah fallback ke template dokumen lain.
+            return sameCode[0] || null;
+          }
             constructor() { 
                 this.routerView = document.getElementById('router-view'); 
                 this.currentRoute = ''; 
@@ -7768,9 +7781,8 @@ const filteredList = pencairanList.filter(d => {
             }
 
           selectTemplate(documentCode, pkg, templateId = null) {
-            // Gabungkan template dari Supabase dengan template bawaan aplikasi.
-            // KODE DOKUMEN adalah sumber kebenaran utama; template_id lama hanya
-            // dipakai bila memang masih cocok dengan kode dokumen yang diminta.
+            // KODE DOKUMEN adalah sumber kebenaran utama.
+            // template_id lama hanya boleh dipakai jika KODENYA sama.
             const dbTemplates = DB.get('template') || [];
             const builtinTemplates = (typeof BUILTIN_TEMPLATES !== 'undefined' ? BUILTIN_TEMPLATES : []);
             const templates = [
@@ -7783,40 +7795,41 @@ const filteredList = pencairanList.filter(d => {
             const code = String(documentCode || '').trim().toUpperCase();
             if (!code) return null;
 
-            const type = this.normalizeProcurementType(
-                pkg?.jenis_pengadaan || pkg?.jenis || 'Barang'
-            );
+            const packageObj = pkg || {};
+            const jenisRaw = String(packageObj.jenis_pengadaan || packageObj.jenis || '').trim().toLowerCase();
+            let type = 'Umum';
+            if (jenisRaw.includes('konstruksi')) type = 'Konstruksi';
+            else if (jenisRaw.includes('konsultansi')) type = 'Konsultansi';
+            else if (jenisRaw.includes('barang')) type = 'Barang';
+            else if (jenisRaw.includes('lain')) type = 'Jasa Lainnya';
 
-            // 1. Cari berdasarkan KODE + JENIS pengadaan.
+            // 1. Cari berdasarkan KODE dokumen terlebih dahulu.
             const sameCode = templates.filter(t =>
                 String(t.code || '').trim().toUpperCase() === code
             );
-
             if (!sameCode.length) return null;
 
+            // 2. Prioritaskan KODE + JENIS pengadaan.
             const typed = sameCode.find(t =>
-                this.normalizeProcurementType(t.type || 'Umum') === type
+                String(t.type || '').trim().toLowerCase() === type.toLowerCase()
             );
             if (typed) return typed;
 
-            // 2. Jika tidak ada template khusus jenis tersebut, gunakan template Umum.
+            // 3. Fallback ke template Umum dengan KODE yang sama.
             const umum = sameCode.find(t =>
                 !t.type || String(t.type).trim().toLowerCase() === 'umum'
             );
             if (umum) return umum;
 
-            // 3. template_id hanya boleh menjadi fallback jika KODENYA SAMA.
-            //    Ini mencegah BA_REVIU mengambil template SPK yang tersimpan lama.
+            // 4. template_id hanya boleh dipakai jika kodenya sama.
             if (templateId) {
                 const found = sameCode.find(t => String(t.id) === String(templateId));
                 if (found) return found;
             }
 
-            // 4. Ambil template pertama dengan kode yang benar.
-            //    Jangan pernah fallback ke templates[0] karena bisa mengambil
-            //    template dokumen lain secara diam-diam.
-            return sameCode[0];
-        }
+            // 5. Jangan pernah fallback ke template dokumen lain.
+            return sameCode[0] || null;
+          }
             resolveDocumentMaster(reference, pkgId) {
                 const records = DB.get('package_documents');
                 const refKey = String(reference || '').trim().toUpperCase();
