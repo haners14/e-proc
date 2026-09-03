@@ -3785,11 +3785,11 @@ negPPN += negTotal - negSubTotal;
 
         class App {
 
-           selectTemplate(documentCode, pkg, templateId = null) {
+          selectTemplate(documentCode, pkg, templateId = null) {
             // KODE DOKUMEN adalah sumber kebenaran utama.
             // template_id lama hanya boleh dipakai jika KODENYA sama.
-            const dbTemplates = DB.get('template') || [];
-            const builtinTemplates = (typeof BUILTIN_TEMPLATES !== 'undefined' ? BUILTIN_TEMPLATES : []);
+            const dbTemplates = Array.isArray(DB.get('template')) ? DB.get('template') : [];
+            const builtinTemplates = (typeof BUILTIN_TEMPLATES !== 'undefined' && Array.isArray(BUILTIN_TEMPLATES)) ? BUILTIN_TEMPLATES : [];
             const templates = [
                 ...dbTemplates,
                 ...builtinTemplates.filter(b => !dbTemplates.some(t =>
@@ -3808,31 +3808,31 @@ negPPN += negTotal - negSubTotal;
             else if (jenisRaw.includes('barang')) type = 'Barang';
             else if (jenisRaw.includes('lain')) type = 'Jasa Lainnya';
 
-            // 1. Cari berdasarkan KODE dokumen terlebih dahulu.
+            // Cari hanya template dengan KODE dokumen yang diminta.
+            // Jangan pernah fallback ke template dokumen lain.
             const sameCode = templates.filter(t =>
-                String(t.code || '').trim().toUpperCase() === code
+                String(t.code || '').trim().toUpperCase() === code && String(t.file_url || '').trim()
             );
             if (!sameCode.length) return null;
 
-            // 2. Prioritaskan KODE + JENIS pengadaan.
+            // Prioritas KODE + JENIS pengadaan.
             const typed = sameCode.find(t =>
                 String(t.type || '').trim().toLowerCase() === type.toLowerCase()
             );
             if (typed) return typed;
 
-            // 3. Fallback ke template Umum dengan KODE yang sama.
+            // Fallback ke template Umum dengan kode yang sama.
             const umum = sameCode.find(t =>
                 !t.type || String(t.type).trim().toLowerCase() === 'umum'
             );
             if (umum) return umum;
 
-            // 4. template_id hanya boleh dipakai jika kodenya sama.
+            // template_id lama hanya boleh dipakai jika KODENYA tetap sama.
             if (templateId) {
                 const found = sameCode.find(t => String(t.id) === String(templateId));
                 if (found) return found;
             }
 
-            // 5. Jangan pernah fallback ke template dokumen lain.
             return sameCode[0] || null;
           }
             constructor() { 
@@ -7783,8 +7783,8 @@ const filteredList = pencairanList.filter(d => {
           selectTemplate(documentCode, pkg, templateId = null) {
             // KODE DOKUMEN adalah sumber kebenaran utama.
             // template_id lama hanya boleh dipakai jika KODENYA sama.
-            const dbTemplates = DB.get('template') || [];
-            const builtinTemplates = (typeof BUILTIN_TEMPLATES !== 'undefined' ? BUILTIN_TEMPLATES : []);
+            const dbTemplates = Array.isArray(DB.get('template')) ? DB.get('template') : [];
+            const builtinTemplates = (typeof BUILTIN_TEMPLATES !== 'undefined' && Array.isArray(BUILTIN_TEMPLATES)) ? BUILTIN_TEMPLATES : [];
             const templates = [
                 ...dbTemplates,
                 ...builtinTemplates.filter(b => !dbTemplates.some(t =>
@@ -7803,31 +7803,31 @@ const filteredList = pencairanList.filter(d => {
             else if (jenisRaw.includes('barang')) type = 'Barang';
             else if (jenisRaw.includes('lain')) type = 'Jasa Lainnya';
 
-            // 1. Cari berdasarkan KODE dokumen terlebih dahulu.
+            // Cari hanya template dengan KODE dokumen yang diminta.
+            // Jangan pernah fallback ke template dokumen lain.
             const sameCode = templates.filter(t =>
-                String(t.code || '').trim().toUpperCase() === code
+                String(t.code || '').trim().toUpperCase() === code && String(t.file_url || '').trim()
             );
             if (!sameCode.length) return null;
 
-            // 2. Prioritaskan KODE + JENIS pengadaan.
+            // Prioritas KODE + JENIS pengadaan.
             const typed = sameCode.find(t =>
                 String(t.type || '').trim().toLowerCase() === type.toLowerCase()
             );
             if (typed) return typed;
 
-            // 3. Fallback ke template Umum dengan KODE yang sama.
+            // Fallback ke template Umum dengan kode yang sama.
             const umum = sameCode.find(t =>
                 !t.type || String(t.type).trim().toLowerCase() === 'umum'
             );
             if (umum) return umum;
 
-            // 4. template_id hanya boleh dipakai jika kodenya sama.
+            // template_id lama hanya boleh dipakai jika KODENYA tetap sama.
             if (templateId) {
                 const found = sameCode.find(t => String(t.id) === String(templateId));
                 if (found) return found;
             }
 
-            // 5. Jangan pernah fallback ke template dokumen lain.
             return sameCode[0] || null;
           }
             resolveDocumentMaster(reference, pkgId) {
@@ -7894,9 +7894,10 @@ const filteredList = pencairanList.filter(d => {
                 const pkg = DB.getById('paket', pkgId);
                 let templateCode = docName.replace(/ /g, '_').toUpperCase();
                 
-                const template = this.selectTemplate(master.document_code || templateCode, pkg, master.template_id);
+                const resolvedCode = String(master.document_code || this.documentCode(docName) || templateCode).trim().toUpperCase();
+                const template = this.selectTemplate(resolvedCode, pkg, master.template_id);
                 if (!template || !template.file_url) {
-                    this.notify(`Template untuk ${docName} belum diset di Master Template.`, 'error');
+                    this.notify(`Template ${resolvedCode} belum tersedia atau URL-nya kosong di Master Template.`, 'error');
                     return;
                 }
 
