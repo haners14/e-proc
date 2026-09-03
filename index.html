@@ -3811,7 +3811,7 @@ negPPN += negTotal - negSubTotal;
             // Cari hanya template dengan KODE dokumen yang diminta.
             // Jangan pernah fallback ke template dokumen lain.
             const sameCode = templates.filter(t =>
-                String(t.code || '').trim().toUpperCase() === code && String(t.file_url || '').trim()
+                String(t.code || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') === code.replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') && String(t.file_url || '').trim()
             );
             if (!sameCode.length) return null;
 
@@ -7806,7 +7806,7 @@ const filteredList = pencairanList.filter(d => {
             // Cari hanya template dengan KODE dokumen yang diminta.
             // Jangan pernah fallback ke template dokumen lain.
             const sameCode = templates.filter(t =>
-                String(t.code || '').trim().toUpperCase() === code && String(t.file_url || '').trim()
+                String(t.code || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') === code.replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') && String(t.file_url || '').trim()
             );
             if (!sameCode.length) return null;
 
