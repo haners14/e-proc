@@ -3838,6 +3838,8 @@ negPPN += negTotal - negSubTotal;
             constructor() { 
                 this.routerView = document.getElementById('router-view'); 
                 this.currentRoute = ''; 
+                this.currentParam = null;
+                this.isPopNavigation = false;
                 this.init(); 
             }
             
@@ -4283,9 +4285,9 @@ importPencairanExcel(event) {
             let nomorToIdMap = {};
 
             // LANGKAH 1: Upload / Simpan Header Dulu
-            rowsHeader.forEach(r => {
+            for (const r of rowsHeader) {
                 const nomor = String(r["Nomor Pengajuan"] || '').trim();
-                if (!nomor) return;
+                if (!nomor) continue;
 
                 const headerId = Utils.generateId();
                 nomorToIdMap[nomor] = headerId; // Petakan nomor ke ID unik database
@@ -4307,14 +4309,15 @@ importPencairanExcel(event) {
                     created_at: new Date().toISOString()
                 };
 
-                DB.insert('pencairan', headerPayload);
-            });
+                const savedHeader = DB.insert('pencairan', headerPayload);
+                await DB._sync('POST', 'pencairan', savedHeader);
+            }
 
             // LANGKAH 2: Upload / Simpan Detail Item Berdasarkan Relasi Header
-            rowsDetail.forEach(r => {
+            for (const r of rowsDetail) {
                 const noRelasi = String(r["Nomor Pengajuan (Relasi)"] || '').trim();
                 const targetHeaderId = nomorToIdMap[noRelasi];
-                if (!targetHeaderId) return; // Lewati jika header tidak ditemukan
+                if (!targetHeaderId) continue; // Lewati jika header tidak ditemukan
 
                 const kodeRek = String(r["Kode Rekening"] || '').trim();
                 const rekMatch = rekenings.find(re => re.kode === kodeRek);
@@ -4324,10 +4327,10 @@ importPencairanExcel(event) {
                 const bruto = qty * harga;
 
                 const profilPajakStr = String(r["Profil Pajak"] || '').trim().toLowerCase();
-                const pajakMatch = masterPajak.find(p => 
+                const pajakMatch = profilPajakStr ? masterPajak.find(p => 
                     (p.profil || '').toLowerCase().includes(profilPajakStr) || 
                     profilPajakStr.includes((p.profil || '').toLowerCase())
-                );
+                ) : null;
 
                 let dpp = bruto;
                 let ppn = 0;
@@ -4373,8 +4376,9 @@ importPencairanExcel(event) {
                     created_at: new Date().toISOString()
                 };
 
-                DB.insert('pencairan_items', itemPayload);
-            });
+                const savedItem = DB.insert('pencairan_items', itemPayload);
+                await DB._sync('POST', 'pencairan_items', savedItem);
+            }
 
             this.notify('Import Header dan Detail Pencairan berhasil disinkronkan!', 'success');
         } catch (err) {
@@ -5006,8 +5010,22 @@ importPencairanExcel(event) {
                     return; // Hentikan proses init agar tidak me-load dashboard
                 }
 
-                this.bindNav(); 
-                this.navigate('dashboard');
+                this.bindNav();
+                this.routerView.addEventListener('scroll', Utils.debounce(() => {
+                    const state = history.state || {};
+                    history.replaceState({ ...state, route: this.currentRoute, param: this.currentParam, scrollY: this.routerView.scrollTop }, '', window.location.href);
+                }, 100));
+                window.addEventListener('popstate', (event) => {
+                    const state = event.state || {};
+                    const params = new URLSearchParams(window.location.search);
+                    this.isPopNavigation = true;
+                    this.navigate(state.route || params.get('page') || 'dashboard', state.param || params.get('id') || null, {
+                        history: false,
+                        restoreScroll: Number(state.scrollY) || 0
+                    });
+                });
+                const initialParams = new URLSearchParams(window.location.search);
+                this.navigate(initialParams.get('page') || 'dashboard', initialParams.get('id') || null, { replace: true });
             }
             async renderSignHeaderPage(container, spjId) {
                 // 1. Coba cari dulu dari cache lokal
@@ -5589,10 +5607,36 @@ importPencairanExcel(event) {
                         this.navigate(nav.dataset.route); 
                     }
                 });
+                document.querySelectorAll('#sidebar-nav .nav-item[data-route]').forEach(nav => {
+                    const url = new URL(window.location.href);
+                    url.search = '';
+                    url.searchParams.set('page', nav.dataset.route);
+                    nav.setAttribute('role', 'link');
+                    nav.setAttribute('tabindex', '0');
+                    nav.dataset.href = url.href;
+                    nav.addEventListener('keydown', e => {
+                        if (e.key === 'Enter' || e.key === ' ') this.navigate(nav.dataset.route);
+                    });
+                });
             }
 
-           navigate(route, param = null) {
+           navigate(route, param = null, options = {}) {
+                const previousState = history.state || {};
+                if (options.history !== false && this.currentRoute) {
+                    history.replaceState({ ...previousState, route: this.currentRoute, param: this.currentParam, scrollY: this.routerView.scrollTop || window.scrollY || 0 }, '', window.location.href);
+                }
+                if (options.history !== false) {
+                    const url = new URL(window.location.href);
+                    url.search = '';
+                    url.searchParams.set('page', route);
+                    if (param) url.searchParams.set('id', param);
+                    const state = { route, param, scrollY: 0 };
+                    if (options.replace) history.replaceState(state, '', url);
+                    else history.pushState(state, '', url);
+                }
                 this.currentRoute = route; 
+                this.currentParam = param;
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.route === route));
                 this.routerView.innerHTML = `<div class="flex-1 flex flex-col justify-center items-center text-primary-500"><i class="ph ph-spinner ph-spin text-5xl"></i><p class="mt-4 font-medium text-main text-sm">Memuat modul dari Supabase...</p></div>`;
                 
                 setTimeout(() => {
@@ -5633,6 +5677,12 @@ importPencairanExcel(event) {
                         default: 
                             this.routerView.innerHTML = `<div class="empty-state"><i class="ph ph-hammer text-4xl mb-4"></i><h2 class="text-lg font-bold text-main">Halaman Belum Tersedia</h2></div>`;
                     }
+                    requestAnimationFrame(() => {
+                        const y = Number(options.restoreScroll) || 0;
+                        this.routerView.scrollTop = y;
+                        window.scrollTo(0, y);
+                        this.isPopNavigation = false;
+                    });
                 }, 150);
             }
 renderSignPage(container, itemId) {
@@ -5976,7 +6026,10 @@ renderSignPage(container, itemId) {
                                         ${optsBulan}
                                     </select>
                                 </div>
-                                <button type="button" class="btn btn-primary mt-4 py-3" onclick="app.printKendali()"><i class="ph ph-printer text-lg"></i> Cetak Kartu Kendali (Landscape)</button>
+                                <div class="flex gap-2 mt-4">
+                                    <button type="button" class="btn btn-primary py-3" onclick="app.printKendali()"><i class="ph ph-printer text-lg"></i> Cetak Kartu Kendali (Landscape)</button>
+                                    <button type="button" class="btn btn-outline py-3" onclick="app.exportKendaliExcel()"><i class="ph ph-file-xls text-lg"></i> Download Excel</button>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -5992,8 +6045,8 @@ renderSignPage(container, itemId) {
 
                 let rowsHeader = '';
                 spjHeaders.forEach((spj, idx) => {
-                    const pencairan = pencairanList.find(p => p.id === spj.pencairan_id) || {};
-                    const items = pencairanItems.filter(item => item.pencairan_id === spj.pencairan_id);
+                    const pencairan = pencairanList.find(p => String(p.id) === String(spj.pencairan_id)) || {};
+                    const items = pencairanItems.filter(item => String(item.pencairan_id) === String(spj.pencairan_id));
                     const totalNominal = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
                     
                     const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
@@ -6117,13 +6170,13 @@ renderSignPage(container, itemId) {
                 }
             }
 
-            bukaDetailSPJ(spjId) {
+            async bukaDetailSPJ(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return;
 
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === spj.pencairan_id);
+                const items = await this.getFreshPencairanItems(spj.pencairan_id);
                 const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
 
                 let listHtml = items.map((item, idx) => {
@@ -6328,11 +6381,11 @@ renderSignPage(container, itemId) {
                     }
                 });
 
-                let sumPagu = 0, sumLSlalu = 0, sumLSini = 0, sumGUlalu = 0, sumGUini = 0, sumTUlalu = 0, sumTUini = 0, sumTotSPJ = 0;
+                let sumPagu = rekenings.filter(r => r.jenis === 'Detail').reduce((sum, r) => sum + (Number(r.pagu) || 0), 0);
+                let sumLSlalu = 0, sumLSini = 0, sumGUlalu = 0, sumGUini = 0, sumTUlalu = 0, sumTUini = 0, sumTotSPJ = 0;
 
                 const rowsHtml = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map(r => {
                     if (r.kode.split('.').length === 7) {
-                        sumPagu += r.pagu_calc;
                         sumLSlalu += r.ls_lalu; sumLSini += r.ls_ini;
                         sumGUlalu += r.gu_lalu; sumGUini += r.gu_ini;
                         sumTUlalu += r.tu_lalu; sumTUini += r.tu_ini;
@@ -6386,8 +6439,10 @@ renderSignPage(container, itemId) {
                     `;
                 };
 
-                const totTaxLalu = pajak.ppn.lalu + pajak.pph21.lalu + pajak.pph22.lalu + pajak.pph23.lalu + pajak.pph42.lalu;
-                const totTaxIni = pajak.ppn.ini + pajak.pph21.ini + pajak.pph22.ini + pajak.pph23.ini + pajak.pph42.ini;
+                // Kartu kendali sementara: seluruh nilai pajak ditampilkan nol.
+                Object.values(pajak).forEach(value => { value.lalu = 0; value.ini = 0; });
+                const totTaxLalu = 0;
+                const totTaxIni = 0;
                 const sdTotTax = totTaxLalu + totTaxIni;
 
                 const content = `
@@ -6697,8 +6752,8 @@ const filteredList = pencairanList.filter(d => {
     return cocokBulan && cocokSub;
 });
 
-                let rows = pencairanList.map((d, i) => {
-                    const items = pencairanItems.filter(item => item.pencairan_id === d.id);
+                let rows = filteredList.map((d, i) => {
+                    const items = pencairanItems.filter(item => String(item.pencairan_id) === String(d.id));
                     
                     // Kalkulasi Total Bruto, Total Potongan, dan Total Dibayarkan dari seluruh item rincian
                     let totalBruto = 0;
@@ -6735,6 +6790,7 @@ const filteredList = pencairanList.filter(d => {
                                     <button class="btn btn-ghost btn-sm text-gray-600" title="Edit Header" onclick="app.formHeaderPencairan('${d.id}')"><i class="ph ph-pencil-simple"></i></button>
                                     <button class="btn btn-ghost btn-sm text-warning" title="Duplikat Pengajuan" onclick="app.duplicatePencairan('${d.id}')"><i class="ph ph-copy"></i></button>
                                     <button class="btn btn-ghost btn-sm text-success" title="Cetak Lampiran" onclick="app.printLampiranPencairan('${d.id}')"><i class="ph ph-printer"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-success" title="Download Excel Lampiran" onclick="app.exportLampiranPencairanExcel('${d.id}')"><i class="ph ph-file-xls"></i></button>
                                     <button class="btn btn-ghost btn-sm text-danger" title="Hapus Pengajuan" onclick="app.deletePencairan('${d.id}')"><i class="ph ph-trash"></i></button>
                                 </div>
                             </td>
@@ -6876,7 +6932,8 @@ const filteredList = pencairanList.filter(d => {
                 if (!header) return this.notify('Data pengajuan tidak ditemukan', 'error');
 
                 const pencairanItems = DB.get('pencairan_items') || [];
-                const items = pencairanItems.filter(item => String(item.pencairan_id) === String(pencairanId));
+                const items = pencairanItems.filter(item => String(item.pencairan_id) === String(pencairanId))
+                    .sort((a, b) => Number(b.subtotal || b.total || 0) - Number(a.subtotal || a.total || 0));
                 const masterPajak = DB.get('master_pajak') || [];
 
                 let rows = items.map((item, idx) => {
@@ -7544,6 +7601,24 @@ const filteredList = pencairanList.filter(d => {
                 }
             }
 
+            nextPencairanNumber(sourceNumber = '') {
+                const numbers = (DB.get('pencairan') || []).map(h => String(h.nomor || ''));
+                const source = String(sourceNumber || '').replace(/\s*\(copy\)\s*/ig, '').trim();
+                const match = source.match(/^(\d+)(.*)$/);
+                const suffix = match ? match[2] : '/SPP-LS/BKAD/2026';
+                const max = numbers.reduce((value, nomor) => {
+                    const found = nomor.match(/^(\d+)/);
+                    return Math.max(value, found ? Number(found[1]) : 0);
+                }, 0);
+                let candidate = max + 1;
+                let result = `${String(candidate).padStart(Math.max(3, match?.[1]?.length || 3), '0')}${suffix}`;
+                while (numbers.includes(result)) {
+                    candidate += 1;
+                    result = `${String(candidate).padStart(3, '0')}${suffix}`;
+                }
+                return result;
+            }
+
             duplicatePencairan(id) {
                 const header = DB.getById('pencairan', id);
                 if (!header) return;
@@ -7552,12 +7627,12 @@ const filteredList = pencairanList.filter(d => {
                 const newHeader = {
                     ...header,
                     id: newHeaderId,
-                    nomor: `${header.nomor} (COPY)`,
+                    nomor: this.nextPencairanNumber(header.nomor),
                     created_at: new Date().toISOString()
                 };
                 DB.insert('pencairan', newHeader);
 
-                const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === id);
+                const items = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) === String(id));
                 items.forEach(item => {
                     const newItem = {
                         ...item,
@@ -7580,11 +7655,99 @@ const filteredList = pencairanList.filter(d => {
                 }
             }
 
-            
+            getPencairanTaxBreakdown(item) {
+                const taxRec = (DB.get('master_pajak') || []).find(p => String(p.id) === String(item.pajak_id));
+                const bruto = Number(item.subtotal ?? ((Number(item.qty) || 1) * (Number(item.harga) || 0))) || 0;
+                const ppn = Number(item.ppn || item.pajak_ppn || 0);
+                const pph = Number(item.pph || Math.max(0, Number(item.nilai_pajak || 0) - ppn));
+                const result = { bruto, ppn, pph21: 0, pph22: 0, pph23: 0, pph42: 0 };
+                const name = String(taxRec?.jenis_pph || '').toUpperCase();
+                if (name.includes('22')) result.pph22 = pph;
+                else if (name.includes('23')) result.pph23 = pph;
+                else if (name.includes('4 AYAT') || name.includes('4(2)')) result.pph42 = pph;
+                else result.pph21 = pph;
+                result.potongan = ppn + pph;
+                result.dibayar = bruto - result.potongan;
+                return result;
+            }
+
+            exportLampiranPencairanExcel(pencairanId) {
+                const header = DB.getById('pencairan', pencairanId);
+                if (!header) return this.notify('Pengajuan tidak ditemukan', 'error');
+                const rekenings = DB.get('master_rekening') || [];
+                const penyedias = DB.get('penyedia') || [];
+                const items = (DB.get('pencairan_items') || [])
+                    .filter(i => String(i.pencairan_id) === String(pencairanId))
+                    .sort((a, b) => Number(b.subtotal || b.total || 0) - Number(a.subtotal || a.total || 0));
+                const rows = items.map((item, index) => {
+                    const rek = rekenings.find(r => String(r.id) === String(item.rekening_id)) || {};
+                    const penyedia = penyedias.find(p => String(p.name || '').trim().toLowerCase() === String(item.nama_penerima || '').trim().toLowerCase()) || {};
+                    const tax = this.getPencairanTaxBreakdown(item);
+                    return [index + 1, rek.kode || '', rek.uraian || '', item.uraian || '', item.nama_penerima || '', penyedia.npwp || '', item.bank || '', item.no_rekening || '', tax.bruto, tax.ppn, tax.pph21, tax.pph22, tax.pph23, tax.pph42, tax.potongan, tax.dibayar];
+                });
+                const aoa = [
+                    ['LAMPIRAN PERMINTAAN PEMBAYARAN'],
+                    ['Nomor Pengajuan', header.nomor || ''],
+                    ['Sub Kegiatan', header.sub_kegiatan || ''],
+                    ['Tanggal', header.tanggal || ''],
+                    [],
+                    ['No', 'Kode Rekening', 'Uraian Rekening', 'Keperluan', 'Nama Penerima', 'NPWP/NIK', 'Bank', 'Nomor Rekening Bank', 'Jumlah', 'PPN', 'PPh 21', 'PPh 22', 'PPh 23', 'PPh 4 Ayat 2', 'Jumlah Potongan', 'Jumlah Dibayarkan'],
+                    ...rows,
+                    ['JUMLAH TOTAL', '', '', '', '', '', '', '', ...Array.from({ length: 8 }, (_, offset) => rows.reduce((sum, row) => sum + Number(row[8 + offset] || 0), 0))]
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+                ws['!cols'] = [5, 20, 28, 32, 24, 18, 14, 20, 16, 14, 14, 14, 14, 16, 18, 18].map(wch => ({ wch }));
+                ws['!pageSetup'] = { orientation: 'landscape', fitToWidth: 1, fitToHeight: 1, paperSize: 9 };
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Lampiran Pembayaran');
+                XLSX.writeFile(wb, `Lampiran_Pembayaran_${String(header.nomor || pencairanId).replace(/[^a-z0-9]+/gi, '_')}.xlsx`);
+            }
+
+            exportKendaliExcel() {
+                const subKode = document.getElementById('kendali-sub')?.value;
+                const bulan = Number(document.getElementById('kendali-bulan')?.value);
+                if (!subKode) return this.notify('Silakan pilih Sub Kegiatan terlebih dahulu', 'error');
+                const rekenings = (DB.get('master_rekening') || []).filter(r => String(r.kode || '').startsWith(subKode));
+                const heads = DB.get('pencairan') || [];
+                const items = DB.get('pencairan_items') || [];
+                const rows = rekenings.map(rek => {
+                    const values = { lsLalu: 0, lsIni: 0, guLalu: 0, guIni: 0, tuLalu: 0, tuIni: 0 };
+                    items.filter(i => String(i.rekening_id) === String(rek.id)).forEach(item => {
+                        const head = heads.find(h => String(h.id) === String(item.pencairan_id));
+                        if (!head) return;
+                        const itemMonth = new Date(head.tanggal).getMonth() + 1;
+                        if (itemMonth > bulan) return;
+                        const period = itemMonth < bulan ? 'Lalu' : 'Ini';
+                        const kind = String(head.jenis || head.jenis_pencairan || 'GU').toUpperCase() === 'LS' ? 'ls' : String(head.jenis || '').toUpperCase() === 'TU' ? 'tu' : 'gu';
+                        values[`${kind}${period}`] += Number(item.subtotal || item.total || 0);
+                    });
+                    const total = Object.values(values).reduce((sum, value) => sum + value, 0);
+                    const pagu = Number(rek.pagu) || 0;
+                    return [rek.kode, rek.uraian, pagu, values.lsLalu, values.lsIni, values.lsLalu + values.lsIni, values.guLalu, values.guIni, values.guLalu + values.guIni, values.tuLalu, values.tuIni, values.tuLalu + values.tuIni, total, pagu - total];
+                });
+                const totals = Array.from({ length: 12 }, (_, offset) => rows.reduce((sum, row) => sum + Number(row[offset + 2] || 0), 0));
+                const aoa = [
+                    ['KARTU KENDALI KEGIATAN'],
+                    ['Sub Kegiatan', subKode], ['Periode Bulan', bulan], [],
+                    ['Kode Rekening', 'Uraian', 'Jumlah Anggaran', 'LS Lalu', 'LS Ini', 'LS s.d.', 'GU Lalu', 'GU Ini', 'GU s.d.', 'TU Lalu', 'TU Ini', 'TU s.d.', 'Jumlah SPJ', 'Sisa Pagu'],
+                    ...rows,
+                    ['Sub Jumlah DPA', '', ...totals],
+                    [],
+                    ['Penerimaan dan Pengeluaran Pajak (sementara)', 'Bulan Lalu', 'Bulan Ini', 's.d. Bulan Ini'],
+                    ['PPN', 0, 0, 0], ['PPh Pasal 21', 0, 0, 0], ['PPh Pasal 22', 0, 0, 0], ['PPh Pasal 23', 0, 0, 0], ['PPh Pasal 4 Ayat 2', 0, 0, 0]
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(aoa);
+                ws['!cols'] = [22, 42, ...Array(12).fill(14)].map(wch => ({ wch }));
+                ws['!pageSetup'] = { orientation: 'landscape', fitToWidth: 1, fitToHeight: 1, paperSize: 9 };
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Kartu Kendali');
+                XLSX.writeFile(wb, `Kartu_Kendali_${subKode}_Bulan_${bulan}.xlsx`);
+            }
 
             printLampiranPencairan(pencairanId) {
     const header = DB.getById('pencairan', pencairanId);
-    const items = (DB.get('pencairan_items') || []).filter(i => i.pencairan_id === pencairanId);
+    const items = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) === String(pencairanId))
+        .sort((a, b) => Number(b.subtotal || b.total || 0) - Number(a.subtotal || a.total || 0));
     const rekenings = DB.get('master_rekening') || [];
     const masterPajak = DB.get('master_pajak') || [];
     const daftarPenyedia = DB.get('penyedia') || [];
@@ -7597,26 +7760,23 @@ const filteredList = pencairanList.filter(d => {
         const npwpNik = penyediaRec?.npwp || '-';
         const bruto = Number(item.subtotal || item.harga || 0);
         
-        let ppn = Number(item.pajak_ppn || 0);
-        let pph21 = Number(item.pajak_pph21 || 0);
-        let pph22 = Number(item.pajak_pph22 || 0);
-        let pph23 = Number(item.pajak_pph23 || 0);
-        let pph42 = Number(item.pajak_pph42 || 0);
+        let ppn = Number(item.ppn || item.pajak_ppn || 0);
+        let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
 
         if (item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0 && ppn === 0)) {
             const taxRec = masterPajak.find(p => p.id === item.pajak_id);
-            const taxVal = Number(item.nilai_pajak || item.pph || 0);
+            const taxVal = Number(item.pph || 0);
             const taxPpnVal = Number(item.ppn || 0);
 
             if (taxRec) {
-                if (taxRec.ppn) ppn = taxPpnVal || taxVal;
+                if (taxRec.ppn) ppn = taxPpnVal;
                 const tName = (taxRec.jenis_pph || '').toUpperCase();
                 if (tName.includes('21')) pph21 = taxVal;
                 else if (tName.includes('22')) pph22 = taxVal;
                 else if (tName.includes('23')) pph23 = taxVal;
                 else if (tName.includes('4 AYAT') || tName.includes('4(2)')) pph42 = taxVal;
             } else {
-                pph21 = Number(item.pph || item.nilai_pajak || 0);
+                pph21 = Number(item.pph || Math.max(0, Number(item.nilai_pajak || 0) - ppn));
             }
         } else if (!item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0)) {
             pph21 = Number(item.pph || item.nilai_pajak || 0);
@@ -7719,13 +7879,15 @@ const filteredList = pencairanList.filter(d => {
     `;
 
     const customStyle = `
-        @page { size: landscape; margin: 10mm; }
-        body { font-family: 'Times New Roman', Times, serif; color: #000; }
-        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px; }
+        @page { size: landscape; margin: 6mm; }
+        html, body { font-family: 'Times New Roman', Times, serif; color: #000; width: 100%; zoom: ${Math.max(0.55, Math.min(1, 12 / Math.max(items.length, 12)))}; }
+        .tbl-main { page-break-inside: avoid; table-layout: fixed; }
+        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 2px; font-size: 7pt; line-height: 1.05; overflow-wrap: anywhere; }
         .tbl-main th { text-align: center; background: #f3f4f6; }
         .c { text-align: center; }
         .r { text-align: right; }
         .font-bold { font-weight: bold; }
+        .ttd-container { break-inside: avoid; margin-top: 8px !important; font-size: 8pt !important; }
     `;
 
     this.printDocument('Lampiran Permintaan Pembayaran', content, customStyle);
@@ -8636,9 +8798,8 @@ const filteredList = pencairanList.filter(d => {
         
         document.addEventListener('DOMContentLoaded', () => { 
             try { DB.cache['pinned_packages'] = JSON.parse(localStorage.getItem('pf_pinned')) || []; } catch(e) {}
-            window.app = new App(); 
+            if (!window.app) window.app = new App(); 
         });
-        const app = new App();
     </script>
 </body>
 </html>
