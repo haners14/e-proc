@@ -7755,35 +7755,11 @@ const filteredList = pencairanList.filter(d => {
     let totBruto = 0, totPPN = 0, totPPh21 = 0, totPPh22 = 0, totPPh23 = 0, totPPh42 = 0, totPotongan = 0, totDibayar = 0;
 
     const rowsHtml = items.map((item, idx) => {
-        const rek = rekenings.find(r => r.id === item.rekening_id) || { kode: '-', uraian: '-' };
+        const rek = rekenings.find(r => String(r.id) === String(item.rekening_id)) || { kode: '-', uraian: '-' };
         const penyediaRec = daftarPenyedia.find(p => String(p.name || '').trim().toLowerCase() === String(item.nama_penerima || '').trim().toLowerCase());
         const npwpNik = penyediaRec?.npwp || '-';
-        const bruto = Number(item.subtotal || item.harga || 0);
-        
-        let ppn = Number(item.ppn || item.pajak_ppn || 0);
-        let pph21 = 0, pph22 = 0, pph23 = 0, pph42 = 0;
-
-        if (item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0 && ppn === 0)) {
-            const taxRec = masterPajak.find(p => p.id === item.pajak_id);
-            const taxVal = Number(item.pph || 0);
-            const taxPpnVal = Number(item.ppn || 0);
-
-            if (taxRec) {
-                if (taxRec.ppn) ppn = taxPpnVal;
-                const tName = (taxRec.jenis_pph || '').toUpperCase();
-                if (tName.includes('21')) pph21 = taxVal;
-                else if (tName.includes('22')) pph22 = taxVal;
-                else if (tName.includes('23')) pph23 = taxVal;
-                else if (tName.includes('4 AYAT') || tName.includes('4(2)')) pph42 = taxVal;
-            } else {
-                pph21 = Number(item.pph || Math.max(0, Number(item.nilai_pajak || 0) - ppn));
-            }
-        } else if (!item.pajak_id && (pph21 === 0 && pph22 === 0 && pph23 === 0 && pph42 === 0)) {
-            pph21 = Number(item.pph || item.nilai_pajak || 0);
-        }
-
-        const pot = ppn + pph21 + pph22 + pph23 + pph42;
-        const dibayar = bruto - pot;
+        const tax = this.getPencairanTaxBreakdown(item);
+        const { bruto, ppn, pph21, pph22, pph23, pph42, potongan: pot, dibayar } = tax;
 
         totBruto += bruto; totPPN += ppn; totPPh21 += pph21; totPPh22 += pph22; totPPh23 += pph23; totPPh42 += pph42; totPotongan += pot; totDibayar += dibayar;
 
@@ -7819,7 +7795,13 @@ const filteredList = pencairanList.filter(d => {
             <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juli'} 2026</td></tr>
         </table>
 
-        <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 8pt;">
+        <table class="tbl-main">
+            <colgroup>
+                <col style="width:2%"><col style="width:8%"><col style="width:8%"><col style="width:10%">
+                <col style="width:10%"><col style="width:5%"><col style="width:7%"><col style="width:7%">
+                <col style="width:5%"><col style="width:5%"><col style="width:5%"><col style="width:5%">
+                <col style="width:5%"><col style="width:7%"><col style="width:11%">
+            </colgroup>
             <thead>
                 <tr>
                     <th rowspan="2">No</th>
@@ -7880,9 +7862,10 @@ const filteredList = pencairanList.filter(d => {
 
     const customStyle = `
         @page { size: landscape; margin: 6mm; }
-        html, body { font-family: 'Times New Roman', Times, serif; color: #000; width: 100%; zoom: ${Math.max(0.55, Math.min(1, 12 / Math.max(items.length, 12)))}; }
-        .tbl-main { page-break-inside: avoid; table-layout: fixed; }
-        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 2px; font-size: 7pt; line-height: 1.05; overflow-wrap: anywhere; }
+        * { box-sizing: border-box; }
+        html, body { font-family: 'Times New Roman', Times, serif; color: #000; width: 100%; margin: 0; padding: 0; }
+        .tbl-main { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; }
+        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 1.5px; font-size: ${items.length > 8 ? '5.5pt' : '6.5pt'}; line-height: 1.05; overflow-wrap: anywhere; word-break: break-word; }
         .tbl-main th { text-align: center; background: #f3f4f6; }
         .c { text-align: center; }
         .r { text-align: right; }
