@@ -8557,8 +8557,94 @@ const filteredList = pencairanList.filter(d => {
             
             printPackageReport(pkgId) { 
                 const p = DB.getById('paket',pkgId);
+                if (!p) { this.notify('Data paket tidak ditemukan.', 'error'); return; }
                 const t = DB.calculatePackageTotals(p);
-                this.printDocument('Laporan Rinci Paket',`<h1>LAPORAN RINCI PAKET PENGADAAN</h1><table><tr><th>Nama Paket</th><td>${p.name}</td></tr><tr><th>Lokasi</th><td>${p.lokasi||'-'}</td></tr><tr><th>Program</th><td>${p.kode_program||''} ${p.program||''}</td></tr><tr><th>Kegiatan</th><td>${p.kode_kegiatan||''} ${p.kegiatan||''}</td></tr><tr><th>Metode</th><td>${p.metode_pemilihan||'-'}</td></tr><tr><th>Nilai Pagu</th><td>${Utils.formatCurrency(p.pagu)||'-'}</td></tr><tr><th>HPS</th><td>${Utils.formatCurrency(p.pembulatan_hps || t.hps)||'-'}</td></tr><tr><th>Penawaran</th><td>${Utils.formatCurrency(p.pembulatan_penawaran || t.penawaran)||'-'}</td></tr><tr><th>Negosiasi</th><td>${Utils.formatCurrency(p.pembulatan_negosiasi || t.negosiasi)||'-'}</td></tr></table>`); 
+
+                const esc = value => String(value ?? '-').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+                const value = v => (v === null || v === undefined || String(v).trim() === '') ? '-' : esc(v);
+                const currency = v => Utils.formatCurrency(v) || 'Menunggu';
+                const officials = DB.get('pejabat') || [];
+                const official = id => officials.find(x => x.id === id);
+                const officialText = id => {
+                    const x = official(id);
+                    return x ? `${value(x.name)}${x.nip ? ` — NIP ${value(x.nip)}` : ''}` : 'Belum ditetapkan';
+                };
+                const supplier = p.supplier_id ? DB.getById('penyedia', p.supplier_id) : null;
+                const detailRows = rows => rows.map(([label, val]) => `<tr><th>${esc(label)}</th><td>${val}</td></tr>`).join('');
+                const section = (title, rows) => `<section><h2>${esc(title)}</h2><table class="report-table"><tbody>${detailRows(rows)}</tbody></table></section>`;
+                const hps = p.pembulatan_hps || t.hps;
+                const offer = p.pembulatan_penawaran || t.penawaran;
+                const negotiation = p.pembulatan_negosiasi || t.negosiasi;
+                const technicalTeam = Array.isArray(p.tim_teknis) ? p.tim_teknis : [];
+                const teamText = technicalTeam.length
+                    ? technicalTeam.map(x => `${value(x.nama)}${x.nip ? ` — NIP ${value(x.nip)}` : ''}${x.jabatan ? ` — ${value(x.jabatan)}` : ''}`).join('<br>')
+                    : 'Belum ada tim teknis';
+                const notes = [
+                    !p.uraian && 'Uraian atau penanda paket belum diisi.',
+                    !p.pa_id && 'Pengguna Anggaran PA atau KPA belum dipilih.',
+                    !technicalTeam.length && 'Tim teknis atau panitia penilai belum ditetapkan.',
+                    supplier && !supplier.nib && 'NIB penyedia belum tersedia.',
+                    !hps && 'Nilai HPS belum tersedia.',
+                    !offer && 'Nilai penawaran masih menunggu.',
+                    !negotiation && 'Nilai negosiasi atau kontrak masih menunggu.'
+                ].filter(Boolean);
+
+                const content = `
+                    <header class="report-header">
+                        <h1>Laporan Rinci Paket Pengadaan</h1>
+                        <div class="report-name">${value(p.name)}</div>
+                        <div class="report-meta">Kode Paket ${value(p.code || p.kode_paket || p.id)} &nbsp;|&nbsp; ${value(p.metode_pemilihan)} &nbsp;|&nbsp; Tahun Anggaran ${value(p.tahun_anggaran)}</div>
+                        <p>Laporan ini merangkum identitas paket, kodefikasi anggaran, karakteristik pengadaan, jadwal kontrak, pejabat terkait, penyedia, dan status nilai pengadaan.</p>
+                    </header>
+                    ${section('Ringkasan Paket', [
+                        ['Nama Paket', value(p.name)], ['Kode Paket', value(p.code || p.kode_paket || p.id)],
+                        ['Metode Pemilihan', value(p.metode_pemilihan)], ['Tahun Anggaran', value(p.tahun_anggaran)],
+                        ['OPD', value(p.opd)], ['Bidang', value(p.bidang)], ['Lokasi Pekerjaan', value(p.lokasi)],
+                        ['Nilai Pagu', esc(Utils.formatCurrency(p.pagu) || '-')], ['Status Proses', value(p.stage)],
+                        ['Uraian atau Penanda Paket', value(p.uraian || 'Belum diisi')]
+                    ])}
+                    ${section('Kodefikasi Anggaran DPA', [
+                        ['Program', value(p.program)], ['Kode Program', value(p.kode_program)],
+                        ['Kegiatan', value(p.kegiatan)], ['Kode Kegiatan', value(p.kode_kegiatan)],
+                        ['Nama Sub Kegiatan', value(p.nama_sub_kegiatan)], ['Kode Sub Kegiatan', value(p.kode_sub_kegiatan)],
+                        ['Nama Rekening', value(p.nama_rekening)], ['Kode Rekening', value(p.kode_rekening)],
+                        ['MAK', value(p.mak)], ['Kode RUP', value(p.kode_rup)]
+                    ])}
+                    ${section('Karakteristik Pengadaan', [
+                        ['Jenis Pengadaan', value(p.jenis_pengadaan)], ['Metode Pemilihan', value(p.metode_pemilihan)],
+                        ['Jenis Kontrak', value(p.jenis_kontrak)], ['Kata Kunci Penomoran', value(p.keyword_penomoran)],
+                        ['Sumber Pembiayaan', value(p.sumber_pembiayaan)]
+                    ])}
+                    ${section('Waktu Pelaksanaan Kontrak', [
+                        ['Durasi', `${value(p.durasi_kontrak)} hari kalender`], ['Tanggal Awal Persiapan', value(Utils.formatDate(p.tgl_awal || p.tgl_mulai))],
+                        ['Tanggal Mulai SPK', value(Utils.formatDate(p.tgl_mulai))], ['Tanggal Selesai', value(Utils.formatDate(p.tgl_selesai))]
+                    ])}
+                    ${section('Struktur Organisasi Paket', [
+                        ['Pejabat Pembuat Komitmen PPK', officialText(p.ppk_id)], ['Pejabat Pengadaan PP atau Pokja', officialText(p.pp_id)],
+                        ['Pejabat Pelaksana Teknis Kegiatan PPTK', officialText(p.pptk_id)], ['Bendahara', officialText(p.bendahara_id)],
+                        ['Pengguna Anggaran PA atau KPA', officialText(p.pa_id)], ['Tim Teknis atau Panitia Penilai', teamText]
+                    ])}
+                    ${section('Penyedia atau Pelaksana', [
+                        ['Nama Perusahaan', supplier ? value(supplier.name) : 'Belum ditetapkan'],
+                        ['NPWP', supplier ? value(supplier.npwp) : '-'], ['NIB', supplier ? value(supplier.nib || 'Belum tersedia') : '-'],
+                        ['Alamat', supplier ? value(supplier.address) : '-'], ['Nama Direktur', supplier ? value(supplier.direktur) : '-'],
+                        ['Bank', supplier ? value(supplier.bank) : '-'], ['Nomor Rekening', supplier ? value(supplier.no_rekening) : '-']
+                    ])}
+                    ${section('Status Nilai Pengadaan', [
+                        ['Total HPS', esc(currency(hps))], ['Total Penawaran', esc(currency(offer))],
+                        ['Total Negosiasi atau Kontrak', esc(currency(negotiation))]
+                    ])}
+                    <section><h2>Catatan Kelengkapan</h2>${notes.length ? `<ul>${notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>Seluruh data utama telah tersedia.</p>'}</section>
+                    <section class="approval"><h2>Pengesahan</h2><div class="signature-grid"><div><strong>Disusun oleh</strong><span>Nama: __________________________</span><span>Jabatan: _______________________</span><span>Tanggal: _______________________</span></div><div><strong>Diperiksa oleh</strong><span>Nama: __________________________</span><span>Jabatan: _______________________</span><span>Tanggal: _______________________</span></div></div></section>`;
+
+                const style = `
+                    @page{size:A4 portrait;margin:14mm 16mm} body{font-family:Arial,sans-serif;margin:0;color:#1f2937;font-size:10.5pt;line-height:1.4}
+                    .report-header{text-align:center;margin-bottom:18px}.report-header h1{font-size:22pt;margin:0 0 8px;color:#111827;text-transform:none}.report-name{font-size:14pt;font-weight:700;color:#1f4e78;text-transform:uppercase}.report-meta{font-size:9pt;color:#64748b;margin:5px 0 14px}.report-header p{text-align:left;margin:0}
+                    section{margin:0 0 18px;break-inside:avoid}h2{font-size:14pt;color:#111827;margin:0 0 7px;break-after:avoid}.report-table{width:100%;border-collapse:collapse;table-layout:fixed}.report-table th,.report-table td{border:1px solid #d9d9d9;padding:7px 9px;vertical-align:middle}.report-table th{width:34%;font-weight:600;background:#245780;color:#fff}.report-table tr:nth-child(even) td{background:#f2f4f7}.report-table td{overflow-wrap:anywhere}
+                    ul{margin:0;padding-left:20px}li{margin:4px 0}.signature-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d9d9d9}.signature-grid>div{min-height:130px;padding:12px 16px;display:flex;flex-direction:column}.signature-grid>div+div{border-left:1px solid #d9d9d9}.signature-grid strong{margin-bottom:46px}.signature-grid span{display:block}.approval{break-inside:avoid}
+                    @media print{section{break-inside:avoid}.report-header{break-after:avoid}}
+                `;
+                this.printDocument('Laporan Rinci Paket', content, style); 
             }
             
             printTotalReport() { 
