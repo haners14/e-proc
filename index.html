@@ -8595,7 +8595,7 @@ const filteredList = pencairanList.filter(d => {
                     const date = record?.document_date ?? meta.date ?? '';
                     const status = String(record?.status || 'DRAFT').toUpperCase();
                     const done = doneStatuses.includes(status);
-                    return `<tr><td class="center">${index + 1}</td><td>${value(name)}<small>${value(record?.document_code || this.documentCode(name))}</small></td><td>${value(number)}</td><td class="center">${value(Utils.formatDate(date))}</td><td class="center"><span class="print-status ${done ? 'complete' : 'draft'}">${value(status)}</span></td><td class="center"><span class="print-check ${done ? 'checked' : ''}">${done ? '&#10003;' : ''}</span></td></tr>`;
+                    return `<tr><td class="center">${index + 1}</td><td>${value(name)}<small>${value(record?.document_code || this.documentCode(name))}</small></td><td>${value(number)}</td><td class="center">${value(Utils.formatDate(date))}</td><td class="center"><span class="print-check ${done ? 'checked' : ''}">${done ? '&#10003;' : ''}</span></td></tr>`;
                 }).join('');
                 const supportingNames = [
                     'Summary Report', 'Surat Permohonan Pemilihan Penyedia', 'Surat Penawaran',
@@ -8608,12 +8608,10 @@ const filteredList = pencairanList.filter(d => {
                 const supportingState = p.dokumen_pendukung || {};
                 const supportingRows = supportingNames.map((name, index) => {
                     const done = Boolean(supportingState[name]);
-                    return `<tr><td class="center">${index + 1}</td><td>${value(name)}</td><td class="center"><span class="print-check ${done ? 'checked' : ''}">${done ? '&#10003;' : ''}</span></td><td>${done ? 'Lengkap' : 'Belum lengkap'}</td></tr>`;
+                    return `<tr><td class="center">${index + 1}</td><td>${value(name)}</td><td class="center"><span class="print-check ${done ? 'checked' : ''}">${done ? '&#10003;' : ''}</span></td></tr>`;
                 }).join('');
                 const notes = [
                     !p.uraian && 'Uraian atau penanda paket belum diisi.',
-                    !p.pa_id && 'Pengguna Anggaran PA atau KPA belum dipilih.',
-                    !technicalTeam.length && 'Tim teknis atau panitia penilai belum ditetapkan.',
                     supplier && !supplier.nib && 'NIB penyedia belum tersedia.',
                     !hps && 'Nilai HPS belum tersedia.',
                     !offer && 'Nilai penawaran masih menunggu.',
@@ -8652,8 +8650,7 @@ const filteredList = pencairanList.filter(d => {
                     ])}
                     ${section('Struktur Organisasi Paket', [
                         ['Pejabat Pembuat Komitmen PPK', officialText(p.ppk_id)], ['Pejabat Pengadaan PP atau Pokja', officialText(p.pp_id)],
-                        ['Pejabat Pelaksana Teknis Kegiatan PPTK', officialText(p.pptk_id)], ['Bendahara', officialText(p.bendahara_id)],
-                        ['Pengguna Anggaran PA atau KPA', officialText(p.pa_id)], ['Tim Teknis atau Panitia Penilai', teamText]
+                        ['Pejabat Pelaksana Teknis Kegiatan PPTK', officialText(p.pptk_id)], ['Bendahara', officialText(p.bendahara_id)]
                     ])}
                     ${section('Penyedia atau Pelaksana', [
                         ['Nama Perusahaan', supplier ? value(supplier.name) : 'Belum ditetapkan'],
@@ -8665,8 +8662,8 @@ const filteredList = pencairanList.filter(d => {
                         ['Total HPS', esc(currency(hps))], ['Total Penawaran', esc(currency(offer))],
                         ['Total Negosiasi atau Kontrak', esc(currency(negotiation))]
                     ])}
-                    <section class="report-flow"><h2>Checklist Dokumen Pengadaan</h2><table class="checklist-table"><thead><tr><th>No</th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Status</th><th>Cek</th></tr></thead><tbody>${checklistRows}</tbody></table></section>
-                    <section class="report-flow"><h2>Checklist Dokumen Pendukung dan Pencairan</h2><table class="checklist-table supporting"><thead><tr><th>No</th><th>Nama Dokumen</th><th>Cek</th><th>Keterangan</th></tr></thead><tbody>${supportingRows}</tbody></table><p class="material-note">Periksa materai pada nama pihak ketiga, nilai, dan nomor SPK.</p></section>
+                    <section class="report-flow"><h2>Checklist Dokumen Pengadaan</h2><table class="checklist-table"><thead><tr><th>No</th><th>Nama Dokumen</th><th>Nomor Dokumen</th><th>Tanggal</th><th>Cek</th></tr></thead><tbody>${checklistRows}</tbody></table></section>
+                    <section class="report-flow"><h2>Checklist Dokumen Pendukung dan Pencairan</h2><table class="checklist-table supporting"><thead><tr><th>No</th><th>Nama Dokumen</th><th>Cek</th></tr></thead><tbody>${supportingRows}</tbody></table><p class="material-note">Periksa materai pada nama pihak ketiga, nilai, dan nomor SPK.</p></section>
                     <section><h2>Catatan Kelengkapan</h2>${notes.length ? `<ul>${notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>Seluruh data utama telah tersedia.</p>'}</section>
                     <section class="approval"><h2>Pengesahan</h2><div class="signature-grid"><div><strong>Disusun oleh</strong><span>Nama: __________________________</span><span>Jabatan: _______________________</span><span>Tanggal: _______________________</span></div><div><strong>Diperiksa oleh</strong><span>Nama: __________________________</span><span>Jabatan: _______________________</span><span>Tanggal: _______________________</span></div></div></section>`;
 
@@ -8674,9 +8671,9 @@ const filteredList = pencairanList.filter(d => {
                     @page{size:A4 portrait;margin:14mm 16mm} body{font-family:Arial,sans-serif;margin:0;color:#1f2937;font-size:10.5pt;line-height:1.4}
                     .report-header{text-align:center;margin-bottom:18px}.report-header h1{font-size:22pt;margin:0 0 8px;color:#111827;text-transform:none}.report-name{font-size:14pt;font-weight:700;color:#1f4e78;text-transform:uppercase}.report-meta{font-size:9pt;color:#64748b;margin:5px 0 14px}.report-header p{text-align:left;margin:0}
                     section{margin:0 0 18px;break-inside:avoid}h2{font-size:14pt;color:#111827;margin:0 0 7px;break-after:avoid}.report-table{width:100%;border-collapse:collapse;table-layout:fixed}.report-table th,.report-table td{border:1px solid #d9d9d9;padding:7px 9px;vertical-align:middle}.report-table th{width:34%;font-weight:600;background:#245780;color:#fff}.report-table tr:nth-child(even) td{background:#f2f4f7}.report-table td{overflow-wrap:anywhere}
-                    .report-flow{break-inside:auto;break-before:page}.checklist-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5pt}.checklist-table thead{display:table-header-group}.checklist-table th{background:#245780;color:#fff;font-weight:700}.checklist-table th,.checklist-table td{border:1px solid #d9d9d9;padding:5px 6px;vertical-align:middle}.checklist-table tbody tr:nth-child(even) td{background:#f2f4f7}.checklist-table th:nth-child(1),.checklist-table td:nth-child(1){width:6%}.checklist-table th:nth-child(2),.checklist-table td:nth-child(2){width:29%}.checklist-table th:nth-child(3),.checklist-table td:nth-child(3){width:25%}.checklist-table th:nth-child(4),.checklist-table td:nth-child(4){width:17%}.checklist-table th:nth-child(5),.checklist-table td:nth-child(5){width:15%}.checklist-table th:nth-child(6),.checklist-table td:nth-child(6){width:8%}.checklist-table small{display:block;color:#64748b;font-size:7.5pt;margin-top:2px}.center{text-align:center}.print-check{display:inline-flex;width:17px;height:17px;border:1.5px solid #64748b;border-radius:3px;align-items:center;justify-content:center;font-size:12px;font-weight:700}.print-check.checked{background:#2563eb;border-color:#2563eb;color:#fff}.print-status{font-size:7.5pt;font-weight:700;padding:2px 6px;border-radius:10px;border:1px solid}.print-status.complete{color:#15803d;background:#f0fdf4;border-color:#86efac}.print-status.draft{color:#b45309;background:#fffbeb;border-color:#fcd34d}.supporting th:nth-child(1),.supporting td:nth-child(1){width:7%}.supporting th:nth-child(2),.supporting td:nth-child(2){width:63%}.supporting th:nth-child(3),.supporting td:nth-child(3){width:10%}.supporting th:nth-child(4),.supporting td:nth-child(4){width:20%}.material-note{font-weight:700;margin:9px 0 0}
+                    .report-flow{break-inside:auto;break-before:page}.checklist-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5pt}.checklist-table thead{display:table-header-group}.checklist-table th{background:#245780;color:#fff;font-weight:700}.checklist-table th,.checklist-table td{border:1px solid #d9d9d9;padding:5px 6px;vertical-align:middle}.checklist-table tbody tr:nth-child(even) td{background:#f2f4f7}.checklist-table th:nth-child(1),.checklist-table td:nth-child(1){width:6%}.checklist-table th:nth-child(2),.checklist-table td:nth-child(2){width:34%}.checklist-table th:nth-child(3),.checklist-table td:nth-child(3){width:31%}.checklist-table th:nth-child(4),.checklist-table td:nth-child(4){width:20%}.checklist-table th:nth-child(5),.checklist-table td:nth-child(5){width:9%}.checklist-table small{display:block;color:#64748b;font-size:7.5pt;margin-top:2px}.center{text-align:center}.print-check{display:inline-flex;width:17px;height:17px;border:1.5px solid #64748b;border-radius:3px;align-items:center;justify-content:center;font-size:12px;font-weight:700}.print-check.checked{background:#2563eb;border-color:#2563eb;color:#fff}.supporting th:nth-child(1),.supporting td:nth-child(1){width:8%}.supporting th:nth-child(2),.supporting td:nth-child(2){width:82%}.supporting th:nth-child(3),.supporting td:nth-child(3){width:10%}.material-note{font-weight:700;margin:9px 0 0}
                     ul{margin:0;padding-left:20px}li{margin:4px 0}.signature-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d9d9d9}.signature-grid>div{min-height:130px;padding:12px 16px;display:flex;flex-direction:column}.signature-grid>div+div{border-left:1px solid #d9d9d9}.signature-grid strong{margin-bottom:46px}.signature-grid span{display:block}.approval{break-inside:avoid}
-                    @media print{section{break-inside:avoid}.report-flow{break-inside:auto}.checklist-table tr{break-inside:avoid}.report-header{break-after:avoid}}
+                    @media print{html,body{overflow:visible}.report-header{break-after:avoid}.report-table,.signature-grid{break-inside:avoid}.report-flow{break-inside:auto}.checklist-table tr{break-inside:avoid;page-break-inside:avoid}.checklist-table thead{display:table-header-group}h2{break-after:avoid;page-break-after:avoid}}
                 `;
                 this.printDocument('Laporan Rinci Paket', content, style); 
             }
