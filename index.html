@@ -783,10 +783,12 @@
 
                 if (this.cache['packages']) {
                     this.cache['packages'].forEach(pkg => {
-                        pkg.items = (this.cache['package_items']?.filter(i => i.package_id === pkg.id) || []).sort((a,b) => (a.urutan||0) - (b.urutan||0));
-                        pkg.personnel = this.cache['package_personnel']?.filter(i => i.package_id === pkg.id) || [];
+                        pkg.items = (this.cache['package_items']?.filter(i => String(i.package_id) === String(pkg.id)) || []).sort((a,b) => (a.urutan||0) - (b.urutan||0));
+                        pkg.personnel = this.cache['package_personnel']?.filter(i => String(i.package_id) === String(pkg.id)) || [];
                     });
                 }
+
+                this.applyLocalChecklistOverrides();
 
                 this.isReady = true;
                 const loader = document.getElementById('global-loader'); if(loader) loader.style.display = 'none';
@@ -853,6 +855,43 @@
 
             get(table) { return this.cache[TABLE_MAP[table] || table] || []; },
             getById(table, id) { return this.get(table).find(i => String(i.id) === String(id)); },
+
+            getChecklistOverride(packageId, documentName) {
+                try {
+                    const all = JSON.parse(localStorage.getItem('eproc_checklist_overrides_v1') || '{}');
+                    return all[`${String(packageId)}::${String(documentName || '').trim().toUpperCase()}`] || null;
+                } catch (e) { return null; }
+            },
+
+            saveChecklistOverride(packageId, documentName, payload) {
+                try {
+                    const key = `${String(packageId)}::${String(documentName || '').trim().toUpperCase()}`;
+                    const all = JSON.parse(localStorage.getItem('eproc_checklist_overrides_v1') || '{}');
+                    all[key] = { ...(all[key] || {}), ...payload, saved_at: new Date().toISOString() };
+                    localStorage.setItem('eproc_checklist_overrides_v1', JSON.stringify(all));
+                } catch (e) { console.error('Gagal menyimpan cadangan checklist', e); }
+            },
+
+            saveSupportingOverride(packageId, state) {
+                try {
+                    const all = JSON.parse(localStorage.getItem('eproc_supporting_overrides_v1') || '{}');
+                    all[String(packageId)] = { ...state };
+                    localStorage.setItem('eproc_supporting_overrides_v1', JSON.stringify(all));
+                } catch (e) { console.error('Gagal menyimpan cadangan dokumen pendukung', e); }
+            },
+
+            applyLocalChecklistOverrides() {
+                this.get('package_documents').forEach(doc => {
+                    const local = this.getChecklistOverride(doc.package_id, doc.document_name);
+                    if (local) Object.assign(doc, local);
+                });
+                try {
+                    const supporting = JSON.parse(localStorage.getItem('eproc_supporting_overrides_v1') || '{}');
+                    this.get('paket').forEach(pkg => {
+                        if (supporting[String(pkg.id)]) pkg.dokumen_pendukung = { ...(pkg.dokumen_pendukung || {}), ...supporting[String(pkg.id)] };
+                    });
+                } catch (e) { console.error('Gagal memuat cadangan checklist', e); }
+            },
             
             insert(table, payload) {
                 const sbTable = TABLE_MAP[table] || table;
@@ -2020,7 +2059,7 @@
                 const efisiensi = hpsRound > 0 && negoRound > 0 ? hpsRound - negoRound : 0;
                 
                 return `
-                    <div class="flex justify-end mb-1"><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak Laporan Rinci Paket</button></div>
+                    <div class="flex justify-end gap-2 mb-1"><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak Laporan Rinci Paket</button><button class="btn btn-primary" onclick="app.printPackageReport('${this.packageId}', true)"><i class="ph ph-file-doc"></i> Download Word</button></div>
                     <div class="flex flex-col gap-6">
                         <div class="card p-6 border-l-4 border-l-primary-500">
                             <h2 class="font-bold text-lg mb-4 flex items-center gap-2"><i class="ph-fill ph-database text-primary"></i> Ringkasan Informasi Paket</h2>
@@ -3193,7 +3232,7 @@ negPPN += negTotal - negSubTotal;
             const registers = docs.map(doc => {
                 const key = doc.trim().toUpperCase();
                 const matches = DB.get("package_documents").filter(r =>
-                    r.package_id === this.packageId &&
+                    String(r.package_id) === String(this.packageId) &&
                     (r.document_name || "").trim().toUpperCase() === key
                 );
 
@@ -3230,6 +3269,8 @@ negPPN += negTotal - negSubTotal;
                         version: 1
                     });
                 }
+                const localOverride = DB.getChecklistOverride(this.packageId, doc);
+                if (localOverride) Object.assign(reg, localOverride);
                 return reg;
             });
 
@@ -3284,7 +3325,7 @@ negPPN += negTotal - negSubTotal;
                 const displayDate = master.document_date !== undefined && master.document_date !== null ? master.document_date : (autoMeta.date || '');
 
                 return `
-                <tr data-docid="${master.id}">
+                <tr data-docid="${master.id}" data-docname="${master.document_name}">
                     <td style="width:40px;text-align:center">
                         <input type="checkbox" class="w-4 h-4 accent-primary" ${done ? 'checked' : ''} onclick="app.toggleChecklist('${this.packageId}','${master.document_name}', this.checked)">
                     </td>
@@ -3294,7 +3335,7 @@ negPPN += negTotal - negSubTotal;
                     </td>
                     <td>
                         <div class="flex gap-1 items-center">
-                            <input type="text" class="form-control chk-master-input w-full" data-id="${master.id}" data-field="document_number" value="${displayNum}" placeholder="Nomor dokumen">
+                            <input type="text" class="form-control chk-master-input w-full" data-id="${master.id}" data-packageid="${this.packageId}" data-field="document_number" value="${displayNum}" placeholder="Nomor dokumen">
                             <button class="btn btn-ghost btn-sm text-warning" title="Reset ke Format Otomatis" onclick="app.resetDocumentNumber('${master.id}', '${master.document_name}')">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                             </button>
@@ -3302,7 +3343,7 @@ negPPN += negTotal - negSubTotal;
                     </td>
                     <td>
                         <div class="flex gap-1 items-center">
-                            <input type="date" class="form-control chk-date-input w-full" data-id="${master.id}" value="${displayDate}">
+                            <input type="date" class="form-control chk-date-input w-full" data-id="${master.id}" data-packageid="${this.packageId}" value="${displayDate}">
                             <button class="btn btn-ghost btn-sm text-warning" title="Reset ke Jadwal Otomatis" onclick="app.resetDocumentDate('${master.id}', '${master.document_name}')">
                                 <i class="ph ph-arrow-counter-clockwise"></i>
                             </button>
@@ -3453,9 +3494,9 @@ negPPN += negTotal - negSubTotal;
 
         try {
 
-            DB.update('package_documents', this.dataset.id, {
-                document_number: this.value
-            });
+            const documentName = this.closest('tr[data-docid]')?.dataset.docname || '';
+            DB.saveChecklistOverride(this.dataset.packageid, documentName, { document_number: this.value });
+            DB.update('package_documents', this.dataset.id, { document_number: this.value });
 
             app.showAutoSaveStatus("saved");
 
@@ -3475,15 +3516,15 @@ negPPN += negTotal - negSubTotal;
     // ===========================
     document.querySelectorAll('.chk-date-input').forEach(el => {
 
-        el.addEventListener('change', function(){
+    el.addEventListener('change', function(){
 
             app.showAutoSaveStatus("saving");
 
             try {
 
-                DB.update('package_documents', this.dataset.id,{
-                    document_date:this.value
-                });
+            const documentName = this.closest('tr[data-docid]')?.dataset.docname || '';
+            DB.saveChecklistOverride(this.dataset.packageid, documentName, { document_date: this.value });
+            DB.update('package_documents', this.dataset.id,{ document_date:this.value });
 
                 app.notify("Tanggal dokumen tersimpan","success");
                 app.showAutoSaveStatus("saved");
@@ -3764,7 +3805,7 @@ negPPN += negTotal - negSubTotal;
                 const personnel = (this.pkg.personnel || []).reduce((sum,p) => sum + (Number(p.jumlah)||0), 0);
                 const progress = Number(this.pkg.progress) || (docs.length ? Math.round(completed / docs.length * 100) : 0);
                 const cards = [['Progress',`${progress}%`,`${completed}/${docs.length} dokumen selesai`],['Dokumen',`${completed}/${docs.length}`,'Register & riwayat versi'],['Nilai Negosiasi',Utils.formatCurrency(this.pkg.pembulatan_negosiasi || totals.negosiasi),`HPS ${Utils.formatCurrency(this.pkg.pembulatan_hps || totals.hps)}`],['Personel',personnel,`${(this.pkg.personnel||[]).length} persyaratan`],['Jadwal',DB.get('jadwal_proses').length,'tahap proses']];
-                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg">Dashboard Laporan Paket</h2><p class="text-sm text-muted">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak</button></div><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">${cards.map(c=>`<div class="card p-4"><div class="text-xs text-muted">${c[0]}</div><div class="font-bold text-lg mt-1">${c[1]}</div><div class="text-xs text-muted mt-1">${c[2]}</div></div>`).join('')}</div><div class="card p-5 mt-4"><div class="flex justify-between"><span class="font-semibold">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style="height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden"><div style="height:100%;width:${progress}%;background:var(--primary-600)"></div></div></div></div>`;
+                return `<div class="max-w-6xl mx-auto"><div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-lg">Dashboard Laporan Paket</h2><p class="text-sm text-muted">Progress, dokumen, nilai pengadaan, personel, dan jadwal.</p></div><div class="flex gap-2"><button class="btn btn-outline" onclick="app.printPackageReport('${this.packageId}')"><i class="ph ph-printer"></i> Cetak</button><button class="btn btn-primary" onclick="app.printPackageReport('${this.packageId}', true)"><i class="ph ph-file-doc"></i> Download Word</button></div></div><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">${cards.map(c=>`<div class="card p-4"><div class="text-xs text-muted">${c[0]}</div><div class="font-bold text-lg mt-1">${c[1]}</div><div class="text-xs text-muted mt-1">${c[2]}</div></div>`).join('')}</div><div class="card p-5 mt-4"><div class="flex justify-between"><span class="font-semibold">Kelengkapan Dokumen</span><span>${progress}%</span></div><div style="height:10px;background:var(--gray-100);border-radius:99px;margin-top:10px;overflow:hidden"><div style="height:100%;width:${progress}%;background:var(--primary-600)"></div></div></div></div>`;
             }
             
             renderAktivitas() {
@@ -4422,11 +4463,12 @@ importPencairanExcel(event) {
             toggleChecklist(packageId, documentName, isChecked) {
                 const docs = DB.get('package_documents') || [];
                 let target = docs.find(d => 
-                    d.package_id === packageId && 
+                    String(d.package_id) === String(packageId) && 
                     (d.document_name || "").trim().toUpperCase() === documentName.trim().toUpperCase()
                 );
 
                 const newStatus = isChecked ? 'FINAL' : 'DRAFT';
+                DB.saveChecklistOverride(packageId, documentName, { status: newStatus, generated: isChecked });
 
                 if (target) {
                     DB.update('package_documents', target.id, { 
@@ -4969,6 +5011,7 @@ importPencairanExcel(event) {
                 
                 if (!pkg.dokumen_pendukung) pkg.dokumen_pendukung = {};
                 pkg.dokumen_pendukung[namaDok] = isChecked;
+                DB.saveSupportingOverride(packageId, pkg.dokumen_pendukung);
                 
                 // Sinkronkan dan simpan permanen ke Supabase melalui fungsi DB.update
                 DB.update('paket', packageId, { dokumen_pendukung: pkg.dokumen_pendukung });
@@ -8555,7 +8598,7 @@ const filteredList = pencairanList.filter(d => {
                 this.printDocument('HPS',`<h1>HARGA PERKIRAAN SENDIRI (HPS)</h1><div class="meta">${p.name}<br>Nilai Pagu: ${Utils.formatCurrency(p.pagu)}</div><table><thead><tr><th>No</th><th>Uraian</th><th>Sat</th><th>Vol</th><th>Harga Satuan</th><th>Jumlah</th></tr></thead><tbody>${rows}</tbody></table>`); 
             }
             
-            printPackageReport(pkgId) { 
+            printPackageReport(pkgId, downloadWord = false) { 
                 const p = DB.getById('paket',pkgId);
                 if (!p) { this.notify('Data paket tidak ditemukan.', 'error'); return; }
                 const t = DB.calculatePackageTotals(p);
@@ -8671,10 +8714,17 @@ const filteredList = pencairanList.filter(d => {
                     @page{size:A4 portrait;margin:14mm 16mm} body{font-family:Arial,sans-serif;margin:0;color:#1f2937;font-size:10.5pt;line-height:1.4}
                     .report-header{text-align:center;margin-bottom:18px}.report-header h1{font-size:22pt;margin:0 0 8px;color:#111827;text-transform:none}.report-name{font-size:14pt;font-weight:700;color:#1f4e78;text-transform:uppercase}.report-meta{font-size:9pt;color:#64748b;margin:5px 0 14px}.report-header p{text-align:left;margin:0}
                     section{margin:0 0 18px;break-inside:avoid}h2{font-size:14pt;color:#111827;margin:0 0 7px;break-after:avoid}.report-table{width:100%;border-collapse:collapse;table-layout:fixed}.report-table th,.report-table td{border:1px solid #d9d9d9;padding:7px 9px;vertical-align:middle}.report-table th{width:34%;font-weight:600;background:#245780;color:#fff}.report-table tr:nth-child(even) td{background:#f2f4f7}.report-table td{overflow-wrap:anywhere}
-                    .report-flow{break-inside:auto;break-before:page}.checklist-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5pt}.checklist-table thead{display:table-header-group}.checklist-table th{background:#245780;color:#fff;font-weight:700}.checklist-table th,.checklist-table td{border:1px solid #d9d9d9;padding:5px 6px;vertical-align:middle}.checklist-table tbody tr:nth-child(even) td{background:#f2f4f7}.checklist-table th:nth-child(1),.checklist-table td:nth-child(1){width:6%}.checklist-table th:nth-child(2),.checklist-table td:nth-child(2){width:34%}.checklist-table th:nth-child(3),.checklist-table td:nth-child(3){width:31%}.checklist-table th:nth-child(4),.checklist-table td:nth-child(4){width:20%}.checklist-table th:nth-child(5),.checklist-table td:nth-child(5){width:9%}.checklist-table small{display:block;color:#64748b;font-size:7.5pt;margin-top:2px}.center{text-align:center}.print-check{display:inline-flex;width:17px;height:17px;border:1.5px solid #64748b;border-radius:3px;align-items:center;justify-content:center;font-size:12px;font-weight:700}.print-check.checked{background:#2563eb;border-color:#2563eb;color:#fff}.supporting th:nth-child(1),.supporting td:nth-child(1){width:8%}.supporting th:nth-child(2),.supporting td:nth-child(2){width:82%}.supporting th:nth-child(3),.supporting td:nth-child(3){width:10%}.material-note{font-weight:700;margin:9px 0 0}
+                    .report-flow{break-inside:auto;break-before:page}.checklist-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.3pt}.checklist-table thead{display:table-header-group}.checklist-table th{background:#245780;color:#fff;font-weight:700}.checklist-table th,.checklist-table td{border:1px solid #d9d9d9;padding:5px 6px;vertical-align:middle;overflow-wrap:anywhere;word-break:break-word}.checklist-table tbody tr:nth-child(even) td{background:#f2f4f7}.checklist-table th:nth-child(1),.checklist-table td:nth-child(1){width:6%}.checklist-table th:nth-child(2),.checklist-table td:nth-child(2){width:29%}.checklist-table th:nth-child(3),.checklist-table td:nth-child(3){width:36%;font-size:8pt}.checklist-table th:nth-child(4),.checklist-table td:nth-child(4){width:20%}.checklist-table th:nth-child(5),.checklist-table td:nth-child(5){width:9%}.checklist-table small{display:block;color:#64748b;font-size:7.5pt;margin-top:2px}.center{text-align:center}.print-check{display:inline-flex;width:17px;height:17px;border:1.5px solid #64748b;border-radius:3px;align-items:center;justify-content:center;font-size:12px;font-weight:700}.print-check.checked{background:#2563eb;border-color:#2563eb;color:#fff}.supporting th:nth-child(1),.supporting td:nth-child(1){width:8%}.supporting th:nth-child(2),.supporting td:nth-child(2){width:82%;font-size:8.3pt}.supporting th:nth-child(3),.supporting td:nth-child(3){width:10%}.material-note{font-weight:700;margin:9px 0 0}
                     ul{margin:0;padding-left:20px}li{margin:4px 0}.signature-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #d9d9d9}.signature-grid>div{min-height:130px;padding:12px 16px;display:flex;flex-direction:column}.signature-grid>div+div{border-left:1px solid #d9d9d9}.signature-grid strong{margin-bottom:46px}.signature-grid span{display:block}.approval{break-inside:avoid}
                     @media print{html,body{overflow:visible}.report-header{break-after:avoid}.report-table,.signature-grid{break-inside:avoid}.report-flow{break-inside:auto}.checklist-table tr{break-inside:avoid;page-break-inside:avoid}.checklist-table thead{display:table-header-group}h2{break-after:avoid;page-break-after:avoid}}
                 `;
+                if (downloadWord) {
+                    const wordHtml = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><title>Laporan Rinci Paket</title><style>${style}</style></head><body>${content}</body></html>`;
+                    const filename = `Laporan_Rinci_${String(p.name || 'Paket').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '')}.doc`;
+                    saveAs(new Blob(['\ufeff', wordHtml], {type:'application/msword;charset=utf-8'}), filename);
+                    this.notify('Laporan Word berhasil diunduh.', 'success');
+                    return;
+                }
                 this.printDocument('Laporan Rinci Paket', content, style); 
             }
             
