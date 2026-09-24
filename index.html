@@ -139,6 +139,29 @@
         .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
+        .mobile-menu-button { display: none; }
+        .sidebar-backdrop { display: none; }
+        @media (max-width: 900px) {
+            .sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .2s ease; box-shadow: var(--shadow-float); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .sidebar-backdrop { position: fixed; inset: 0; z-index: 35; background: rgba(15, 23, 42, .45); }
+            .sidebar-backdrop.active { display: block; }
+            .mobile-menu-button { display: inline-flex; }
+            .top-header { padding: 0 var(--space-3); gap: var(--space-2); }
+            .global-search-button { width: 44px !important; padding: 8px !important; }
+            .global-search-button .search-label, .global-search-button .search-shortcut { display: none; }
+            .workspace-header, .workspace-body { padding-left: var(--space-4); padding-right: var(--space-4); }
+            .modal-overlay { padding: var(--space-3); }
+            .modal-content { max-height: 94vh; }
+        }
+        @media (max-width: 640px) {
+            .top-header #header-role { max-width: 165px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+            .content-scroll-area .p-6 { padding: var(--space-4) !important; }
+            .modal-body { padding: var(--space-4); }
+            .modal-footer { flex-wrap: wrap; }
+            .modal-footer .btn { flex: 1; }
+        }
+
         .total-cell{
 
     text-align:right;
@@ -455,15 +478,15 @@
         <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
             <div class="mb-8">
                 <h3 class="text-2xl font-bold text-slate-900 mb-2">Selamat Datang 👋</h3>
-                <p class="text-slate-500 text-sm">Silakan masukkan username dan kata sandi Anda untuk mengakses dashboard.</p>
+                <p class="text-slate-500 text-sm">Masukkan email dan kata sandi akun Anda untuk mengakses dashboard.</p>
             </div>
             
             <form id="login-form" onsubmit="app.handleLogin(event)" class="flex flex-col gap-5">
                 <div class="form-group mb-0">
-                    <label class="form-label font-bold text-slate-700">Username</label>
+                    <label class="form-label font-bold text-slate-700">Email</label>
                     <div class="relative">
                         <i class="ph ph-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                        <input type="text" id="login-user" class="form-control pl-10 py-2.5" placeholder="Masukkan username..." required>
+                        <input type="email" id="login-email" class="form-control pl-10 py-2.5" placeholder="nama@email.com" autocomplete="email" required>
                     </div>
                 </div>
                 
@@ -493,7 +516,8 @@
     <div class="app-layout" id="app-root" style="display: none;">
         
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="app.closeMobileMenu()" aria-hidden="true"></div>
+        <aside class="sidebar" id="app-sidebar" aria-label="Navigasi utama">
             <div class="sidebar-header">
                 <div class="logo-container"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
                 <div class="logo-subtitle">by ersandyf_ · Sistem Manajemen Pengadaan</div>
@@ -544,7 +568,8 @@
         <!-- Main Workspace -->
         <main class="main-content">
     <header class="top-header">
-        <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column;">
+        <button class="btn btn-ghost mobile-menu-button" type="button" onclick="app.toggleMobileMenu()" aria-label="Buka menu navigasi"><i class="ph ph-list" style="font-size:1.25rem"></i></button>
+        <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column; margin-right:auto;">
             <!-- Tambahkan id="header-nama" -->
             <span id="header-nama" class="font-semibold text-main">Nama Pengguna</span>
             
@@ -552,10 +577,10 @@
             <span id="header-role" style="font-size: 0.75rem;">Role / Hak Akses</span>
         </div>
         <div style="display: flex; align-items: center; gap: var(--space-4);">
-            <div class="btn btn-outline btn-sm" style="width: 300px; justify-content: flex-start; color: var(--text-muted); cursor: text;" onclick="app.notify('Pencarian Sistem dipicu (Ctrl+K)', 'info')">
-                <i class="ph ph-magnifying-glass"></i> Cari Sesuatu... <span style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
-            </div>
-            <button class="btn btn-ghost" style="padding: 6px;"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
+            <button class="btn btn-outline btn-sm global-search-button" type="button" style="width: 300px; justify-content: flex-start; color: var(--text-muted);" onclick="app.openGlobalSearch()" aria-label="Cari data sistem">
+                <i class="ph ph-magnifying-glass"></i> <span class="search-label">Cari paket atau penyedia...</span> <span class="search-shortcut" style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
+            </button>
+            <button class="btn btn-ghost" type="button" style="padding: 6px;" aria-label="Notifikasi"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
             <button class="btn btn-ghost text-danger" onclick="app.logout()" title="Keluar Akun" style="padding: 6px;">
                 <i class="ph ph-sign-out" style="font-size: 1.25rem;"></i>
             </button>
@@ -570,8 +595,8 @@
             </div>
             
             <!-- Global Modal Overlay -->
-            <div class="modal-overlay" id="global-modal">
-                <div class="modal-content" id="modal-content-box">
+            <div class="modal-overlay" id="global-modal" aria-hidden="true">
+                <div class="modal-content" id="modal-content-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
                     <div class="modal-header">
                         <h3 class="font-bold text-lg" id="modal-title">Form</h3>
                         <button class="btn btn-secondary" onclick="DOM.closeModal()">Tutup & Selesai</button>
@@ -596,6 +621,20 @@
         // 1. UTILITIES
         // -----------------------------------------------------
         const Utils = {
+            escapeHTML: (value) => String(value ?? '').replace(/[&<>"]/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+            })[char]),
+            escapeAttr: (value) => String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]),
+            safeURL: (value) => {
+                const raw = String(value ?? '').trim();
+                if (!raw) return '';
+                try {
+                    const url = new URL(raw, window.location.href);
+                    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+                } catch (_) { return ''; }
+            },
             formatNumber: (amount) => new Intl.NumberFormat('id-ID').format(Number(amount) || 0),
             formatCurrency: (amount) => { 
                 const v = Number(amount); 
@@ -631,7 +670,7 @@
                     'PERSIAPAN': 'badge-info', 'KLARIFIKASI': 'badge-info', 'REVIU': 'badge-info',
                     'PEMILIHAN': 'badge-neutral', 'NONAKTIF': 'badge-neutral', 'BATAL': 'badge-danger'
                 };
-                return `<span class="badge ${map[text] || 'badge-neutral'}">${text}</span>`;
+                return `<span class="badge ${map[text] || 'badge-neutral'}">${Utils.escapeHTML(text)}</span>`;
             },
             generateId: () => {
                 try { return crypto.randomUUID().split('-')[0].toUpperCase(); } 
@@ -695,6 +734,79 @@
         // -----------------------------------------------------
         const SUPABASE_URL = 'https://oyskjxwcfekwcckjwviv.supabase.co/rest/v1/';
         const SUPABASE_KEY = 'sb_publishable_Dl5XmeZffcv5VrcxnFzt2Q_jmtch-Vp';
+        const SUPABASE_PROJECT_URL = 'https://oyskjxwcfekwcckjwviv.supabase.co';
+
+        // Auth memakai Supabase Auth. Password tidak lagi dicocokkan dari tabel public.users.
+        const Auth = {
+            storageKey: 'eproc_auth_session_v1',
+            session: null,
+            async requestToken(grantType, payload) {
+                const response = await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/auth/v1/token?grant_type=${grantType}`, {
+                    method: 'POST',
+                    headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const body = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(body.error_description || body.msg || 'Autentikasi gagal');
+                this.session = body;
+                localStorage.setItem(this.storageKey, JSON.stringify(body));
+                return body;
+            },
+            async login(email, password) {
+                return this.requestToken('password', { email, password });
+            },
+            async restore() {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(this.storageKey) || 'null');
+                    if (!saved?.access_token) return null;
+                    this.session = saved;
+                    if (Date.now() < (Number(saved.expires_at || 0) * 1000) - 60_000) return saved;
+                    if (!saved.refresh_token) throw new Error('Sesi kedaluwarsa');
+                    return await this.requestToken('refresh_token', { refresh_token: saved.refresh_token });
+                } catch (_) {
+                    this.clear();
+                    return null;
+                }
+            },
+            clear() {
+                this.session = null;
+                localStorage.removeItem(this.storageKey);
+                localStorage.removeItem('userSession');
+            },
+            async logout() {
+                const token = this.session?.access_token;
+                if (token) await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/auth/v1/logout`, {
+                    method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` }
+                }).catch(() => {});
+                this.clear();
+            },
+            async profile() {
+                const userId = this.session?.user?.id;
+                if (!userId) throw new Error('Sesi pengguna tidak ditemukan');
+                const response = await fetch(`${SUPABASE_URL}users?auth_user_id=eq.${encodeURIComponent(userId)}&select=username,nama_lengkap,role,active`, {
+                    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${this.session.access_token}` }
+                });
+                const rows = response.ok ? await response.json() : [];
+                const profile = rows[0];
+                if (!profile || profile.active === false) throw new Error('Akun belum diaktifkan oleh administrator');
+                return profile;
+            }
+        };
+
+        // Semua request REST memakai JWT user aktif. Publishable key hanya identitas project.
+        window.__nativeFetch = window.fetch.bind(window);
+        window.fetch = async (input, init = {}) => {
+            const url = typeof input === 'string' ? input : input?.url;
+            if (url && url.startsWith(SUPABASE_URL)) {
+                const token = Auth.session?.access_token;
+                if (!token) throw new Error('Sesi login diperlukan');
+                const headers = new Headers(init.headers || (input instanceof Request ? input.headers : {}));
+                headers.set('apikey', SUPABASE_KEY);
+                headers.set('Authorization', `Bearer ${token}`);
+                return window.__nativeFetch(input, { ...init, headers });
+            }
+            return window.__nativeFetch(input, init);
+        };
         
         const TABLE_MAP = {
             'pejabat': 'profiles', 
@@ -757,8 +869,8 @@
            async init() {
                 if (this.isReady) return;
                 
-                // Tambahkan 'users' di akhir array coreTables ini
-                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'package_documents', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items', 'spj_headers', 'users'];
+                // Tabel users sengaja tidak diunduh: credential dan profil user diproses lewat Supabase Auth.
+                const coreTables = ['profiles', 'suppliers', 'document_templates', 'document_number_rules', 'schedule_document_rules', 'schedule_process_rules', 'packages', 'package_documents', 'generated_documents', 'package_items', 'package_personnel', 'jenis_pengadaan', 'jenis_kontrak', 'libur', 'master_rekening', 'master_pajak', 'pencairan', 'pencairan_items', 'spj_headers'];
                 
                 await Promise.all(coreTables.map(async (table) => {
                     try {
@@ -793,6 +905,11 @@
                 this.isReady = true;
                 const loader = document.getElementById('global-loader'); if(loader) loader.style.display = 'none';
                 const appRoot = document.getElementById('app-root'); if(appRoot) appRoot.style.display = 'flex';
+            },
+            async reload() {
+                this.isReady = false;
+                this.cache = { pinned_packages: this.cache.pinned_packages || [] };
+                await this.init();
             },
 // --- LETAKKAN DI SINI (SEJAJAR DENGAN FUNGSI DB LAINNYA) ---
             async fetchPackageDetail(packageId) {
@@ -850,7 +967,18 @@
         } 
     };
     if (syncPayload && method !== 'DELETE') options.body = JSON.stringify(syncPayload);
-    try { await fetch(url, options); } catch(e) { console.error('Sync Error', e); }
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const detail = await response.text().catch(() => '');
+            throw new Error(`HTTP ${response.status}${detail ? `: ${detail.slice(0, 160)}` : ''}`);
+        }
+        return response;
+    } catch(e) {
+        console.error('Sync Error', e);
+        if (window.app) window.app.notify('Gagal menyimpan ke server. Muat ulang data sebelum melanjutkan.', 'error');
+        return null;
+    }
 },
 
             get(table) { return this.cache[TABLE_MAP[table] || table] || []; },
@@ -1077,7 +1205,7 @@
                 table: 'users', 
                 fields: [
                     { key: 'username', label: 'Username', type: 'text', required: true }, 
-                    { key: 'password', label: 'Password', type: 'text', required: true }, 
+                    { key: 'password', label: 'Password', type: 'password', required: true, hideInTable: true }, 
                     { key: 'nama_lengkap', label: 'Nama Lengkap', type: 'text', required: true }, 
                     { key: 'role', label: 'Role / Hak Akses', type: 'select', options: ['Administrator', 'Staf Pengadaan', 'Pimpinan', 'Auditor'], required: true }
                 ] 
@@ -1085,7 +1213,9 @@
         };
 
        const DOM = {
+            lastFocusedElement: null,
             openModal(title, bodyHTML, footerHTML = '', maxWidth = '500px') {
+                this.lastFocusedElement = document.activeElement;
                 document.getElementById('modal-title').innerText = title; 
                 document.getElementById('modal-body').innerHTML = bodyHTML; 
                 document.getElementById('modal-footer').innerHTML = footerHTML; 
@@ -1099,8 +1229,18 @@
                 
                 // Terapkan lebar maksimum modal (bisa diatur lebar banget, cth: 1000px atau 90vw)
                 document.getElementById('modal-content-box').style.maxWidth = maxWidth;
+                document.getElementById('global-modal').setAttribute('aria-hidden', 'false');
+                requestAnimationFrame(() => {
+                    const first = document.querySelector('#global-modal input, #global-modal select, #global-modal textarea, #global-modal button');
+                    if (first) first.focus();
+                });
             },
-            closeModal() { document.getElementById('global-modal').classList.remove('active'); },
+            closeModal() {
+                const modal = document.getElementById('global-modal');
+                modal.classList.remove('active');
+                modal.setAttribute('aria-hidden', 'true');
+                if (this.lastFocusedElement && this.lastFocusedElement.focus) this.lastFocusedElement.focus();
+            },
             getFormData(formId) { 
                 const formData = new FormData(document.getElementById(formId)); 
                 return Object.fromEntries(formData.entries()); 
@@ -1243,8 +1383,10 @@
             async refresh() { 
                 this.searchQuery = ''; 
                 this.statusFilter = '';
+                await DB.reload();
+                this.loadData();
                 app.reRenderCurrentView(); 
-                app.notify('Sinkronisasi selesai', 'info'); 
+                app.notify('Data terbaru berhasil dimuat', 'success'); 
             }
 
             renderTable() {
@@ -1269,7 +1411,7 @@
                         checkboxTd = `<td style="text-align:center;"><input type="checkbox" class="row-select" value="${item.id}" ${isChecked} onclick="app.crudEngine.handleCheckRow('${item.id}', this.checked)"></td>`;
                     }
 
-                    let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : (item[f.key]||'-')}</td>`).join('');
+                    let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : Utils.escapeHTML(item[f.key] || '-')}</td>`).join('');
                     // Bagian rowColors di dalam method renderTable():
                     const rowColors = {
                         'BELUM PROSES': '#f8fafc',
@@ -1341,20 +1483,13 @@
             }
 
             showForm(id = null) {
-                if(this.schemaKey === 'paket' && !id) {
-                    const today = new Date().toISOString().split('T')[0];
-                    const pjb = DB.get('pejabat'); 
-                    const first = role => (pjb.find(p => p.role === role && p.status === 'Aktif') || {}).id || '';
-                    const newPkg = DB.insert('paket', { ...DEFAULTS, name:'Paket Pengadaan Baru', uraian:'', pagu:0, stage:'BELUM PROSES', progress:0, tahun_anggaran:String(new Date().getFullYear()), tgl_awal:today, tgl_mulai:today, tgl_selesai:Utils.addWorkingDays(today, DEFAULTS.durasi_kontrak, DB.get('libur').map(l=>l.date)), ppk_id:first('PPK'), pp_id:first('Pejabat Pengadaan'), pptk_id:first('PPTK'), bendahara_id:first('Bendahara'), pa_id:first('PA/KPA'), items:[], checklists:[], notes: '', jadwal_override: {}, jadwal_proses_override: {} });
-                    app.navigate('workspace', newPkg.id); return;
-                }
                 const item = id ? DB.getById(this.schema.table, id) : {};
                 const fieldsHtml = this.schema.fields.map(f => {
                     let inp = ''; const val = item[f.key] !== undefined ? item[f.key] : ''; const req = f.required ? 'required' : ''; const ro = f.readOnly ? 'readonly disabled' : '';
-                    if(f.type === 'select') inp = `<select name="${f.key}" class="form-control" ${req} ${ro}><option value="">Pilih...</option>${f.options.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}</select>`;
-                    else if(f.type === 'textarea') inp = `<textarea name="${f.key}" class="form-control" rows="3" ${req} ${ro}>${val}</textarea>`;
-                    else inp = `<input type="${f.type}" name="${f.key}" class="form-control" value="${val}" ${req} ${ro}>`;
-                    return `<div class="form-group"><label class="form-label">${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>${inp}</div>`;
+                    if(f.type === 'select') inp = `<select name="${Utils.escapeAttr(f.key)}" class="form-control" ${req} ${ro}><option value="">Pilih...</option>${f.options.map(o => `<option value="${Utils.escapeAttr(o)}" ${val===o?'selected':''}>${Utils.escapeHTML(o)}</option>`).join('')}</select>`;
+                    else if(f.type === 'textarea') inp = `<textarea name="${Utils.escapeAttr(f.key)}" class="form-control" rows="3" ${req} ${ro}>${Utils.escapeHTML(val)}</textarea>`;
+                    else inp = `<input type="${Utils.escapeAttr(f.type)}" name="${Utils.escapeAttr(f.key)}" class="form-control" value="${Utils.escapeAttr(val)}" ${req} ${ro} autocomplete="${f.type === 'password' ? 'new-password' : 'off'}">`;
+                    return `<div class="form-group"><label class="form-label">${Utils.escapeHTML(f.label)} ${f.required?'<span class="text-danger">*</span>':''}</label>${inp}</div>`;
                 }).join('');
                 DOM.openModal(id ? `Edit ${this.schema.title}` : `Tambah ${this.schema.title}`, `<form id="crud-form">${fieldsHtml}</form>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.crudEngine.saveData('${id||''}')">Simpan</button>`);
             }
@@ -1363,8 +1498,23 @@
                 const data = DOM.getFormData('crud-form');
                 for(let f of this.schema.fields) { if(f.required && !data[f.key]) { app.notify(`${f.label} wajib diisi`, 'error'); return; } }
                 if(this.schemaKey === 'paket' && data.pagu) data.pagu = Number(String(data.pagu).replace(/\D/g, '')) || 0;
-                id ? DB.update(this.schema.table, id, data) : DB.insert(this.schema.table, data);
-                DOM.closeModal(); app.notify('Data berhasil disinkron', 'success'); app.reRenderCurrentView();
+                if (id) {
+                    DB.update(this.schema.table, id, data);
+                    DOM.closeModal(); app.notify('Perubahan sedang disinkronkan', 'success'); app.reRenderCurrentView();
+                    return;
+                }
+                if (this.schemaKey === 'paket') {
+                    const today = new Date().toISOString().split('T')[0];
+                    const created = DB.insert('paket', {
+                        ...DEFAULTS, ...data, stage: data.stage || 'BELUM PROSES', progress: 0,
+                        tahun_anggaran: data.tahun_anggaran || String(new Date().getFullYear()),
+                        tgl_awal: today, tgl_mulai: today, items: [], checklists: [], notes: '',
+                        jadwal_override: {}, jadwal_proses_override: {}
+                    });
+                    DOM.closeModal(); app.navigate('workspace', created.id); return;
+                }
+                DB.insert(this.schema.table, data);
+                DOM.closeModal(); app.notify('Data sedang disinkronkan', 'success'); app.reRenderCurrentView();
             }
             deleteData(id) { if(confirm('Hapus data secara permanen?')) { DB.delete(this.schema.table, id); app.notify('Data dihapus', 'success'); app.reRenderCurrentView(); } }
         }
@@ -1749,7 +1899,7 @@
                     if(!msg) return;
                     
                     const chatArea = document.getElementById('chat-messages');
-                    chatArea.innerHTML += `<div class="chat-msg user"><div class="chat-avatar">FE</div><div class="chat-bubble">${msg}</div></div>`;
+                    chatArea.insertAdjacentHTML('beforeend', `<div class="chat-msg user"><div class="chat-avatar">FE</div><div class="chat-bubble">${Utils.escapeHTML(msg)}</div></div>`);
                     input.value = '';
                     chatArea.scrollTop = chatArea.scrollHeight;
 
@@ -1766,7 +1916,7 @@
                             } else if(msg.toLowerCase().includes('kelengkapan')) {
                                 response = "Memeriksa paket...<br>Silakan buka tab <b>Checklist</b> pada masing-masing paket pengadaan untuk melihat persentase dokumen yang belum dilengkapi.";
                             }
-                            targetElement.innerHTML = `<div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">${response}</div>`;
+                            targetElement.innerHTML = `<div class="chat-avatar"><i class="ph-fill ph-robot"></i></div><div class="chat-bubble">${Utils.escapeHTML(response)}</div>`;
                             chatArea.scrollTop = chatArea.scrollHeight;
                         }
                     }, 1000);
@@ -3881,7 +4031,53 @@ negPPN += negTotal - negSubTotal;
                 this.currentRoute = ''; 
                 this.currentParam = null;
                 this.isPopNavigation = false;
+                document.addEventListener('keydown', event => {
+                    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+                        event.preventDefault(); this.openGlobalSearch();
+                    }
+                    if (event.key === 'Escape') {
+                        DOM.closeModal(); this.closeMobileMenu();
+                    }
+                });
                 this.init(); 
+            }
+
+            toggleMobileMenu() {
+                document.getElementById('app-sidebar')?.classList.toggle('mobile-open');
+                document.getElementById('sidebar-backdrop')?.classList.toggle('active');
+            }
+
+            closeMobileMenu() {
+                document.getElementById('app-sidebar')?.classList.remove('mobile-open');
+                document.getElementById('sidebar-backdrop')?.classList.remove('active');
+            }
+
+            openGlobalSearch() {
+                DOM.openModal('Cari Data', `
+                    <label class="form-label" for="global-search-input">Nama paket, kode RUP, atau penyedia</label>
+                    <input id="global-search-input" class="form-control" type="search" autocomplete="off" placeholder="Ketik minimal 2 karakter...">
+                    <div id="global-search-results" class="mt-4"></div>
+                `, '', '680px');
+                const input = document.getElementById('global-search-input');
+                input?.addEventListener('input', Utils.debounce(() => this.renderGlobalSearch(input.value), 150));
+            }
+
+            renderGlobalSearch(query) {
+                const target = document.getElementById('global-search-results');
+                if (!target) return;
+                const needle = String(query || '').trim().toLowerCase();
+                if (needle.length < 2) { target.innerHTML = '<p class="text-sm text-muted">Masukkan minimal 2 karakter.</p>'; return; }
+                const packages = (DB.get('paket') || []).filter(item =>
+                    [item.name, item.kode_rup, item.mak].some(value => String(value || '').toLowerCase().includes(needle))
+                ).slice(0, 8);
+                const suppliers = (DB.get('penyedia') || []).filter(item =>
+                    [item.name, item.instansi, item.npwp].some(value => String(value || '').toLowerCase().includes(needle))
+                ).slice(0, 8);
+                const rows = [
+                    ...packages.map(item => `<button type="button" class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="DOM.closeModal();app.navigate('workspace','${Utils.escapeAttr(item.id)}')"><i class="ph ph-briefcase"></i><span>${Utils.escapeHTML(item.name || 'Paket')}</span></button>`),
+                    ...suppliers.map(item => `<button type="button" class="btn btn-ghost w-full" style="justify-content:flex-start" onclick="DOM.closeModal();app.navigate('master-penyedia')"><i class="ph ph-buildings"></i><span>${Utils.escapeHTML(item.name || item.instansi || 'Penyedia')}</span></button>`)
+                ];
+                target.innerHTML = rows.length ? rows.join('') : '<p class="text-sm text-muted">Data tidak ditemukan.</p>';
             }
             
 
@@ -4070,64 +4266,26 @@ hideLoginOverlay() {
                 }
             }
 
-checkSession() {
-    const sessionData = localStorage.getItem('userSession');
-    const overlay = document.getElementById('login-overlay');
-    
-    if (sessionData) {
-        if (overlay) overlay.remove();
-        try {
-            const user = JSON.parse(sessionData);
-            // Validasi sederhana keaktifan sesi
-            if (!user || !user.username) {
-                throw new Error("Sesi tidak valid");
-            }
-        } catch (e) {
-            localStorage.removeItem('userSession');
-            if (overlay) overlay.style.display = 'flex';
-        }
-    } else {
-        if (overlay) overlay.style.display = 'flex';
-    }
-}
-
-            logout() {
-                // 2. Hapus kunci sesi yang baru DAN bersihkan sisa cache lama agar bersih total
-                localStorage.removeItem('userSession');
-                localStorage.removeItem('eproc_logged_in'); 
+            async logout() {
+                await Auth.logout();
+                localStorage.removeItem('eproc_logged_in');
                 window.location.reload();
             }
 
-            handleLogin(e) {
+            async handleLogin(e) {
                 e.preventDefault();
-                const user = document.getElementById('login-user').value.trim();
-                const pass = document.getElementById('login-pass').value.trim();
-
-                // 3. Tambahkan tanda tanya (?) untuk mencegah error jika tabel Supabase telat dimuat
-                let validUser = DB.cache.users?.find(u => u.username === user && u.password === pass);
-
-                // --- AKUN DARURAT (BACKDOOR) ---
-                // Berjaga-jaga jika tabel 'users' di Supabase kamu masih kosong
-                if (!validUser && user === 'aset' && pass === 'asetmaniamantap') {
-                    validUser = { 
-                        username: 'aset', 
-                        nama_lengkap: 'Administrator', 
-                        role: 'Administrator' 
-                    };
-                }
-
-                if (validUser) {
-                    // Simpan sesi data pengguna
-                    localStorage.setItem('userSession', JSON.stringify(validUser));
-                    
-                    // Sembunyikan modal login & mulai aplikasi
-                    document.getElementById('login-overlay').style.display = 'none';
-                    this.updateHeaderUI();
-                    
-                    // Cukup pindah ke dashboard (jangan panggil this.init() lagi agar tidak berlipat ganda)
-                    this.navigate('dashboard'); 
-                } else {
-                    alert("Username atau password salah! Pastikan data sudah ada di Supabase.");
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-pass').value;
+                const submit = document.querySelector('#login-form button[type="submit"]');
+                try {
+                    if (submit) { submit.disabled = true; submit.textContent = 'Memeriksa akun...'; }
+                    await Auth.login(email, password);
+                    await this.startAuthenticatedApp();
+                } catch (error) {
+                    await Auth.logout();
+                    this.notify(error.message || 'Email atau password salah', 'error');
+                } finally {
+                    if (submit) { submit.disabled = false; submit.textContent = 'Masuk ke Aplikasi'; }
                 }
             }
 
@@ -5021,37 +5179,37 @@ importPencairanExcel(event) {
             }
             
             async init() {
-                // 1. Cek parameter URL terlebih dahulu
                 const urlParams = new URLSearchParams(window.location.search);
                 const isPublicSign = urlParams.get('action') === 'sign_header' && urlParams.get('spj_id');
-
-                // 2. Jika bukan link public sign, maka lakukan cek session (harus login)
-                if (!isPublicSign) {
-                    this.checkSession();
-                } else {
-                    // Jika link public sign, pastikan overlay login dihapus secara paksa
-                    const overlay = document.getElementById('login-overlay');
-                    if (overlay) overlay.remove();
-                }
-                
-                await DB.init();
-                
-                // 3. Isolasi tampilan khusus jika diakses melalui link header SPJ
                 if (isPublicSign) {
-                    const appRoot = document.getElementById('app-root');
                     const globalLoader = document.getElementById('global-loader');
-                    if (appRoot) appRoot.style.display = 'none';
                     if (globalLoader) globalLoader.style.display = 'none';
-
-                    let signContainer = document.getElementById('public-sign-view');
-                    if (!signContainer) {
-                        signContainer = document.createElement('div');
-                        signContainer.id = 'public-sign-view';
-                        document.body.appendChild(signContainer);
-                    }
-                    this.renderSignHeaderPage(signContainer, urlParams.get('spj_id'));
-                    return; // Hentikan proses init agar tidak me-load dashboard
+                    document.getElementById('login-overlay')?.remove();
+                    document.body.insertAdjacentHTML('beforeend', '<main style="padding:48px;font-family:system-ui;text-align:center"><h1>Link SPJ sedang diperbarui</h1><p>Untuk keamanan data penerima, presensi publik sementara tidak tersedia.</p></main>');
+                    return;
                 }
+
+                const session = await Auth.restore();
+                if (!session) {
+                    const loader = document.getElementById('global-loader'); if (loader) loader.style.display = 'none';
+                    document.getElementById('login-overlay').style.display = 'flex';
+                    return;
+                }
+                await this.startAuthenticatedApp();
+            }
+
+            async startAuthenticatedApp() {
+                const profile = await Auth.profile();
+                localStorage.setItem('userSession', JSON.stringify({
+                    username: profile.username,
+                    nama_lengkap: profile.nama_lengkap || profile.username,
+                    role: profile.role || 'Pengguna'
+                }));
+                await DB.init();
+                document.getElementById('login-overlay')?.remove();
+                this.updateHeaderUI();
+                if (this.appStarted) return;
+                this.appStarted = true;
 
                 this.bindNav();
                 this.routerView.addEventListener('scroll', Utils.debounce(() => {
@@ -5647,6 +5805,7 @@ importPencairanExcel(event) {
                     if (nav && nav.dataset.route) { 
                         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
                         nav.classList.add('active'); 
+                        this.closeMobileMenu();
                         this.navigate(nav.dataset.route); 
                     }
                 });
@@ -5685,8 +5844,7 @@ importPencairanExcel(event) {
                 setTimeout(() => {
                     this.routerView.innerHTML = '';
                     const schemaMap = { 
-                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket',
-                        'pengaturan-user': 'users' // <-- TAMBAHKAN DI SINI
+                        'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket'
                     };
                     
                     if (schemaMap[route]) { 
@@ -5703,6 +5861,9 @@ importPencairanExcel(event) {
                             this.currentViewInstance.render(this.routerView); 
                             break;
                         case 'master-pajak': MasterPajakView.render(this.routerView); break;
+                        case 'pengaturan-user':
+                            this.routerView.innerHTML = '<div class="p-6"><div class="card p-6 max-w-3xl"><h1 class="text-2xl font-bold mb-2">Manajemen Pengguna</h1><p class="text-muted">Akun dan password kini dikelola melalui Supabase Authentication. Jangan kelola password dari tabel aplikasi.</p></div></div>';
+                            break;
                         case 'ai-assistant': CustomViews.renderAIAssistant(this.routerView); break;
                         
                         case 'pj-pagu': this.renderPagu(this.routerView); break;
@@ -6261,7 +6422,7 @@ renderSignPage(container, itemId) {
                                 <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link Presensi Berhasil Disalin!', 'success'))">
                                     <i class="ph ph-link"></i> Salin Link Presensi
                                 </button>
-                                <a href="${signUrl}" target="_blank" class="btn btn-outline btn-sm">
+                                <a href="${Utils.escapeAttr(signUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
                                     <i class="ph ph-arrow-square-out"></i> Pratinjau TTD
                                 </a>
                                 <button class="btn btn-outline btn-sm text-success" onclick="app.printPresensiPDF('${spjId}')">
@@ -8738,8 +8899,10 @@ const filteredList = pencairanList.filter(d => {
 
             notify(message, type = 'info') {
                 const tc = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = 'toast';
-                const i = type === 'success' ? '<i class="ph-fill ph-check-circle text-success text-2xl"></i>' : (type === 'error' ? '<i class="ph-fill ph-warning-circle text-danger text-2xl"></i>' : '<i class="ph-fill ph-info text-info text-2xl"></i>');
-                t.innerHTML = `${i} <span class="text-main">${message}</span>`; tc.appendChild(t);
+                const icon = document.createElement('i');
+                icon.className = type === 'success' ? 'ph-fill ph-check-circle text-success text-2xl' : (type === 'error' ? 'ph-fill ph-warning-circle text-danger text-2xl' : 'ph-fill ph-info text-info text-2xl');
+                const label = document.createElement('span'); label.className = 'text-main'; label.textContent = String(message ?? '');
+                t.append(icon, label); tc.appendChild(t);
                 setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
             }
 
