@@ -5180,7 +5180,15 @@ importPencairanExcel(event) {
             
             async init() {
                 const urlParams = new URLSearchParams(window.location.search);
+                const publicToken = urlParams.get('token');
                 const isPublicSign = urlParams.get('action') === 'sign_header' && urlParams.get('spj_id');
+                if (publicToken) {
+                    const globalLoader = document.getElementById('global-loader');
+                    if (globalLoader) globalLoader.style.display = 'none';
+                    document.getElementById('login-overlay')?.remove();
+                    await this.renderPublicTokenSign(publicToken);
+                    return;
+                }
                 if (isPublicSign) {
                     const globalLoader = document.getElementById('global-loader');
                     if (globalLoader) globalLoader.style.display = 'none';
@@ -6253,8 +6261,6 @@ renderSignPage(container, itemId) {
                     const items = pencairanItems.filter(item => String(item.pencairan_id) === String(spj.pencairan_id));
                     const totalNominal = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
                     
-                    const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
-
                     rowsHeader += `
                         <tr class="hover:bg-gray-50 border-b">
                             <td class="p-3 text-center">${idx + 1}</td>
@@ -6269,7 +6275,7 @@ renderSignPage(container, itemId) {
                                     <button class="btn btn-outline btn-sm text-primary" onclick="app.bukaDetailSPJ('${spj.id}')" title="Buka Detail">
                                         <i class="ph ph-list-dashes"></i> Buka Detail
                                     </button>
-                                    <button class="btn btn-outline btn-sm text-success" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link berhasil disalin!', 'success'))" title="Salin Link">
+                                    <button class="btn btn-outline btn-sm text-success" onclick="app.modalIssueSpjToken('${Utils.escapeAttr(spj.id)}')" title="Salin Link">
                                         <i class="ph ph-link"></i> Salin Link
                                     </button>
                                     <button class="btn btn-ghost btn-sm text-danger" onclick="app.hapusSPJHeader('${spj.id}')" title="Hapus">
@@ -6309,6 +6315,68 @@ renderSignPage(container, itemId) {
                     </div>
                 `;
             }
+
+            modalIssueSpjToken(spjId) {
+                const spj = (DB.cache.spj_headers || []).find(row => String(row.id) === String(spjId));
+                const items = (DB.get('pencairan_items') || []).filter(item => String(item.pencairan_id) === String(spj?.pencairan_id) && item.status_ttd !== 'SIGNED');
+                if (!spj || !items.length) return this.notify('Tidak ada penerima belum TTD pada header ini', 'error');
+                DOM.openModal('Salin Link Tanda Tangan', `
+                    <form id="form-issue-spj-token">
+                        <input type="hidden" name="spj_id" value="${Utils.escapeAttr(spj.id)}">
+                        <div class="form-group"><label class="form-label">Masa berlaku</label><select name="expires_in_hours" class="form-control"><option value="1">1 jam</option><option value="6">6 jam</option><option value="24" selected>24 jam</option></select></div>
+                        <p class="text-sm text-muted">Satu link untuk semua ${items.length} penerima yang belum TTD. Siapa pun yang menerima link dapat melihat daftar penerima lalu memilih namanya sendiri untuk TTD.</p>
+                    </form>`,
+                    `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.issueSpjToken()">Salin Link</button>`);
+            }
+
+            async issueSpjToken() {
+                const data = DOM.getFormData('form-issue-spj-token');
+                try {
+                    const response = await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`, {
+                        method: 'POST',
+                        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${Auth.session.access_token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'issue', scope: 'shared', ...data })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Gagal membuat link');
+                    this.issuedSpjLinks = this.issuedSpjLinks || {};
+                    this.issuedSpjLinks[String(data.spj_id)] = result.url;
+                    DOM.openModal('Link Siap Dibagikan', `<p class="text-sm text-muted mb-2">Satu link untuk semua penerima pada SPJ ini.</p><input id="issued-spj-link" class="form-control" readonly value="${Utils.escapeAttr(result.url)}">`,
+                        `<button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button><button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('issued-spj-link').value).then(()=>app.notify('Link disalin', 'success'))">Salin Link</button>`, '700px');
+                } catch (error) { this.notify(error.message || 'Gagal membuat link', 'error'); }
+            }
+
+            previewIssuedSpjToken(spjId) {
+                const url = this.issuedSpjLinks?.[String(spjId)];
+                if (!url) return this.notify('Klik Salin Link dulu', 'info');
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+
+            async renderPublicTokenSign(token) {
+                const root = document.createElement('main'); root.style.cssText = 'min-height:100vh;padding:24px;background:#f8fafc;font-family:Inter,system-ui;display:grid;place-items:center'; document.body.appendChild(root);
+                try {
+                    const response = await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj?token=${encodeURIComponent(token)}`, { headers: { apikey: SUPABASE_KEY } });
+                    const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Tautan tidak tersedia');
+                    this.publicTokenData = { token, data, root };
+                    this.renderPublicTokenRecipient();
+                } catch (error) { root.innerHTML = `<section style="background:#fff;padding:32px;border-radius:16px;text-align:center"><h1>Link tidak tersedia</h1><p>${Utils.escapeHTML(error.message)}</p></section>`; }
+            }
+
+            renderPublicTokenRecipient() {
+                const state = this.publicTokenData; if (!state) return;
+                const { token, data, root } = state;
+                const recipients = Array.isArray(data.recipients) ? data.recipients : [];
+                const selectedId = document.getElementById('public-recipient-select')?.value || recipients.find(item => !item.signed)?.id || '';
+                const r = recipients.find(item => String(item.id) === String(selectedId));
+                const options = recipients.map(item => `<option value="${Utils.escapeAttr(item.id)}" ${String(item.id) === String(selectedId) ? 'selected' : ''} ${item.signed ? 'disabled' : ''}>${Utils.escapeHTML(item.name)}${item.signed ? ' — sudah TTD' : ''}</option>`).join('');
+                if (!r) { root.innerHTML = '<section style="background:#fff;padding:32px;border-radius:16px;text-align:center"><h1>Semua penerima sudah TTD</h1></section>'; return; }
+                root.innerHTML = `<section style="width:min(100%,620px);background:#fff;border-radius:16px;padding:28px;box-shadow:0 10px 30px #0001"><h1 style="margin:0 0 8px">Tanda Tangan SPJ</h1><p style="color:#64748b">Berlaku sampai ${Utils.escapeHTML(new Date(data.expires_at).toLocaleString('id-ID'))}</p><hr><label><b>Pilih nama Anda</b></label><select id="public-recipient-select" onchange="app.renderPublicTokenRecipient()" style="width:100%;padding:10px;margin:8px 0 16px;border:1px solid #cbd5e1;border-radius:8px">${options}</select><p><b>${Utils.escapeHTML(r.name)}</b><br>${Utils.escapeHTML(r.bank)} · ${Utils.escapeHTML(r.account)}</p><p>Bruto: Rp ${Utils.formatNumber(r.gross)}<br>Pajak: Rp ${Utils.formatNumber(r.tax)}<br><b>Diterima: Rp ${Utils.formatNumber(r.net)}</b></p><label><b>Tanda tangan</b></label><canvas id="public-sign-canvas" width="520" height="180" style="width:100%;border:2px dashed #94a3b8;border-radius:8px;touch-action:none"></canvas><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-outline" onclick="app.clearPublicSignature()">Bersihkan</button><button class="btn btn-primary" onclick="app.submitPublicTokenSignature('${Utils.escapeAttr(token)}')">Kirim Tanda Tangan</button></div></section>`;
+                this.bindPublicCanvas();
+            }
+
+            bindPublicCanvas() { const c=document.getElementById('public-sign-canvas'), x=c?.getContext('2d'); if(!c||!x)return; let down=false; const draw=e=>{if(!down)return;const r=c.getBoundingClientRect(),p=e.touches?e.touches[0]:e;x.lineWidth=3;x.lineCap='round';x.lineTo((p.clientX-r.left)*c.width/r.width,(p.clientY-r.top)*c.height/r.height);x.stroke();x.beginPath();x.moveTo((p.clientX-r.left)*c.width/r.width,(p.clientY-r.top)*c.height/r.height)}; c.onpointerdown=e=>{down=true;draw(e)};c.onpointermove=draw;c.onpointerup=()=>{down=false;x.beginPath()}; }
+            clearPublicSignature() { const c=document.getElementById('public-sign-canvas'); c?.getContext('2d').clearRect(0,0,c.width,c.height); }
+            async submitPublicTokenSignature(token) { const c=document.getElementById('public-sign-canvas'), itemId=document.getElementById('public-recipient-select')?.value; if(!c||!itemId)return; try { const response=await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({token,pencairan_item_id:itemId,signature:c.toDataURL('image/png')})}); const data=await response.json(); if(!response.ok)throw new Error(data.error||'Gagal menyimpan'); document.body.innerHTML='<main style="padding:48px;text-align:center;font-family:system-ui"><h1>Tanda tangan berhasil dikirim</h1><p>Terima kasih.</p></main>'; } catch(error){alert(error.message||'Gagal menyimpan')} }
 
             modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
@@ -6419,12 +6487,12 @@ renderSignPage(container, itemId) {
                             </div>
 
                             <div class="pt-2 flex items-center gap-2 flex-wrap">
-                                <button class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${signUrl}').then(() => app.notify('Link Presensi Berhasil Disalin!', 'success'))">
+                                <button class="btn btn-primary btn-sm" onclick="app.modalIssueSpjToken('${Utils.escapeAttr(spj.id)}')">
                                     <i class="ph ph-link"></i> Salin Link Presensi
                                 </button>
-                                <a href="${Utils.escapeAttr(signUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+                                <button class="btn btn-outline btn-sm" onclick="app.previewIssuedSpjToken('${Utils.escapeAttr(spj.id)}')">
                                     <i class="ph ph-arrow-square-out"></i> Pratinjau TTD
-                                </a>
+                                </button>
                                 <button class="btn btn-outline btn-sm text-success" onclick="app.printPresensiPDF('${spjId}')">
                                     <i class="ph ph-file-pdf"></i> Cetak PDF Presensi
                                 </button>
