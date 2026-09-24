@@ -85,7 +85,7 @@ Deno.serve(async (request) => {
       })
       if (issueError) return json({ error: 'Gagal membuat tautan' }, 500)
       return json({
-        url: `${supabaseUrl}/functions/v1/public-spj?token=${encodeURIComponent(plainToken)}`,
+        url: `${allowedOrigin}/?token=${encodeURIComponent(plainToken)}`,
         expires_in_hours: hours,
       })
     }
