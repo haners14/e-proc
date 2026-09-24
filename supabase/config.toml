@@ -1,0 +1,2 @@
+[functions.public-spj]
+verify_jwt = false
