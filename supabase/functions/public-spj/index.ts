@@ -64,19 +64,21 @@ Deno.serve(async (request) => {
 
       const spjId = String(body.spj_id || '')
       const itemId = String(body.pencairan_item_id || '')
+      const scope = body.scope === 'shared' ? 'shared' : 'recipient'
       const hours = Math.min(Math.max(Number(body.expires_in_hours) || 24, 1), 24)
-      if (!spjId || !itemId) return json({ error: 'SPJ dan penerima wajib dipilih' }, 400)
+      if (!spjId || (scope === 'recipient' && !itemId)) return json({ error: 'SPJ dan penerima wajib dipilih' }, 400)
 
       const { data: spj } = await admin.from('spj_headers').select('pencairan_id').eq('id', spjId).maybeSingle()
-      const { data: item } = await admin.from('pencairan_items').select('pencairan_id,status_ttd').eq('id', itemId).maybeSingle()
-      if (!spj || !item || String(spj.pencairan_id) !== String(item.pencairan_id) || item.status_ttd === 'SIGNED') {
+      const { data: item } = itemId ? await admin.from('pencairan_items').select('pencairan_id,status_ttd').eq('id', itemId).maybeSingle() : { data: null }
+      if (!spj || (scope === 'recipient' && (!item || String(spj.pencairan_id) !== String(item.pencairan_id) || item.status_ttd === 'SIGNED'))) {
         return json({ error: 'SPJ atau penerima tidak valid' }, 400)
       }
 
       const plainToken = randomToken()
       const { error: issueError } = await admin.from('spj_sign_tokens').insert({
         spj_id: spjId,
-        pencairan_item_id: itemId,
+        pencairan_item_id: scope === 'shared' ? null : itemId,
+        scope,
         token_hash: await sha256(plainToken),
         expires_at: new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
         created_by: authData.user.id,
@@ -97,32 +99,56 @@ Deno.serve(async (request) => {
 
     if (request.method === 'GET') {
       const { data: tokenRow } = await admin.from('spj_sign_tokens')
-        .select('spj_id,pencairan_item_id,expires_at,used_at,revoked_at')
+        .select('id,spj_id,pencairan_item_id,scope,expires_at,used_at,revoked_at')
         .eq('token_hash', tokenHash).maybeSingle()
-      if (!tokenRow || tokenRow.used_at || tokenRow.revoked_at || new Date(tokenRow.expires_at) <= new Date()) {
+      if (!tokenRow || (tokenRow.scope === 'recipient' && tokenRow.used_at) || tokenRow.revoked_at || new Date(tokenRow.expires_at) <= new Date()) {
         return json({ error: 'Tautan tidak valid atau kedaluwarsa' }, 404)
       }
 
-      const { data: item, error } = await admin.from('pencairan_items')
-        .select('id,nama_penerima,bank,no_rekening,subtotal,pph,total,status_ttd')
-        .eq('id', tokenRow.pencairan_item_id).single()
-      if (error || !item) return json({ error: 'Data penerima tidak tersedia' }, 404)
+      let items
+      let error
+      if (tokenRow.scope === 'shared') {
+        const { data: spj, error: spjError } = await admin.from('spj_headers')
+          .select('pencairan_id').eq('id', tokenRow.spj_id).maybeSingle()
+        if (spjError || !spj) return json({ error: 'Data SPJ tidak tersedia' }, 404)
+        const result = await admin.from('pencairan_items')
+          .select('id,nama_penerima,bank,no_rekening,subtotal,pph,total,status_ttd')
+          .eq('pencairan_id', spj.pencairan_id)
+        items = result.data
+        error = result.error
+      } else {
+        const result = await admin.from('pencairan_items')
+          .select('id,nama_penerima,bank,no_rekening,subtotal,pph,total,status_ttd')
+          .eq('id', tokenRow.pencairan_item_id)
+        items = result.data
+        error = result.error
+      }
+      if (error || !items || (Array.isArray(items) && !items.length)) return json({ error: 'Data penerima tidak tersedia' }, 404)
+      const list = Array.isArray(items) ? items : [items]
       return json({
-        recipient: {
-          name: item.nama_penerima,
-          bank: item.bank || '-',
-          account: maskedAccount(item.no_rekening),
-          gross: item.subtotal || 0,
-          tax: item.pph || 0,
-          net: item.total || 0,
-        },
+        scope: tokenRow.scope,
+        recipients: list.map(item => ({ id:item.id,name:item.nama_penerima,bank:item.bank||'-',account:maskedAccount(item.no_rekening),gross:item.subtotal||0,tax:item.pph||0,net:item.total||0,signed:item.status_ttd==='SIGNED' })),
         expires_at: tokenRow.expires_at,
       })
     }
 
     const signature = body?.signature
+    const selectedItemId = String(body?.pencairan_item_id || '')
     if (typeof signature !== 'string' || !signature.startsWith('data:image/png;base64,') || signature.length > 350_000) {
       return json({ error: 'Format tanda tangan tidak valid' }, 400)
+    }
+
+    const { data: tokenRow } = await admin.from('spj_sign_tokens').select('id,spj_id,pencairan_item_id,scope,expires_at,used_at,revoked_at').eq('token_hash', tokenHash).maybeSingle()
+    if (tokenRow?.scope === 'shared') {
+      if (!selectedItemId || tokenRow.revoked_at || new Date(tokenRow.expires_at) <= new Date()) return json({ error: 'Tautan tidak valid atau kedaluwarsa' }, 409)
+      const { data: spj } = await admin.from('spj_headers').select('pencairan_id').eq('id', tokenRow.spj_id).maybeSingle()
+      const { data: item } = await admin.from('pencairan_items').select('pencairan_id,status_ttd').eq('id', selectedItemId).maybeSingle()
+      if (!spj || !item || String(spj.pencairan_id)!==String(item.pencairan_id) || item.status_ttd==='SIGNED') return json({ error: 'Penerima tidak dapat menandatangani' }, 409)
+      const { error: submissionError } = await admin.from('spj_sign_submissions').insert({ token_id:tokenRow.id,pencairan_item_id:selectedItemId })
+      if (submissionError) return json({ error: 'Penerima sudah menandatangani' }, 409)
+      const { error: updateError } = await admin.from('pencairan_items').update({ tanda_tangan: signature, status_ttd: 'SIGNED' }).eq('id', selectedItemId)
+      if (updateError) return json({ error: 'Tanda tangan gagal disimpan' }, 500)
+      return json({ ok: true })
     }
 
     const { data: consumed, error: consumeError } = await admin.rpc('consume_spj_sign_token', { p_token_hash: tokenHash })
