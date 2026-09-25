@@ -427,7 +427,9 @@
         .chat-suggestion-chip { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-full); padding: 6px 12px; font-size: 0.75rem; white-space: nowrap; cursor: pointer; transition: 0.2s; }
         .chat-suggestion-chip:hover { border-color: var(--primary-500); color: var(--primary-600); background: var(--primary-50); }
         
-        #global-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+        #global-loader { position: fixed; inset: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #f8fbff, #eef4ff); z-index: 100000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+        #global-loader .loader-brand { display:flex; align-items:center; gap:10px; color:var(--primary-700); font-size:1.25rem; font-weight:700; }
+        #login-overlay { visibility: hidden; }
         
         /* CSS Tambahan TomSelect Overrides */
         .ts-control { border-radius: var(--radius-sm); padding: 8px 12px; border-color: var(--border-color); box-shadow: none; }
@@ -611,9 +613,10 @@
     </div>
 
     <!-- Global Loader -->
-    <div id="global-loader">
+    <div id="global-loader" role="status" aria-live="polite">
+        <div class="loader-brand"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
         <i class="ph ph-spinner ph-spin text-5xl text-primary-600"></i>
-        <p class="font-medium text-gray-600">Menghubungkan ke Supabase...</p>
+        <p class="font-medium text-gray-600">Memuat aplikasi...</p>
     </div>
 
     <script>
@@ -953,6 +956,11 @@
             'tanda_tangan','status_ttd'
         ];
         syncPayload = Object.fromEntries(allowed.filter(k => Object.prototype.hasOwnProperty.call(payload, k)).map(k => [k, payload[k]]));
+    }
+    // document_templates adalah data relasi tampilan, bukan kolom package_documents.
+    if (sbTable === 'package_documents' && syncPayload && typeof syncPayload === 'object') {
+        const { document_templates, ...databasePayload } = syncPayload;
+        syncPayload = databasePayload;
     }
 
     if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
@@ -5200,7 +5208,8 @@ importPencairanExcel(event) {
                 const session = await Auth.restore();
                 if (!session) {
                     const loader = document.getElementById('global-loader'); if (loader) loader.style.display = 'none';
-                    document.getElementById('login-overlay').style.display = 'flex';
+                    const overlay = document.getElementById('login-overlay');
+                    if (overlay) { overlay.style.visibility = 'visible'; overlay.style.display = 'flex'; }
                     return;
                 }
                 await this.startAuthenticatedApp();
