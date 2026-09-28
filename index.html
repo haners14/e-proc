@@ -5614,7 +5614,7 @@ importPencairanExcel(event) {
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
                 
                 // Ambil data TERBARU dari Supabase agar TTD yang dicetak persis dengan yang tersimpan.
-                const items = await this.getFreshPencairanItems(spj.pencairan_id);
+                const items = await this.getSpjHeaderRecipients(spjId);
                 const listPenyedia = DB.get('penyedia') || [];
 
                 let rowsHtml = items.map((item, idx) => {
@@ -5702,7 +5702,7 @@ importPencairanExcel(event) {
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
                 
                 // Ambil data TERBARU dari Supabase agar TTD yang dicetak persis dengan yang tersimpan.
-                const items = await this.getFreshPencairanItems(spj.pencairan_id);
+                const items = await this.getSpjHeaderRecipients(spjId);
                 const listPenyedia = DB.get('penyedia') || [];
 
                 let totalBruto = 0, totalPajak = 0, totalBersih = 0;
@@ -6440,13 +6440,12 @@ renderSignPage(container, itemId) {
 
             modalIssueSpjToken(spjId) {
                 const spj = (DB.cache.spj_headers || []).find(row => String(row.id) === String(spjId));
-                const items = (DB.get('pencairan_items') || []).filter(item => String(item.pencairan_id) === String(spj?.pencairan_id) && item.status_ttd !== 'SIGNED');
-                if (!spj || !items.length) return this.notify('Tidak ada penerima belum TTD pada header ini', 'error');
+                if (!spj) return this.notify('Header SPJ tidak ditemukan', 'error');
                 DOM.openModal('Salin Link Tanda Tangan', `
                     <form id="form-issue-spj-token">
                         <input type="hidden" name="spj_id" value="${Utils.escapeAttr(spj.id)}">
                         <div class="form-group"><label class="form-label">Masa berlaku</label><select name="expires_in_hours" class="form-control"><option value="1">1 jam</option><option value="6">6 jam</option><option value="24" selected>24 jam</option></select></div>
-                        <p class="text-sm text-muted">Satu link untuk semua ${items.length} penerima yang belum TTD. Siapa pun yang menerima link dapat melihat daftar penerima lalu memilih namanya sendiri untuk TTD.</p>
+                        <p class="text-sm text-muted">Satu link untuk seluruh penerima pada header ini yang belum TTD. Header SPJ baru selalu dimulai tanpa membawa TTD dari header lain.</p>
                     </form>`,
                     `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.issueSpjToken()">Salin Link</button>`);
             }
@@ -6543,18 +6542,32 @@ renderSignPage(container, itemId) {
                 }, 100);
             }
 
-            simpanSPJHeader() {
+            async simpanSPJHeader() {
                 const data = DOM.getFormData('form-tambah-spj');
                 if (!data.judul) return this.notify('Judul absen/SPJ wajib diisi', 'error');
                 if (!data.pencairan_id) return this.notify('Pilih pengajuan pencairan terlebih dahulu', 'error');
-
-                DB.insert('spj_headers', {
-                    judul: data.judul,
-                    pencairan_id: data.pencairan_id
-                });
-
+                const header = { id: Utils.generateId(), created_at: new Date().toISOString(), judul: data.judul, pencairan_id: data.pencairan_id };
+                if (!DB.cache.spj_headers) DB.cache.spj_headers = [];
+                DB.cache.spj_headers.unshift(header);
+                const saved = await DB._sync('POST', 'spj_headers', header);
+                if (!saved) {
+                    DB.cache.spj_headers = DB.cache.spj_headers.filter(row => row.id !== header.id);
+                    return;
+                }
+                try {
+                    const response = await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`, {
+                        method: 'POST', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${Auth.session.access_token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'initialize', spj_id: header.id })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error || 'Gagal menyiapkan penerima SPJ');
+                } catch (error) {
+                    DB.cache.spj_headers = DB.cache.spj_headers.filter(row => row.id !== header.id);
+                    await DB._sync('DELETE', 'spj_headers', null, header.id);
+                    return this.notify(error.message || 'Header SPJ gagal dibuat', 'error');
+                }
                 DOM.closeModal();
-                this.notify('Header SPJ berhasil disimpan', 'success');
+                this.notify('Header SPJ dan penerima baru berhasil disimpan', 'success');
                 this.renderSPJ(this.routerView);
             }
 
@@ -6566,13 +6579,26 @@ renderSignPage(container, itemId) {
                 }
             }
 
+            async getSpjHeaderRecipients(spjId) {
+                const response = await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`, {
+                    method: 'POST',
+                    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${Auth.session.access_token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'recipients', spj_id: spjId })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Gagal memuat penerima SPJ');
+                return Array.isArray(result.recipients) ? result.recipients : [];
+            }
+
             async bukaDetailSPJ(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
                 if (!spj) return;
 
                 const pencairan = DB.getById('pencairan', spj.pencairan_id) || {};
-                const items = await this.getFreshPencairanItems(spj.pencairan_id);
+                let items = [];
+                try { items = await this.getSpjHeaderRecipients(spj.id); }
+                catch (error) { return this.notify(error.message || 'Gagal memuat penerima SPJ', 'error'); }
                 const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
 
                 let listHtml = items.map((item, idx) => {
