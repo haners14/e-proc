@@ -48,7 +48,8 @@ Deno.serve(async (request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const admin = createClient(supabaseUrl, readSecretKey(), { auth: { persistSession: false } })
     const body = request.method === 'POST' ? await request.json() : null
-    if (request.method === 'POST' && body?.action === 'issue') {
+    const adminAction = body?.action || (body?.spj_id && !body?.token && !body?.signature ? 'issue' : '')
+    if (request.method === 'POST' && ['issue', 'initialize', 'recipients'].includes(adminAction)) {
       const authorization = request.headers.get('Authorization') || ''
       const userClient = createClient(supabaseUrl, readPublishableKey(), {
         global: { headers: { Authorization: authorization } }, auth: { persistSession: false },
@@ -62,15 +63,58 @@ Deno.serve(async (request) => {
         return json({ error: 'Hak akses tidak cukup' }, 403)
       }
 
+      if (adminAction === 'recipients') {
+        const spjId = String(body.spj_id || '')
+        if (!spjId) return json({ error: 'SPJ wajib diisi' }, 400)
+        const { data: recipients, error } = await admin.from('spj_header_recipients')
+          .select('id,pencairan_item_id,nama_penerima,uraian,bank,no_rekening,subtotal,pph,total,tanda_tangan,status_ttd')
+          .eq('spj_id', spjId).order('created_at', { ascending: true })
+        if (error) return json({ error: 'Gagal memuat penerima' }, 500)
+        return json({ recipients: recipients || [] })
+      }
+
+      if (adminAction === 'initialize') {
+        const spjId = String(body.spj_id || '')
+        if (!spjId) return json({ error: 'SPJ wajib diisi' }, 400)
+        const { data: spj } = await admin.from('spj_headers').select('pencairan_id').eq('id', spjId).maybeSingle()
+        if (!spj) return json({ error: 'Header SPJ tidak ditemukan' }, 404)
+        const { data: sourceItems, error: sourceError } = await admin.from('pencairan_items')
+          .select('id,nama_penerima,uraian,bank,no_rekening,subtotal,pph,total').eq('pencairan_id', spj.pencairan_id)
+        if (sourceError || !sourceItems?.length) return json({ error: 'Penerima pencairan tidak tersedia' }, 400)
+        const rows = sourceItems.map(item => ({
+          spj_id: spjId, pencairan_item_id: String(item.id), nama_penerima: item.nama_penerima, uraian: item.uraian,
+          bank: item.bank, no_rekening: item.no_rekening, subtotal: item.subtotal || 0,
+          pph: item.pph || 0, total: item.total || 0, tanda_tangan: null, status_ttd: 'DRAFT', signed_at: null,
+        }))
+        const { error: copyError } = await admin.from('spj_header_recipients').upsert(rows, { onConflict: 'spj_id,pencairan_item_id', ignoreDuplicates: true })
+        if (copyError) return json({ error: 'Gagal menyiapkan penerima SPJ' }, 500)
+        return json({ ok: true, recipient_count: rows.length })
+      }
+
       const spjId = String(body.spj_id || '')
       const itemId = String(body.pencairan_item_id || '')
       const scope = body.scope === 'shared' ? 'shared' : 'recipient'
       const hours = Math.min(Math.max(Number(body.expires_in_hours) || 24, 1), 24)
       if (!spjId || (scope === 'recipient' && !itemId)) return json({ error: 'SPJ dan penerima wajib dipilih' }, 400)
 
-      const { data: spj } = await admin.from('spj_headers').select('pencairan_id').eq('id', spjId).maybeSingle()
-      const { data: item } = itemId ? await admin.from('pencairan_items').select('pencairan_id,status_ttd').eq('id', itemId).maybeSingle() : { data: null }
-      if (!spj || (scope === 'recipient' && (!item || String(spj.pencairan_id) !== String(item.pencairan_id) || item.status_ttd === 'SIGNED'))) {
+      const { data: spj } = await admin.from('spj_headers').select('id,pencairan_id').eq('id', spjId).maybeSingle()
+      const { data: item } = itemId ? await admin.from('spj_header_recipients').select('spj_id,status_ttd').eq('id', itemId).maybeSingle() : { data: null }
+      let { count: unsignedCount } = await admin.from('spj_header_recipients').select('id', { count: 'exact', head: true }).eq('spj_id', spjId).neq('status_ttd', 'SIGNED')
+      // Header lama dibuat sebelum tabel penerima per-header tersedia. Siapkan salinan bersih saat pertama kali link dibuat.
+      if (spj && !unsignedCount) {
+        const { data: sourceItems } = await admin.from('pencairan_items')
+          .select('id,nama_penerima,uraian,bank,no_rekening,subtotal,pph,total').eq('pencairan_id', spj.pencairan_id)
+        if (sourceItems?.length) {
+          await admin.from('spj_header_recipients').upsert(sourceItems.map(item => ({
+            spj_id: spjId, pencairan_item_id: String(item.id), nama_penerima: item.nama_penerima, uraian: item.uraian,
+            bank: item.bank, no_rekening: item.no_rekening, subtotal: item.subtotal || 0, pph: item.pph || 0,
+            total: item.total || 0, tanda_tangan: null, status_ttd: 'DRAFT', signed_at: null,
+          })), { onConflict: 'spj_id,pencairan_item_id', ignoreDuplicates: true })
+          const retry = await admin.from('spj_header_recipients').select('id', { count: 'exact', head: true }).eq('spj_id', spjId).neq('status_ttd', 'SIGNED')
+          unsignedCount = retry.count
+        }
+      }
+      if (!spj || !unsignedCount || (scope === 'recipient' && (!item || String(spjId) !== String(item.spj_id) || item.status_ttd === 'SIGNED'))) {
         return json({ error: 'SPJ atau penerima tidak valid' }, 400)
       }
 
@@ -108,16 +152,13 @@ Deno.serve(async (request) => {
       let items
       let error
       if (tokenRow.scope === 'shared') {
-        const { data: spj, error: spjError } = await admin.from('spj_headers')
-          .select('pencairan_id').eq('id', tokenRow.spj_id).maybeSingle()
-        if (spjError || !spj) return json({ error: 'Data SPJ tidak tersedia' }, 404)
-        const result = await admin.from('pencairan_items')
+        const result = await admin.from('spj_header_recipients')
           .select('id,nama_penerima,bank,no_rekening,subtotal,pph,total,status_ttd')
-          .eq('pencairan_id', spj.pencairan_id)
+          .eq('spj_id', tokenRow.spj_id)
         items = result.data
         error = result.error
       } else {
-        const result = await admin.from('pencairan_items')
+        const result = await admin.from('spj_header_recipients')
           .select('id,nama_penerima,bank,no_rekening,subtotal,pph,total,status_ttd')
           .eq('id', tokenRow.pencairan_item_id)
         items = result.data
@@ -141,12 +182,11 @@ Deno.serve(async (request) => {
     const { data: tokenRow } = await admin.from('spj_sign_tokens').select('id,spj_id,pencairan_item_id,scope,expires_at,used_at,revoked_at').eq('token_hash', tokenHash).maybeSingle()
     if (tokenRow?.scope === 'shared') {
       if (!selectedItemId || tokenRow.revoked_at || new Date(tokenRow.expires_at) <= new Date()) return json({ error: 'Tautan tidak valid atau kedaluwarsa' }, 409)
-      const { data: spj } = await admin.from('spj_headers').select('pencairan_id').eq('id', tokenRow.spj_id).maybeSingle()
-      const { data: item } = await admin.from('pencairan_items').select('pencairan_id,status_ttd').eq('id', selectedItemId).maybeSingle()
-      if (!spj || !item || String(spj.pencairan_id)!==String(item.pencairan_id) || item.status_ttd==='SIGNED') return json({ error: 'Penerima tidak dapat menandatangani' }, 409)
+      const { data: item } = await admin.from('spj_header_recipients').select('spj_id,status_ttd').eq('id', selectedItemId).maybeSingle()
+      if (!item || String(tokenRow.spj_id)!==String(item.spj_id) || item.status_ttd==='SIGNED') return json({ error: 'Penerima tidak dapat menandatangani' }, 409)
       const { error: submissionError } = await admin.from('spj_sign_submissions').insert({ token_id:tokenRow.id,pencairan_item_id:selectedItemId })
       if (submissionError) return json({ error: 'Penerima sudah menandatangani' }, 409)
-      const { error: updateError } = await admin.from('pencairan_items').update({ tanda_tangan: signature, status_ttd: 'SIGNED' }).eq('id', selectedItemId)
+      const { error: updateError } = await admin.from('spj_header_recipients').update({ tanda_tangan: signature, status_ttd: 'SIGNED', signed_at: new Date().toISOString() }).eq('id', selectedItemId)
       if (updateError) return json({ error: 'Tanda tangan gagal disimpan' }, 500)
       return json({ ok: true })
     }
@@ -155,8 +195,8 @@ Deno.serve(async (request) => {
     const consumedToken = consumed?.[0]
     if (consumeError || !consumedToken) return json({ error: 'Tautan sudah digunakan, dicabut, atau kedaluwarsa' }, 409)
 
-    const { error: updateError } = await admin.from('pencairan_items')
-      .update({ tanda_tangan: signature, status_ttd: 'SIGNED' })
+    const { error: updateError } = await admin.from('spj_header_recipients')
+      .update({ tanda_tangan: signature, status_ttd: 'SIGNED', signed_at: new Date().toISOString() })
       .eq('id', consumedToken.pencairan_item_id)
     if (updateError) return json({ error: 'Tanda tangan gagal disimpan' }, 500)
 
