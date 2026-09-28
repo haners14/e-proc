@@ -1486,8 +1486,8 @@
                 const rows = this.filteredData.slice(start, start + this.itemsPerPage);
                 const stage = { 'BELUM PROSES':['#F1F5F9','#64748B','PERSIAPAN'], 'PROSES SPSE':['#EAF3FF','#1677FF','PROSES SPSE'], 'KONTRAK':['#FFF4E5','#D97706','KONTRAK'], 'PENCAIRAN':['#F5EEFF','#8256D0','PENCAIRAN'], 'SELESAI':['#EAF8EF','#15803D','SELESAI'] };
                 const rupiah = n => Number(n) ? Utils.formatCurrency(n) : '-';
-                const body = rows.map((p,i) => { const t=DB.calculatePackageTotals(p), s=stage[String(p.stage||'BELUM PROSES').toUpperCase()]||stage['BELUM PROSES'], contract=Number(p.nilai_kontrak)||Number(p.kontrak_value)||Number(t.negosiasi)||0; return `<tr><td>${start+i+1}</td><td style="text-align:right;white-space:nowrap;font-weight:600;color:#0B2A67">${rupiah(p.pagu)}</td><td style="font-size:12px;color:#64748B">${Utils.escapeHTML(p.kode_rup||p.id||'-')}</td><td title="${Utils.escapeAttr(p.name||'')}"><b style="color:#12213F">${Utils.escapeHTML(p.name||'-')}</b><small style="display:block;color:#64748B">${Utils.escapeHTML(p.metode_pemilihan||'-')}</small></td><td>${Utils.escapeHTML(p.opd||'-')}</td><td style="text-align:right;white-space:nowrap">${rupiah(t.hps)}</td><td style="text-align:right;white-space:nowrap">${rupiah(contract)}</td><td><span style="font-size:10px;font-weight:700;letter-spacing:.02em;padding:5px 9px;border-radius:999px;background:${s[0]};color:${s[1]}">${s[2]}</span></td><td>${p.updated_at?Utils.formatDate(p.updated_at):'-'}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.navigate('workspace','${Utils.escapeAttr(p.id)}')" title="Buka Detail"><i class="ph ph-arrow-square-out"></i></button><button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${Utils.escapeAttr(p.id)}')" title="Edit"><i class="ph ph-pencil-simple"></i></button></td></tr>`; }).join('');
-                return `<table class="data-table" style="min-width:1120px"><thead><tr><th>No.</th><th style="text-align:right">Nilai Pagu</th><th>Kode Paket</th><th>Nama Paket</th><th>OPD</th><th style="text-align:right">Nilai HPS</th><th style="text-align:right">Nilai Kontrak</th><th>Tahap</th><th>Update</th><th>Aksi</th></tr></thead><tbody>${body}</tbody></table>`;
+                const body = rows.map((p,i) => { const t=DB.calculatePackageTotals(p), s=stage[String(p.stage||'BELUM PROSES').toUpperCase()]||stage['BELUM PROSES'], contract=Number(p.nilai_kontrak)||Number(p.kontrak_value)||Number(t.negosiasi)||0; return `<tr><td>${start+i+1}</td><td style="font-size:12px;color:#64748B">${Utils.escapeHTML(p.kode_rup||p.id||'-')}</td><td title="${Utils.escapeAttr(p.name||'')}"><b style="color:#12213F">${Utils.escapeHTML(p.name||'-')}</b><small style="display:block;color:#64748B">${Utils.escapeHTML(p.metode_pemilihan||'-')}</small></td><td>${Utils.escapeHTML(p.opd||'-')}</td><td style="text-align:right;white-space:nowrap;font-weight:600;color:#0B2A67">${rupiah(p.pagu)}</td><td style="text-align:right;white-space:nowrap">${rupiah(t.hps)}</td><td style="text-align:right;white-space:nowrap">${rupiah(contract)}</td><td><span style="font-size:10px;font-weight:700;letter-spacing:.02em;padding:5px 9px;border-radius:999px;background:${s[0]};color:${s[1]}">${s[2]}</span></td><td>${p.updated_at?Utils.formatDate(p.updated_at):'-'}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.navigate('workspace','${Utils.escapeAttr(p.id)}')" title="Buka Detail"><i class="ph ph-arrow-square-out"></i></button><button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${Utils.escapeAttr(p.id)}')" title="Edit"><i class="ph ph-pencil-simple"></i></button></td></tr>`; }).join('');
+                return `<table class="data-table" style="min-width:1120px"><thead><tr><th>No.</th><th>Kode Paket</th><th>Nama Paket</th><th>OPD</th><th style="text-align:right">Nilai Pagu</th><th style="text-align:right">Nilai HPS</th><th style="text-align:right">Nilai Kontrak</th><th>Tahap</th><th>Update</th><th>Aksi</th></tr></thead><tbody>${body}</tbody></table>`;
             }
 
             handleCheckRow(id, isChecked) {
@@ -2150,6 +2150,10 @@
                             </div>
                             <div class="flex gap-2 items-center">
                                 <span class="text-xs text-success-600 font-medium flex items-center gap-1 bg-success-50 px-2 py-1 rounded border border-success-200"><i class="ph-fill ph-check-circle"></i> Tersimpan Otomatis</span>
+                                <label class="text-xs text-muted" for="package-stage-${this.packageId}">Status</label>
+                                <select id="package-stage-${this.packageId}" class="form-control" style="width:150px;padding:7px 9px;font-size:12px" onchange="app.setPackageStage('${this.packageId}', this.value)">
+                                    ${['BELUM PROSES','PROSES SPSE','KONTRAK','PENCAIRAN','SELESAI'].map(stage => `<option value="${stage}" ${this.pkg.stage === stage ? 'selected' : ''}>${stage === 'BELUM PROSES' ? 'PERSIAPAN' : stage}</option>`).join('')}
+                                </select>
                                 ${this.pkg.stage !== 'SELESAI' ? `<button class="btn btn-primary ml-2" onclick="app.advanceStage('${this.packageId}')"><i class="ph ph-check-circle"></i> Selesaikan Tahap Ini</button>` : ''}
                             </div>
                         </div>
@@ -4322,6 +4326,16 @@ hideLoginOverlay() {
         setTimeout(() => overlay.remove(), 300);
     }
 }
+            setPackageStage(packageId, nextStage) {
+                const pkg = DB.getById('paket', packageId);
+                const stages = ['BELUM PROSES', 'PROSES SPSE', 'KONTRAK', 'PENCAIRAN', 'SELESAI'];
+                if (!pkg || !stages.includes(nextStage)) return this.notify('Status paket tidak valid', 'error');
+                const minimumProgress = { 'BELUM PROSES': 0, 'PROSES SPSE': 25, 'KONTRAK': 50, 'PENCAIRAN': 75, 'SELESAI': 100 };
+                const progress = nextStage === 'SELESAI' ? 100 : Math.max(Number(pkg.progress) || 0, minimumProgress[nextStage]);
+                DB.update('paket', packageId, { stage: nextStage, progress });
+                this.notify(`Status paket diubah ke ${nextStage === 'BELUM PROSES' ? 'PERSIAPAN' : nextStage}`, 'success');
+                this.reRenderCurrentView();
+            }
             advanceStage(packageId) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg) {
