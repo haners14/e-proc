@@ -72,23 +72,38 @@
         .justify-center { justify-content: center; } .gap-2 { gap: var(--space-2); } .gap-3 { gap: var(--space-3); } .gap-4 { gap: var(--space-4); }
         .p-4 { padding: var(--space-4); } .p-5 { padding: var(--space-5); } .mb-2 { margin-bottom: var(--space-2); } .mb-4 { margin-bottom: var(--space-4); }
 
-        .app-layout { display: flex; height: 100vh; width: 100vw; position: relative; }
+        .app-layout { display:flex; height:100vh; width:100vw; position:relative; background:#F7F9FC; }
         
-        .sidebar { width: 260px; background: var(--bg-surface-glass); backdrop-filter: blur(16px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 40; flex-shrink: 0; }
-        .sidebar-header { height: 64px; display: flex; flex-direction: column; justify-content: center; padding: 0 var(--space-4); border-bottom: 1px solid var(--border-color); }
+        .sidebar { width:264px; height:100vh; position:sticky; top:0; background:#fff; border-right:1px solid #E8EEF6; display:flex; flex-direction:column; z-index:40; flex-shrink:0; box-shadow:none; }
+        .sidebar-header { height:86px; display:flex; flex-direction:column; justify-content:center; padding:0 18px; border-bottom:1px solid #E8EEF6; }
         .logo-container { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; font-size: 1.125rem; color: var(--primary-600); letter-spacing: -0.02em; }
         .logo-subtitle { font-size: 0.65rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
         
-        .sidebar-nav { flex: 1; padding: var(--space-4) var(--space-3); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-5); }
+        .sidebar-nav { flex:1; padding:18px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:18px; }
         .sidebar-nav::-webkit-scrollbar { width: 4px; } .sidebar-nav::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
         .nav-group { display: flex; flex-direction: column; gap: 2px; }
-        .nav-group-title { font-size: 0.7rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; color: var(--gray-400); padding: 0 var(--space-3) var(--space-2) var(--space-3); }
-        .nav-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--text-muted); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition-fast); }
-        .nav-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
-        .nav-item.active { background-color: var(--primary-50); color: var(--primary-600); font-weight: 600; }
+        .nav-group-title { font-size:10px; text-transform:uppercase; font-weight:600; letter-spacing:.04em; color:#94A3B8; padding:0 12px 7px; }
+        .nav-item { position:relative; min-height:41px; display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; color:#475569; font-weight:500; font-size:14px; cursor:pointer; transition:background .18s ease,color .18s ease; }
+        .nav-item i { font-size:18px; color:#64748B; }
+        .nav-item:hover { background:#F4F8FD; color:#0B2A67; }
+        .nav-item:hover i { color:#0B2A67; }
+        .nav-item.active { background:#EAF3FF; color:#1268E8; font-weight:600; }
+        .nav-item.active i { color:#1268E8; }
+        .nav-item.active::before { content:''; position:absolute; left:-14px; top:9px; bottom:9px; width:3px; border-radius:0 3px 3px 0; background:#1677FF; }
         
-        .main-content { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-body); position: relative;}
-        .top-header { height: 64px; background: var(--bg-surface-glass); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-6); z-index: 30; flex-shrink: 0; }
+        .main-content { flex:1; display:flex; flex-direction:column; min-width:0; background:#F7F9FC; position:relative; }
+        .top-header { position:sticky; top:0; height:68px; background:#fff; border-bottom:1px solid #E8EEF6; display:flex; align-items:center; padding:0 26px; z-index:30; flex-shrink:0; }
+        .shell-menu-toggle { color:#0B2A67; width:40px; height:40px; padding:0; }
+        .top-header .global-search-button { width:540px!important; height:40px; margin-left:12px; border:1px solid #E8EEF6; border-radius:12px; background:#F6F9FD; color:#64748B!important; box-shadow:none; }
+        .top-header .search-shortcut { background:#EAF1FA!important; color:#64748B; border-radius:6px!important; padding:3px 7px!important; }
+        .header-actions { margin-left:auto; display:flex; align-items:center; gap:12px; }
+        .header-icon-button { color:#0B2A67; padding:7px!important; position:relative; }
+        .header-notification-dot { position:absolute; top:5px; right:5px; width:7px; height:7px; border-radius:50%; background:#EF4444; border:1px solid #fff; }
+        .header-user { display:flex; align-items:center; gap:9px; margin-left:4px; }
+        .header-user-copy { display:flex; flex-direction:column; line-height:1.25; }
+        .header-user-copy #header-nama { color:#0B2A67; font-size:14px; font-weight:600; }
+        .header-user-copy #header-role { color:#64748B; font-size:12px; }
+        #header-inisial { width:38px!important; height:38px!important; border:0!important; color:#fff!important; background:linear-gradient(135deg,#60A5FA,#1559C5)!important; }
         .content-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; }
 
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: all var(--transition-fast); border: 1px solid transparent; }
@@ -139,7 +154,13 @@
         .tab-item.active { color: var(--primary-600); border-bottom-color: var(--primary-600); font-weight: 600; }
         .workspace-body { padding: var(--space-6); flex: 1; display: flex; flex-direction: column; overflow-y: auto;}
 
-        .mobile-menu-button { display: none; }
+        .mobile-menu-button { display:inline-flex; }
+        .sidebar.desktop-collapsed { width:76px; }
+        .sidebar.desktop-collapsed .sidebar-header { padding:0 13px; }
+        .sidebar.desktop-collapsed .sidebar-header > div > div { display:none; }
+        .sidebar.desktop-collapsed .nav-group-title, .sidebar.desktop-collapsed .nav-item span { display:none; }
+        .sidebar.desktop-collapsed .nav-item { justify-content:center; padding:10px; }
+        .sidebar.desktop-collapsed .nav-item.active::before { left:-14px; }
         .sidebar-backdrop { display: none; }
         @media (max-width: 900px) {
             .sidebar { position: fixed; inset: 0 auto 0 0; transform: translateX(-100%); transition: transform .2s ease; box-shadow: var(--shadow-float); }
@@ -147,9 +168,10 @@
             .sidebar-backdrop { position: fixed; inset: 0; z-index: 35; background: rgba(15, 23, 42, .45); }
             .sidebar-backdrop.active { display: block; }
             .mobile-menu-button { display: inline-flex; }
-            .top-header { padding: 0 var(--space-3); gap: var(--space-2); }
+            .top-header { padding:0 12px; gap:6px; }
             .global-search-button { width: 44px !important; padding: 8px !important; }
             .global-search-button .search-label, .global-search-button .search-shortcut { display: none; }
+            .header-user-copy, .header-user-chevron { display:none; }
             .workspace-header, .workspace-body { padding-left: var(--space-4); padding-right: var(--space-4); }
             .modal-overlay { padding: var(--space-3); }
             .modal-content { max-height: 94vh; }
@@ -430,6 +452,33 @@
         #global-loader { position: fixed; inset: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #f8fbff, #eef4ff); z-index: 100000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
         #global-loader .loader-brand { display:flex; align-items:center; gap:10px; color:var(--primary-700); font-size:1.25rem; font-weight:700; }
         #login-overlay { visibility: hidden; }
+        #global-loader { background: #f5fbff url('assets/sipanda/login-background-final.png') center/cover no-repeat; transition:opacity .48s cubic-bezier(.22,1,.36,1), transform .48s cubic-bezier(.22,1,.36,1), filter .48s ease; }
+        #global-loader .loader-logo { width:min(330px,58vw); height:auto; object-fit:contain; }
+        #global-loader .loader-spinner { width:58px; height:58px; border:6px solid #bfdbfe; border-top-color:#1262c9; border-radius:50%; animation:sipanda-spin .9s linear infinite; }
+        #global-loader p { color:#315486; font-size:1.2rem; }
+        #global-loader .loader-logo { animation:sipanda-logo-in .62s cubic-bezier(.22,1,.36,1) both; }
+        #global-loader .loader-spinner, #global-loader p { animation:sipanda-rise .45s .18s cubic-bezier(.22,1,.36,1) both; }
+        #global-loader.loader-exit { opacity:0; transform:scale(1.025); filter:blur(7px); pointer-events:none; }
+        @keyframes sipanda-spin { to { transform:rotate(360deg); } }
+        @keyframes sipanda-logo-in { from { opacity:0; transform:scale(.82); filter:blur(14px); } to { opacity:1; transform:scale(1); filter:blur(0); } }
+        @keyframes sipanda-rise { from { opacity:0; transform:translateY(14px); filter:blur(6px); } to { opacity:1; transform:translateY(0); filter:blur(0); } }
+        @media (prefers-reduced-motion: reduce) { #global-loader, #global-loader * { animation:none!important; transition:none!important; } }
+        .sipanda-login { background: #f6fbff url('assets/sipanda/login-background-final.png') center/cover no-repeat; }
+        .sipanda-login .login-panel { background:rgba(255,255,255,.94); backdrop-filter:blur(12px); }
+        .sipanda-login input.form-control { border-color:#d7e2f1; min-height:54px; }
+        .sipanda-login input.form-control:focus { border-color:#1677dd; box-shadow:0 0 0 3px #dbeafe; }
+        .sipanda-login .btn-primary { background:linear-gradient(90deg,#22a7f0,#0759c6); border:0; }
+        .sipanda-brand-sidebar { width:100%; height:54px; object-fit:contain; object-position:left center; }
+        .sipanda-dashboard-hero { position:relative; overflow:hidden; border-radius:22px; padding:30px; color:#092c72; background:linear-gradient(115deg,#f9fdff 0%,#e6f3ff 62%,#d8ecff 100%); }
+        .sipanda-dashboard-hero::after { content:''; position:absolute; inset:0; opacity:.72; background:url('assets/sipanda/dashboard-hero-background.png') center/cover; pointer-events:none; }
+        .sipanda-dashboard-hero > * { position:relative; z-index:1; }
+        .sipanda-kpis { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; }
+        .sipanda-monitor-grid { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(280px,.8fr); gap:16px; }
+        .sipanda-package-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+        .sipanda-route-enter { animation:sipanda-route-enter .32s cubic-bezier(.22,1,.36,1) both; }
+        @keyframes sipanda-route-enter { from { opacity:0; transform:translateY(8px); filter:blur(4px); } to { opacity:1; transform:translateY(0); filter:blur(0); } }
+        @media (max-width:1100px) { .sipanda-kpis, .sipanda-package-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width:760px) { .sipanda-kpis, .sipanda-monitor-grid, .sipanda-package-grid { grid-template-columns:1fr!important; } .sipanda-dashboard-hero { align-items:flex-start!important; flex-direction:column; } }
         
         /* CSS Tambahan TomSelect Overrides */
         .ts-control { border-radius: var(--radius-sm); padding: 8px 12px; border-color: var(--border-color); box-shadow: none; }
@@ -452,40 +501,31 @@
 
     <!-- Halaman / Modal Login dengan Gambar (Split-Screen) -->
 <!-- Halaman / Modal Login dengan Gambar (Split-Screen) -->
-<div id="login-overlay" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80');">
+<div id="login-overlay" class="sipanda-login fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-cover bg-center">
     
     <!-- Overlay gelap dengan efek blur untuk background layar penuh -->
-    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-md"></div>
+    <div class="absolute inset-0 bg-white/20 backdrop-blur-sm"></div>
 
     <!-- Container Card Login (Tambahkan 'relative' agar berada di atas efek blur) -->
-    <div class="relative flex w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[550px]">
+    <div class="relative flex w-full max-w-6xl rounded-3xl shadow-2xl overflow-hidden min-h-[620px]">
         
         <!-- Sisi Kiri: Gambar Background (Sembunyi di layar HP) -->
-        <div class="hidden md:block md:w-1/2 relative">
-            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80" alt="Office" class="absolute inset-0 w-full h-full object-cover">
-            
-            <!-- Overlay Gradient Biru Transparan -->
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-900/90 to-slate-900/95 flex flex-col justify-between p-10 text-white">
-                <div class="text-2xl font-bold flex items-center gap-2">
-                    <i class="ph-fill ph-intersect text-blue-400"></i> EProc Flow
-                </div>
-                <div>
-                    <h2 class="text-3xl font-bold leading-tight mb-4">Manajemen Pengadaan<br>Lebih Cerdas & Efisien</h2>
-                    <p class="text-slate-300 text-sm leading-relaxed">Sistem terintegrasi untuk pengelolaan paket pekerjaan, dokumen SPJ, dan pencairan anggaran Bidang Pengelolaan BMD.</p>
-                </div>
-            </div>
+        <div class="hidden md:flex md:w-1/2 relative flex-col justify-between p-12 text-[#123d7b]">
+            <div class="flex items-center gap-3"><span class="h-1 w-14 rounded bg-[#125db6]"></span><div><b>SiPANDA BMD</b><p class="text-sm text-[#5972a0]">Bidang Barang Milik Daerah</p></div></div>
+            <div><img src="assets/sipanda/logo-brand.png" alt="SiPANDA BMD" class="w-full max-w-xl"><div class="mt-10 border-l-4 border-[#1498e8] pl-5 text-xl leading-relaxed text-[#34578e]">Kelola pengadaan dan administrasi Barang Milik Daerah dalam satu ruang kerja.</div></div>
         </div>
 
         <!-- Sisi Kanan: Form Login -->
-        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
+        <div class="login-panel w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
             <div class="mb-8">
-                <h3 class="text-2xl font-bold text-slate-900 mb-2">Selamat Datang 👋</h3>
-                <p class="text-slate-500 text-sm">Masukkan email dan kata sandi akun Anda untuk mengakses dashboard.</p>
+                <img src="assets/sipanda/logo-brand.png" alt="SiPANDA BMD" class="h-28 w-auto object-contain object-left mb-7">
+                <h3 class="text-2xl font-bold text-[#0b3478] mb-2">Selamat Datang Kembali</h3>
+                <p class="text-[#637aa3] text-sm">Masuk untuk melanjutkan ke SiPANDA BMD</p>
             </div>
             
             <form id="login-form" onsubmit="app.handleLogin(event)" class="flex flex-col gap-5">
                 <div class="form-group mb-0">
-                    <label class="form-label font-bold text-slate-700">Email</label>
+                    <label class="form-label font-bold text-[#0b3478]">Email</label>
                     <div class="relative">
                         <i class="ph ph-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
                         <input type="email" id="login-email" class="form-control pl-10 py-2.5" placeholder="nama@email.com" autocomplete="email" required>
@@ -493,7 +533,7 @@
                 </div>
                 
                 <div class="form-group mb-0">
-                    <label class="form-label font-bold text-slate-700">Password</label>
+                    <label class="form-label font-bold text-[#0b3478]">Password</label>
                     <div class="relative">
                         <i class="ph ph-lock-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
                         <input type="password" id="login-pass" class="form-control pl-10 pr-10 py-2.5" placeholder="••••••••" required>
@@ -504,12 +544,12 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary w-full py-3 mt-2 justify-center text-base">
-                    Masuk ke Aplikasi
+                    Masuk <i class="ph ph-arrow-right ml-auto text-xl"></i>
                 </button>
             </form>
             
             <div class="mt-10 text-center text-slate-400 text-xs">
-                &copy; 2026 Farhan Ersandy • Enterprise Edition
+                &copy; 2026 SiPANDA BMD • Bidang Barang Milik Daerah
             </div>
         </div>
     </div>
@@ -521,15 +561,14 @@
         <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="app.closeMobileMenu()" aria-hidden="true"></div>
         <aside class="sidebar" id="app-sidebar" aria-label="Navigasi utama">
             <div class="sidebar-header">
-                <div class="logo-container"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
-                <div class="logo-subtitle">by ersandyf_ · Sistem Manajemen Pengadaan</div>
+                <div style="display:flex;align-items:center;gap:9px"><img src="assets/sipanda/logo-only.png" alt="SiPANDA BMD" style="width:50px;height:50px;object-fit:contain"><div style="font-size:18px;font-weight:800;color:#0B2A67;line-height:1.05">SiPANDA <span style="color:#16A05D">BMD</span><small style="display:block;font-size:9px;letter-spacing:.04em;margin-top:5px;color:#64748B">BIDANG BARANG MILIK DAERAH</small></div></div>
             </div>
             <nav class="sidebar-nav" id="sidebar-nav">
-                <div class="nav-item active" data-route="dashboard"><i class="ph ph-squares-four"></i> <span>Dashboard</span></div>
-                
                 <div class="nav-group">
-                    <div class="nav-group-title">PENGADAAN</div>
-                    <div class="nav-item" data-route="pengadaan-daftar"><i class="ph ph-briefcase"></i> <span>Daftar Paket</span></div>
+                    <div class="nav-group-title">UTAMA</div>
+                    <div class="nav-item active" data-route="dashboard"><i class="ph ph-squares-four"></i> <span>Dashboard</span></div>
+                    <div class="nav-item" data-route="daftar-paket"><i class="ph ph-briefcase"></i> <span>Daftar Paket</span></div>
+                    <div class="nav-item" data-route="pengadaan-daftar"><i class="ph ph-list-bullets"></i> <span>Daftar Paket Rinci</span></div>
                 </div>
 
                 <div class="nav-group">
@@ -561,7 +600,7 @@
                 
                 <div class="nav-group">
                     <div class="nav-group-title">SISTEM</div>
-                    <div class="nav-item" data-route="pengaturan-user"><i class="ph ph-users"></i> <span>Manajemen Pengguna</span></div>
+                    <div class="nav-item" data-route="pengaturan-user" style="display:none"><i class="ph ph-users"></i> <span>Manajemen Pengguna</span></div>
                     <div class="nav-item" data-route="pengaturan"><i class="ph ph-gear"></i> <span>Pengaturan</span></div>
                 </div>
             </nav>
@@ -570,25 +609,12 @@
         <!-- Main Workspace -->
         <main class="main-content">
     <header class="top-header">
-        <button class="btn btn-ghost mobile-menu-button" type="button" onclick="app.toggleMobileMenu()" aria-label="Buka menu navigasi"><i class="ph ph-list" style="font-size:1.25rem"></i></button>
-        <div style="font-weight: 500; color: var(--gray-600); font-size: 0.875rem; display: flex; flex-direction: column; margin-right:auto;">
-            <!-- Tambahkan id="header-nama" -->
-            <span id="header-nama" class="font-semibold text-main">Nama Pengguna</span>
-            
-            <!-- Tambahkan id="header-role" -->
-            <span id="header-role" style="font-size: 0.75rem;">Role / Hak Akses</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: var(--space-4);">
-            <button class="btn btn-outline btn-sm global-search-button" type="button" style="width: 300px; justify-content: flex-start; color: var(--text-muted);" onclick="app.openGlobalSearch()" aria-label="Cari data sistem">
-                <i class="ph ph-magnifying-glass"></i> <span class="search-label">Cari paket atau penyedia...</span> <span class="search-shortcut" style="margin-left: auto; font-size: 0.7rem; background: var(--gray-100); padding: 2px 6px; border-radius: 4px;">Ctrl+K</span>
-            </button>
-            <button class="btn btn-ghost" type="button" style="padding: 6px;" aria-label="Notifikasi"><i class="ph ph-bell" style="font-size: 1.25rem;"></i></button>
-            <button class="btn btn-ghost text-danger" onclick="app.logout()" title="Keluar Akun" style="padding: 6px;">
-                <i class="ph ph-sign-out" style="font-size: 1.25rem;"></i>
-            </button>
-            
-            <!-- Tambahkan id="header-inisial" -->
-            <div id="header-inisial" style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 0.875rem; font-weight: 700; border: 1px solid var(--primary-200);">U</div>
+        <button class="btn btn-ghost mobile-menu-button shell-menu-toggle" type="button" onclick="app.toggleMobileMenu()" aria-label="Buka menu navigasi"><i class="ph ph-list" style="font-size:1.25rem"></i></button>
+        <button class="btn btn-outline btn-sm global-search-button" type="button" style="justify-content:flex-start;" onclick="app.openGlobalSearch()" aria-label="Cari data sistem"><i class="ph ph-magnifying-glass"></i> <span class="search-label">Cari paket, penyedia, atau kode kegiatan...</span> <span class="search-shortcut" style="margin-left:auto;font-size:.7rem">Ctrl + K</span></button>
+        <div class="header-actions">
+            <button class="btn btn-ghost header-icon-button" type="button" aria-label="Notifikasi"><i class="ph ph-bell" style="font-size:1.25rem"></i><span class="header-notification-dot" aria-hidden="true"></span></button>
+            <button class="btn btn-ghost header-icon-button" onclick="app.logout()" title="Keluar Akun" aria-label="Keluar akun"><i class="ph ph-sign-out" style="font-size:1.25rem"></i></button>
+            <div class="header-user"><div id="header-inisial" style="border-radius:50%;display:grid;place-items:center;font-size:.875rem;font-weight:700">U</div><div class="header-user-copy"><span id="header-nama">Nama Pengguna</span><span id="header-role">Pengguna</span></div><i class="ph ph-caret-down header-user-chevron" style="color:#64748B"></i></div>
         </div>
     </header>
 
@@ -614,8 +640,8 @@
 
     <!-- Global Loader -->
     <div id="global-loader" role="status" aria-live="polite">
-        <div class="loader-brand"><i class="ph-fill ph-intersect"></i> EProc Flow</div>
-        <i class="ph ph-spinner ph-spin text-5xl text-primary-600"></i>
+        <img class="loader-logo" src="assets/sipanda/logo-only.png" alt="SiPANDA BMD">
+        <div class="loader-spinner" aria-hidden="true"></div>
         <p class="font-medium text-gray-600">Memuat aplikasi...</p>
     </div>
 
@@ -738,6 +764,13 @@
         const SUPABASE_URL = 'https://oyskjxwcfekwcckjwviv.supabase.co/rest/v1/';
         const SUPABASE_KEY = 'sb_publishable_Dl5XmeZffcv5VrcxnFzt2Q_jmtch-Vp';
         const SUPABASE_PROJECT_URL = 'https://oyskjxwcfekwcckjwviv.supabase.co';
+
+        function dismissGlobalLoader() {
+            const loader = document.getElementById('global-loader');
+            if (!loader || loader.classList.contains('loader-exit')) return;
+            loader.classList.add('loader-exit');
+            window.setTimeout(() => loader.remove(), 500);
+        }
 
         // Auth memakai Supabase Auth. Password tidak lagi dicocokkan dari tabel public.users.
         const Auth = {
@@ -906,8 +939,8 @@
                 this.applyLocalChecklistOverrides();
 
                 this.isReady = true;
-                const loader = document.getElementById('global-loader'); if(loader) loader.style.display = 'none';
                 const appRoot = document.getElementById('app-root'); if(appRoot) appRoot.style.display = 'flex';
+                dismissGlobalLoader();
             },
             async reload() {
                 this.isReady = false;
@@ -1333,7 +1366,7 @@
                 container.innerHTML = `
                     <div class="p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6">
-                            <div><h1 class="text-2xl font-bold text-main">${this.schema.title}</h1><p class="text-muted text-sm mt-1">Live Sync dari Supabase.</p></div>
+                            <div><h1 class="text-2xl font-bold text-main">${this.schemaKey === 'paket' ? 'Daftar Paket Rinci' : this.schema.title}</h1><p class="text-muted text-sm mt-1">${this.schemaKey === 'paket' ? 'Kelola dan pantau seluruh paket pekerjaan pengadaan BMD.' : 'Live Sync dari Supabase.'}</p></div>
                             <div class="flex gap-2">
                                 ${extraButtons}
                                 <button class="btn btn-primary" onclick="app.crudEngine.showForm()"><i class="ph ph-plus"></i> Tambah Data</button>
@@ -1399,6 +1432,7 @@
 
             renderTable() {
                 if(this.filteredData.length === 0) return `<div class="empty-state"><i class="ph ph-database text-4xl mb-3"></i><p>Tidak ada data ditemukan.</p></div>`;
+                if (this.schemaKey === 'paket') return this.renderPackageTableRinci();
                 const start = (this.currentPage - 1) * this.itemsPerPage; 
                 const paginated = this.filteredData.slice(start, start + this.itemsPerPage); 
                 const fields = this.schema.fields.filter(f => !f.hideInTable);
@@ -1421,14 +1455,7 @@
 
                     let tds = `<td>${start + index + 1}</td>` + fields.map(f => `<td>${f.formatter ? f.formatter(item[f.key]) : Utils.escapeHTML(item[f.key] || '-')}</td>`).join('');
                     // Bagian rowColors di dalam method renderTable():
-                    const rowColors = {
-                        'BELUM PROSES': '#f8fafc',
-                        'PROSES SPSE': '#eff6ff',
-                        'KONTRAK': '#f0fdf4',
-                        'PENCAIRAN': '#fef9c3', // <-- TAMBAHAN: Warna kuning muda untuk tahap pencairan
-                        'SELESAI': '#f0fdf4'
-                    };
-                    const rowStyle = this.schemaKey === 'paket' ? ` style="background:${rowColors[item.stage] || '#fff'}"` : '';
+                    const rowStyle = '';
                     
                     let act = '';
                     if (this.schemaKey === 'paket') {
@@ -1452,6 +1479,15 @@
                     return `<tr${rowStyle}>${checkboxTd}${tds}<td><div class="flex justify-end gap-1">${act}</div></td></tr>`;
                 }).join('');
                 return `<table class="data-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+            }
+
+            renderPackageTableRinci() {
+                const start = (this.currentPage - 1) * this.itemsPerPage;
+                const rows = this.filteredData.slice(start, start + this.itemsPerPage);
+                const stage = { 'BELUM PROSES':['#F1F5F9','#64748B','PERSIAPAN'], 'PROSES SPSE':['#EAF3FF','#1677FF','PROSES SPSE'], 'KONTRAK':['#FFF4E5','#D97706','KONTRAK'], 'PENCAIRAN':['#F5EEFF','#8256D0','PENCAIRAN'], 'SELESAI':['#EAF8EF','#15803D','SELESAI'] };
+                const rupiah = n => Number(n) ? Utils.formatCurrency(n) : '-';
+                const body = rows.map((p,i) => { const t=DB.calculatePackageTotals(p), s=stage[String(p.stage||'BELUM PROSES').toUpperCase()]||stage['BELUM PROSES'], contract=Number(p.nilai_kontrak)||Number(p.kontrak_value)||Number(t.negosiasi)||0; return `<tr><td>${start+i+1}</td><td style="text-align:right;white-space:nowrap;font-weight:600;color:#0B2A67">${rupiah(p.pagu)}</td><td style="font-size:12px;color:#64748B">${Utils.escapeHTML(p.kode_rup||p.id||'-')}</td><td title="${Utils.escapeAttr(p.name||'')}"><b style="color:#12213F">${Utils.escapeHTML(p.name||'-')}</b><small style="display:block;color:#64748B">${Utils.escapeHTML(p.metode_pemilihan||'-')}</small></td><td>${Utils.escapeHTML(p.opd||'-')}</td><td style="text-align:right;white-space:nowrap">${rupiah(t.hps)}</td><td style="text-align:right;white-space:nowrap">${rupiah(contract)}</td><td><span style="font-size:10px;font-weight:700;letter-spacing:.02em;padding:5px 9px;border-radius:999px;background:${s[0]};color:${s[1]}">${s[2]}</span></td><td>${p.updated_at?Utils.formatDate(p.updated_at):'-'}</td><td><button class="btn btn-ghost btn-sm text-primary" onclick="app.navigate('workspace','${Utils.escapeAttr(p.id)}')" title="Buka Detail"><i class="ph ph-arrow-square-out"></i></button><button class="btn btn-ghost btn-sm text-primary" onclick="app.crudEngine.showForm('${Utils.escapeAttr(p.id)}')" title="Edit"><i class="ph ph-pencil-simple"></i></button></td></tr>`; }).join('');
+                return `<table class="data-table" style="min-width:1120px"><thead><tr><th>No.</th><th style="text-align:right">Nilai Pagu</th><th>Kode Paket</th><th>Nama Paket</th><th>OPD</th><th style="text-align:right">Nilai HPS</th><th style="text-align:right">Nilai Kontrak</th><th>Tahap</th><th>Update</th><th>Aksi</th></tr></thead><tbody>${body}</tbody></table>`;
             }
 
             handleCheckRow(id, isChecked) {
@@ -1675,6 +1711,23 @@
         }
 
         class CustomViews {
+           static renderPackageOverview(container) {
+                const packages = DB.get('paket') || [];
+                const stages = [
+                    { key:'BELUM PROSES', label:'Persiapan', icon:'ph-clipboard-text', color:'#64748B' },
+                    { key:'PROSES SPSE', label:'Proses SPSE', icon:'ph-spinner-gap', color:'#1677FF' },
+                    { key:'KONTRAK', label:'Kontrak', icon:'ph-file-text', color:'#F59E0B' },
+                    { key:'PENCAIRAN', label:'Pencairan', icon:'ph-money', color:'#8256D0' },
+                    { key:'SELESAI', label:'Selesai', icon:'ph-check-circle', color:'#16A05D' }
+                ];
+                const cards = list => list.length ? list.map(pkg => {
+                    const total = DB.calculatePackageTotals(pkg);
+                    const value = Number(pkg.pembulatan_hps) || Number(total.hps) || Number(pkg.pagu) || 0;
+                    return `<button type="button" class="card" onclick="app.navigate('workspace','${Utils.escapeAttr(pkg.id)}')" style="text-align:left;padding:16px;border-color:#E6EDF6;border-radius:14px;cursor:pointer"><div style="display:flex;justify-content:space-between;gap:10px"><b style="color:#12213F">${Utils.escapeHTML(pkg.name || 'Tanpa nama paket')}</b>${Utils.getBadge(pkg.stage)}</div><p style="font-size:12px;color:#64748B;margin:7px 0">${Utils.escapeHTML(pkg.opd || '-')} · ${Utils.escapeHTML(pkg.metode_pemilihan || '-')}</p><div style="display:flex;justify-content:space-between;font-size:12px;color:#64748B"><span>${Utils.formatCurrency(value) || 'Nilai belum diisi'}</span><b style="color:#1677FF">${Number(pkg.progress)||0}%</b></div></button>`;
+                }).join('') : '<div class="card" style="padding:18px;border-style:dashed;color:#64748B">Belum ada paket pada tahap ini.</div>';
+                container.innerHTML = `<div style="padding:26px;max-width:1500px;margin:0 auto;width:100%"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px"><div><h1 style="font-size:26px;margin:0;color:#0B2A67">Daftar Paket</h1><p style="color:#64748B;margin:6px 0 0">Monitoring paket pekerjaan berdasarkan tahapan proses.</p></div><div style="display:flex;gap:10px"><button class="btn btn-outline" onclick="app.navigate('pengadaan-daftar')">Daftar Paket Rinci <i class="ph ph-arrow-right"></i></button><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar');setTimeout(()=>app.crudEngine.showForm(),250)"><i class="ph ph-plus"></i> Tambah Paket Baru</button></div></div>${stages.map(stage => { const list=packages.filter(p=>String(p.stage||'BELUM PROSES').toUpperCase()===stage.key); return `<section style="margin-top:24px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 13px;border-radius:12px;background:${stage.color}10;border-left:4px solid ${stage.color}"><h2 style="font-size:16px;color:#12213F;margin:0"><i class="ph ${stage.icon}" style="color:${stage.color}"></i> ${stage.label} <small style="font-weight:600;color:${stage.color}">(${list.length} Paket)</small></h2><span style="font-size:11px;font-weight:700;letter-spacing:.05em;color:${stage.color}">${stage.key}</span></div><div class="sipanda-package-grid">${cards(list)}</div></section>`; }).join('')}</div>`;
+           }
+
            static renderDashboard(container) {
                 const packages = DB.get('paket') || [];
                 const pinnedIds = DB.cache['pinned_packages'] || [];
@@ -1684,6 +1737,46 @@
                 const kontrakPackages = packages.filter(p => p.stage === 'KONTRAK');
                 const pencairanPackages = packages.filter(p => p.stage === 'PENCAIRAN'); // <-- TAMBAHAN
                 const selesaiPackages = packages.filter(p => p.stage === 'SELESAI');
+
+                const stageMeta = [
+                    { key:'BELUM PROSES', label:'Persiapan', color:'#64748B' },
+                    { key:'PROSES SPSE', label:'Proses SPSE', color:'#1677FF' },
+                    { key:'KONTRAK', label:'Kontrak', color:'#F59E0B' },
+                    { key:'PENCAIRAN', label:'Pencairan', color:'#8256D0' },
+                    { key:'SELESAI', label:'Selesai', color:'#16A05D' }
+                ];
+                const number = value => Number(value) || 0;
+                const packageValue = pkg => number(pkg.pembulatan_hps) || number(DB.calculatePackageTotals(pkg).hps) || number(pkg.pagu);
+                const allItems = DB.get('pencairan_items') || [];
+                const years = [...new Set(packages.map(p => String(p.tahun_anggaran || p.tahun || (p.created_at ? new Date(p.created_at).getFullYear() : ''))).filter(Boolean))].sort().reverse();
+                const selectedYear = window.eprocDashboardYear || years[0] || String(new Date().getFullYear());
+                const scopedPackages = packages.filter(p => { const y = String(p.tahun_anggaran || p.tahun || (p.created_at ? new Date(p.created_at).getFullYear() : selectedYear)); return y === selectedYear; });
+                const visiblePackages = scopedPackages.length ? scopedPackages : packages;
+                // Samakan sumber angka dengan menu Pagu & Realisasi: detail master rekening dan item pencairan.
+                const rekeningDetails = (DB.get('master_rekening') || []).filter(row => row.jenis === 'Detail');
+                const totalPagu = rekeningDetails.reduce((sum, row) => sum + number(row.pagu), 0);
+                const totalRealisasi = allItems.reduce((sum, item) => sum + number(item.total || item.subtotal), 0);
+                const stageCounts = stageMeta.map(s => ({ ...s, count:visiblePackages.filter(p => String(p.stage || 'BELUM PROSES').toUpperCase() === s.key).length }));
+                const total = visiblePackages.length;
+                const user = (() => { try { return JSON.parse(localStorage.getItem('userSession') || '{}'); } catch (_) { return {}; } })();
+                const hour = new Date().getHours();
+                const greeting = hour < 11 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
+                const name = Utils.escapeHTML((user.nama_lengkap || user.username || 'Pengguna').split(' ')[0]);
+                const recency = value => { const d = new Date(value); if (Number.isNaN(d)) return '-'; const diff = Math.max(0, Date.now() - d.getTime()); const days = Math.floor(diff / 86400000); return days === 0 ? 'Hari ini' : `${days} hari lalu`; };
+                const latest = visiblePackages.filter(p => ['PROSES SPSE','KONTRAK','PENCAIRAN'].includes(String(p.stage || '').toUpperCase())).sort((a,b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0)).slice(0,5);
+                const monthly = Array.from({length:12}, (_, month) => allItems.filter(i => { const d = new Date(i.created_at); return !Number.isNaN(d) && d.getMonth() === month; }).reduce((sum,i) => sum + number(i.total || i.subtotal), 0));
+                const maxMonthly = Math.max(...monthly, 0);
+                const donutParts = stageCounts.reduce((parts, s, index) => { const start = parts.end || 0; const end = start + (total ? (s.count / total) * 100 : 0); parts.items.push(`${s.color} ${start}% ${end}%`); parts.end = end; return parts; }, {items:[], end:0}).items.join(',') || '#E6EDF6 0 100%';
+                window.setDashboardYear = year => { window.eprocDashboardYear = year; CustomViews.renderDashboard(container); };
+                const kpi = (icon, color, label, value, note) => `<div class="card" style="padding:18px;border-color:#E6EDF6;border-radius:14px;box-shadow:0 2px 8px #0b2a6708"><div style="display:flex;gap:12px;align-items:center"><span style="width:40px;height:40px;display:grid;place-items:center;border-radius:11px;background:${color}18;color:${color};font-size:20px"><i class="ph-fill ${icon}"></i></span><div><div style="font-size:11px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.04em">${label}</div><div style="font-size:22px;font-weight:700;color:#12213F;margin-top:2px">${value}</div><div style="font-size:12px;color:#64748B;margin-top:3px">${note}</div></div></div></div>`;
+                const stageFlow = stageCounts.map((s,index) => `<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:126px"><button type="button" onclick="app.navigate('pengadaan-daftar')" style="text-align:left;border:0;background:transparent;padding:0;cursor:pointer"><span style="display:block;width:11px;height:11px;background:${s.color};border-radius:50%;margin-bottom:8px"></span><b style="display:block;color:#12213F;font-size:13px">${s.label}</b><span style="font-size:12px;color:#64748B">${s.count} Paket · ${total ? Math.round(s.count/total*100) : 0}%</span></button>${index < stageCounts.length-1 ? '<span style="height:1px;background:#DCE7F5;flex:1;min-width:12px"></span>' : ''}</div>`).join('');
+                const monthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+                const financeContent = maxMonthly ? `<div style="height:180px;display:flex;align-items:end;gap:8px;padding-top:20px;border-bottom:1px solid #E6EDF6">${monthly.map((value,index) => `<div style="flex:1;min-width:16px;text-align:center"><div title="${Utils.formatCurrency(value)}" style="height:${Math.max(4, Math.round(value/maxMonthly*145))}px;background:#1677FF;border-radius:5px 5px 0 0"></div><small style="font-size:10px;color:#64748B">${monthLabels[index]}</small></div>`).join('')}</div><div style="display:flex;gap:15px;margin-top:12px;font-size:12px;color:#64748B"><span><i style="display:inline-block;width:9px;height:9px;background:#1677FF;border-radius:2px"></i> Realisasi tercatat</span><span>Data berdasarkan tanggal input pencairan</span></div>` : '<div class="empty-state" style="height:180px"><i class="ph ph-chart-bar text-3xl mb-2"></i><span class="text-sm">Belum ada data realisasi bulanan untuk ditampilkan.</span></div>';
+                container.innerHTML = `<div style="padding:26px;max-width:1600px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:16px"><section class="sipanda-dashboard-hero" style="min-height:150px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:18px"><div><h1 style="font-size:26px;margin:0;color:#0B2A67">${greeting}, ${name} 👋</h1><p style="margin:8px 0 0;color:#48658E;max-width:540px">Pantau progres paket pekerjaan dan realisasi pengadaan BMD dalam satu tampilan.</p><small style="display:block;margin-top:10px;color:#0B2A67;font-weight:600">Satu Proses. Satu Data. Satu Kendali.</small></div><div style="display:flex;align-items:center;gap:10px"><button class="btn btn-outline btn-sm" onclick="app.navigate('pengadaan-daftar')">Lihat Semua Paket <i class="ph ph-arrow-right"></i></button><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar');setTimeout(()=>app.crudEngine.showForm(),250)"><i class="ph ph-plus"></i> Tambah Paket Baru</button></div></section><div style="display:flex;justify-content:flex-end"><label style="font-size:12px;color:#64748B;margin-right:8px">Tahun Anggaran</label><select onchange="setDashboardYear(this.value)" class="form-control" style="width:100px;padding:5px 8px">${[...new Set([selectedYear,...years])].map(y => `<option value="${Utils.escapeAttr(y)}" ${y===selectedYear?'selected':''}>${Utils.escapeHTML(y)}</option>`).join('')}</select></div><section style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px">${kpi('ph-briefcase','#1677FF','Total Paket',`${total} Paket`,`TA ${Utils.escapeHTML(selectedYear)}`)}${kpi('ph-wallet','#16A05D','Total Pagu',Utils.formatCurrency(totalPagu)||'Rp 0',`${total} Paket`)}${kpi('ph-spinner-gap','#06B6D4','Proses SPSE',`${stageCounts[1].count} Paket`,'Pemilihan')}${kpi('ph-file-text','#F59E0B','Kontrak',`${stageCounts[2].count} Paket`,'Pelaksanaan')}${kpi('ph-money','#8256D0','Realisasi Pencairan',Utils.formatCurrency(totalRealisasi)||'Rp 0',totalPagu ? `${Math.round(totalRealisasi/totalPagu*100)}% dari pagu` : 'Belum ada pagu')}</section><section class="card" style="padding:20px;border-color:#E6EDF6;border-radius:14px"><h2 style="font-size:16px;margin:0 0 18px;color:#12213F">Progress Paket Pekerjaan</h2><div style="display:flex;align-items:center;gap:8px;overflow-x:auto;padding-bottom:4px">${stageFlow}</div></section><section style="display:grid;grid-template-columns:minmax(0,1.8fr) minmax(280px,.8fr);gap:16px"><div class="card" style="padding:20px;border-color:#E6EDF6;border-radius:14px"><h2 style="font-size:16px;margin:0;color:#12213F">Monitoring Keuangan</h2><p style="font-size:12px;color:#64748B;margin:5px 0 0">Realisasi berdasarkan data pencairan tercatat.</p>${financeContent}</div><div class="card" style="padding:20px;border-color:#E6EDF6;border-radius:14px"><h2 style="font-size:16px;margin:0 0 15px;color:#12213F">Status Paket</h2><div style="display:flex;gap:18px;align-items:center"><div style="width:125px;height:125px;border-radius:50%;background:conic-gradient(${donutParts});display:grid;place-items:center;flex-shrink:0"><div style="width:82px;height:82px;background:#fff;border-radius:50%;display:grid;place-items:center;text-align:center"><b style="font-size:24px;color:#0B2A67">${total}</b><small style="display:block;color:#64748B">Paket</small></div></div><div style="display:flex;flex-direction:column;gap:8px">${stageCounts.map(s=>`<div style="font-size:12px;color:#475569"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:6px"></i>${s.label} <b style="float:right;margin-left:10px">${s.count}</b></div>`).join('')}</div></div></div></section><section style="display:grid;grid-template-columns:minmax(0,1.8fr) minmax(280px,.8fr);gap:16px"><div class="card" style="padding:20px;border-color:#E6EDF6;border-radius:14px;overflow:auto"><h2 style="font-size:16px;margin:0;color:#12213F">Paket Terbaru</h2><p style="font-size:12px;color:#64748B;margin:5px 0 14px">Paket yang memerlukan pemantauan terbaru.</p><table class="data-table" style="min-width:610px"><thead><tr><th>Nama Paket</th><th>Tahap</th><th>Progress</th><th>Update</th><th></th></tr></thead><tbody>${latest.length ? latest.map(p=>`<tr><td><b>${Utils.escapeHTML(p.name||'Tanpa nama')}</b></td><td>${Utils.getBadge(p.stage)}</td><td>${number(p.progress)}%</td><td>${recency(p.updated_at||p.created_at)}</td><td><button class="btn btn-ghost btn-sm" onclick="app.navigate('workspace','${Utils.escapeAttr(p.id)}')">Buka <i class="ph ph-arrow-right"></i></button></td></tr>`).join('') : '<tr><td colspan="5" class="text-center text-muted">Belum ada paket.</td></tr>'}</tbody></table></div><div class="card" style="padding:20px;border-color:#E6EDF6;border-radius:14px"><h2 style="font-size:16px;margin:0;color:#12213F">Aktivitas Terbaru</h2><div style="margin-top:15px;display:flex;flex-direction:column;gap:14px">${latest.length ? latest.map(p=>`<div style="display:flex;gap:9px"><span style="width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:#EAF3FF;color:#1677FF"><i class="ph ph-clock"></i></span><div><b style="display:block;font-size:12px;color:#12213F">${Utils.escapeHTML(p.stage||'Paket diperbarui')}</b><span style="font-size:12px;color:#64748B">${Utils.escapeHTML(p.name||'Paket')} · ${recency(p.updated_at||p.created_at)}</span></div></div>`).join('') : '<div class="empty-state"><span class="text-sm">Belum ada aktivitas tercatat.</span></div>'}</div></div></section></div>`;
+                return;
+                let currentUser = { nama_lengkap: 'Pengguna' };
+                try { currentUser = JSON.parse(localStorage.getItem('userSession') || '{}'); } catch (_) {}
+                const firstName = Utils.escapeHTML((currentUser.nama_lengkap || currentUser.username || 'Pengguna').split(' ')[0]);
 
                 const renderPackageCards = (pkgList, emptyMessage) => {
                     if (!pkgList || pkgList.length === 0) {
@@ -1731,10 +1824,10 @@
                 container.innerHTML = `
                     <div style="padding: var(--space-8); max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-8);">
                         <!-- Header Greeting -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div class="sipanda-dashboard-hero" style="display: flex; justify-content: space-between; align-items: center; gap:20px;">
                             <div>
-                                <h1 class="font-bold text-main" style="font-size: 2rem; letter-spacing: -0.02em;">Selamat Pagi Maszeh 👋</h1>
-                                <p class="text-muted text-lg mt-1">Berikut adalah ringkasan pengadaan hari ini.</p>
+                                <h1 class="font-bold" style="font-size: 2rem; letter-spacing: -0.02em;">Selamat Datang, ${firstName} 👋</h1>
+                                <p style="color:#34578e" class="text-lg mt-1">Kelola proses pengadaan BMD lebih terstruktur, efisien, dan terkendali.</p>
                             </div>
                             <button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar'); setTimeout(()=>app.crudEngine.showForm(), 250);"><i class="ph ph-plus-circle"></i> Tambah Paket Baru</button>
                         </div>
@@ -4051,6 +4144,10 @@ negPPN += negTotal - negSubTotal;
             }
 
             toggleMobileMenu() {
+                if (window.innerWidth > 900) {
+                    document.getElementById('app-sidebar')?.classList.toggle('desktop-collapsed');
+                    return;
+                }
                 document.getElementById('app-sidebar')?.classList.toggle('mobile-open');
                 document.getElementById('sidebar-backdrop')?.classList.toggle('active');
             }
@@ -4202,7 +4299,7 @@ importPaket(event) {
                     
                     // Ganti Role & Instansi
                     const role = user.role || 'Pengguna';
-                    document.getElementById('header-role').innerText = `${role} • BKAD Kota Bogor (Supabase Sync)`;
+                    document.getElementById('header-role').innerText = role;
                     
                     // Buat Inisial Otomatis
                     const inisial = namaLengkap
@@ -5191,15 +5288,13 @@ importPencairanExcel(event) {
                 const publicToken = urlParams.get('token');
                 const isPublicSign = urlParams.get('action') === 'sign_header' && urlParams.get('spj_id');
                 if (publicToken) {
-                    const globalLoader = document.getElementById('global-loader');
-                    if (globalLoader) globalLoader.style.display = 'none';
+                    dismissGlobalLoader();
                     document.getElementById('login-overlay')?.remove();
                     await this.renderPublicTokenSign(publicToken);
                     return;
                 }
                 if (isPublicSign) {
-                    const globalLoader = document.getElementById('global-loader');
-                    if (globalLoader) globalLoader.style.display = 'none';
+                    dismissGlobalLoader();
                     document.getElementById('login-overlay')?.remove();
                     document.body.insertAdjacentHTML('beforeend', '<main style="padding:48px;font-family:system-ui;text-align:center"><h1>Link SPJ sedang diperbarui</h1><p>Untuk keamanan data penerima, presensi publik sementara tidak tersedia.</p></main>');
                     return;
@@ -5207,9 +5302,9 @@ importPencairanExcel(event) {
 
                 const session = await Auth.restore();
                 if (!session) {
-                    const loader = document.getElementById('global-loader'); if (loader) loader.style.display = 'none';
                     const overlay = document.getElementById('login-overlay');
                     if (overlay) { overlay.style.visibility = 'visible'; overlay.style.display = 'flex'; }
+                    dismissGlobalLoader();
                     return;
                 }
                 await this.startAuthenticatedApp();
@@ -5860,6 +5955,9 @@ importPencairanExcel(event) {
                 
                 setTimeout(() => {
                     this.routerView.innerHTML = '';
+                    this.routerView.classList.remove('sipanda-route-enter');
+                    void this.routerView.offsetWidth;
+                    this.routerView.classList.add('sipanda-route-enter');
                     const schemaMap = { 
                         'master-pejabat': 'pejabat', 'master-penyedia': 'penyedia', 'master-template': 'template', 'master-penomoran': 'penomoran', 'master-waktu': 'waktu', 'master-jadwal-proses': 'jadwal_proses', 'master-jenis': 'jenis', 'master-kontrak': 'kontrak', 'master-libur': 'libur', 'pengadaan-daftar': 'paket'
                     };
@@ -5872,6 +5970,7 @@ importPencairanExcel(event) {
 
                     switch(route) {
                         case 'dashboard': CustomViews.renderDashboard(this.routerView); break;
+                        case 'daftar-paket': CustomViews.renderPackageOverview(this.routerView); break;
                         case 'workspace': 
                             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
                             this.currentViewInstance = new WorkspaceView(param); 
