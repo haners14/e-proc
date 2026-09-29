@@ -460,6 +460,7 @@
         #global-loader .loader-spinner, #global-loader p { animation:sipanda-rise .45s .18s cubic-bezier(.22,1,.36,1) both; }
         #global-loader.loader-exit { opacity:0; transform:scale(1.025); filter:blur(7px); pointer-events:none; }
         @keyframes sipanda-spin { to { transform:rotate(360deg); } }
+        .ph-spin { display:inline-block; animation:sipanda-spin .8s linear infinite; }
         @keyframes sipanda-logo-in { from { opacity:0; transform:scale(.82); filter:blur(14px); } to { opacity:1; transform:scale(1); filter:blur(0); } }
         @keyframes sipanda-rise { from { opacity:0; transform:translateY(14px); filter:blur(6px); } to { opacity:1; transform:translateY(0); filter:blur(0); } }
         @media (prefers-reduced-motion: reduce) { #global-loader, #global-loader * { animation:none!important; transition:none!important; } }
@@ -6452,6 +6453,9 @@ renderSignPage(container, itemId) {
 
             async issueSpjToken() {
                 const data = DOM.getFormData('form-issue-spj-token');
+                const submit = document.querySelector('#modal-footer .btn-primary');
+                const submitLabel = submit?.innerHTML;
+                if (submit) { submit.disabled = true; submit.innerHTML = '<i class="ph ph-spinner-gap ph-spin"></i> Menyiapkan Link...'; }
                 try {
                     const response = await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`, {
                         method: 'POST',
@@ -6464,7 +6468,10 @@ renderSignPage(container, itemId) {
                     this.issuedSpjLinks[String(data.spj_id)] = result.url;
                     DOM.openModal('Link Siap Dibagikan', `<p class="text-sm text-muted mb-2">Satu link untuk semua penerima pada SPJ ini.</p><input id="issued-spj-link" class="form-control" readonly value="${Utils.escapeAttr(result.url)}">`,
                         `<button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button><button class="btn btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('issued-spj-link').value).then(()=>app.notify('Link disalin', 'success'))">Salin Link</button>`, '700px');
-                } catch (error) { this.notify(error.message || 'Gagal membuat link', 'error'); }
+                } catch (error) {
+                    this.notify(error.message || 'Gagal membuat link', 'error');
+                    if (submit) { submit.disabled = false; submit.innerHTML = submitLabel; }
+                }
             }
 
             previewIssuedSpjToken(spjId) {
@@ -6492,14 +6499,14 @@ renderSignPage(container, itemId) {
                 const options = recipients.map(item => `<option value="${Utils.escapeAttr(item.id)}" ${String(item.id) === String(selectedId) ? 'selected' : ''} ${item.signed ? 'disabled' : ''}>${Utils.escapeHTML(item.name)}${item.signed ? ' — sudah TTD' : ''}</option>`).join('');
                 const form = !r
                     ? '<p style="text-align:center;color:#64748b;padding:28px 8px">Silakan pilih nama Anda pada pilihan di atas untuk menampilkan detail nominal dan kolom tanda tangan.</p>'
-                    : `<div style="border-top:1px solid #e2e8f0;padding-top:20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px">Nama Penerima</label><div style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">${Utils.escapeHTML(r.name)}</div></div><div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px">Bank & Rekening</label><div style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">${Utils.escapeHTML(r.bank)} (${Utils.escapeHTML(r.account)})</div></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0"><div><small>Bruto</small><b style="display:block">Rp ${Utils.formatNumber(r.gross)}</b></div><div><small>Pajak</small><b style="display:block">Rp ${Utils.formatNumber(r.tax)}</b></div><div><small>Diterima</small><b style="display:block">Rp ${Utils.formatNumber(r.net)}</b></div></div><label style="font-weight:700">Tanda tangan</label><canvas id="public-sign-canvas" width="520" height="180" style="width:100%;margin-top:8px;border:2px dashed #94a3b8;border-radius:8px;touch-action:none"></canvas><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-outline" onclick="app.clearPublicSignature()">Bersihkan</button><button class="btn btn-primary" onclick="app.submitPublicTokenSignature('${Utils.escapeAttr(token)}')">Kirim Tanda Tangan</button></div></div>`;
+                    : `<div style="border-top:1px solid #e2e8f0;padding-top:20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px">Nama Penerima</label><div style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">${Utils.escapeHTML(r.name)}</div></div><div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:6px">Bank & Rekening</label><div style="padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">${Utils.escapeHTML(r.bank)} (${Utils.escapeHTML(r.account)})</div></div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0"><div><small>Bruto</small><b style="display:block">Rp ${Utils.formatNumber(r.gross)}</b></div><div><small>Pajak</small><b style="display:block">Rp ${Utils.formatNumber(r.tax)}</b></div><div><small>Diterima</small><b style="display:block">Rp ${Utils.formatNumber(r.net)}</b></div></div><label style="font-weight:700">Tanda tangan</label><canvas id="public-sign-canvas" width="520" height="180" style="width:100%;margin-top:8px;border:2px dashed #94a3b8;border-radius:8px;touch-action:none"></canvas><div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-outline" onclick="app.clearPublicSignature()">Bersihkan</button><button id="public-sign-submit" class="btn btn-primary" onclick="app.submitPublicTokenSignature('${Utils.escapeAttr(token)}')">Kirim Tanda Tangan</button></div></div>`;
                 root.innerHTML = `<section style="width:min(100%,760px);background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px #0002"><div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:30px"><h1 style="font-size:20px;font-weight:700;margin:0 0 5px">Presensi Kegiatan & Tanda Tangan SPJ</h1><p style="font-size:14px;opacity:.9;margin:0">Silakan pilih nama Anda sesuai daftar penerima.</p><p style="font-size:12px;opacity:.8;margin:7px 0 0">Berlaku sampai ${Utils.escapeHTML(new Date(data.expires_at).toLocaleString('id-ID'))} · BKAD Kota Bogor</p></div><div style="padding:32px"><label style="display:block;font-weight:700;margin-bottom:8px">Pilih Nama Anda sesuai Daftar Penerima</label><select id="public-recipient-select" onchange="app.renderPublicTokenRecipient()" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px"><option value="">-- Pilih Nama Anda --</option>${options}</select><small style="display:block;color:#64748b;margin-top:7px">Pilih nama Anda untuk melihat nominal dan melakukan tanda tangan digital.</small><div style="margin-top:20px">${form}</div></div></section>`;
                 if (r) this.bindPublicCanvas();
             }
 
             bindPublicCanvas() { const c=document.getElementById('public-sign-canvas'), x=c?.getContext('2d'); if(!c||!x)return; let down=false; const draw=e=>{if(!down)return;const r=c.getBoundingClientRect(),p=e.touches?e.touches[0]:e;x.lineWidth=3;x.lineCap='round';x.lineTo((p.clientX-r.left)*c.width/r.width,(p.clientY-r.top)*c.height/r.height);x.stroke();x.beginPath();x.moveTo((p.clientX-r.left)*c.width/r.width,(p.clientY-r.top)*c.height/r.height)}; c.onpointerdown=e=>{down=true;draw(e)};c.onpointermove=draw;c.onpointerup=()=>{down=false;x.beginPath()}; }
             clearPublicSignature() { const c=document.getElementById('public-sign-canvas'); c?.getContext('2d').clearRect(0,0,c.width,c.height); }
-            async submitPublicTokenSignature(token) { const c=document.getElementById('public-sign-canvas'), itemId=document.getElementById('public-recipient-select')?.value; if(!c||!itemId)return; try { const response=await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({token,pencairan_item_id:itemId,signature:c.toDataURL('image/png')})}); const data=await response.json(); if(!response.ok)throw new Error(data.error||'Gagal menyimpan'); document.body.innerHTML='<main style="padding:48px;text-align:center;font-family:system-ui"><h1>Tanda tangan berhasil dikirim</h1><p>Terima kasih.</p></main>'; } catch(error){alert(error.message||'Gagal menyimpan')} }
+            async submitPublicTokenSignature(token) { const c=document.getElementById('public-sign-canvas'), itemId=document.getElementById('public-recipient-select')?.value, submit=document.getElementById('public-sign-submit'); if(!c||!itemId)return; if(submit){submit.disabled=true;submit.innerHTML='<i class="ph ph-spinner-gap ph-spin"></i> Mengirim...'} try { const response=await window.__nativeFetch(`${SUPABASE_PROJECT_URL}/functions/v1/public-spj`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({token,pencairan_item_id:itemId,signature:c.toDataURL('image/png')})}); const data=await response.json(); if(!response.ok)throw new Error(data.error||'Gagal menyimpan'); document.body.innerHTML='<main style="padding:48px;text-align:center;font-family:system-ui"><h1>Tanda tangan berhasil dikirim</h1><p>Terima kasih.</p></main>'; } catch(error){if(submit){submit.disabled=false;submit.textContent='Kirim Tanda Tangan'} alert(error.message||'Gagal menyimpan')} }
 
             modalTambahSPJHeader() {
                 const pencairanList = DB.get('pencairan') || [];
@@ -8207,11 +8214,11 @@ const filteredList = pencairanList.filter(d => {
     }).join('');
 
     const content = `
-        <div class="header" style="text-align: center; font-weight: bold; font-size: 11pt; margin-bottom: 15px;">
+        <div class="header" style="text-align: center; font-weight: bold; font-size: 13pt; margin-bottom: 16px;">
             LAMPIRAN PERMINTAAN PEMBAYARAN
         </div>
 
-        <table class="meta-info" style="width: 100%; border: none; margin-bottom: 10px; font-size: 9pt;">
+        <table class="meta-info" style="width: 100%; border: none; margin-bottom: 12px; font-size: 10pt;">
             <tr><td style="width: 160px; border:none;">Nama Sub Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${header.sub_kegiatan || '-'}</td></tr>
             <tr><td style="border:none;">Kode Kegiatan</td><td style="border:none;">:</td><td style="border:none;">5.02.03.2.01.0010</td></tr>
             <tr><td style="border:none;">Tanggal</td><td style="border:none;">:</td><td style="border:none;">${header.bulan || 'Juli'} 2026</td></tr>
@@ -8258,7 +8265,7 @@ const filteredList = pencairanList.filter(d => {
             </tfoot>
         </table>
 
-        <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 9pt;">
+        <div class="ttd-container" style="display: flex; justify-content: space-between; margin-top: 30px; font-size: 10pt;">
             <div class="ttd-left" style="text-align: center; width: 250px;">
                 <p>Mengetahui</p>
                 <p><b>PPTK</b></p>
@@ -8281,7 +8288,7 @@ const filteredList = pencairanList.filter(d => {
         * { box-sizing: border-box; }
         html, body { font-family: 'Times New Roman', Times, serif; color: #000; width: 100%; margin: 0; padding: 0; }
         .tbl-main { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: auto; page-break-inside: avoid; }
-        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 3px 4px; font-size: ${items.length > 8 ? '5.5pt' : '6.5pt'}; line-height: 1.15; overflow-wrap: break-word; word-break: normal; vertical-align: middle; }
+        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px 5px; font-size: ${items.length > 8 ? '6.5pt' : '8pt'}; line-height: 1.2; overflow-wrap: break-word; word-break: normal; vertical-align: middle; }
         .tbl-main th { text-align: center; background: #f3f4f6; }
         .tbl-main th:first-child, .tbl-main td:first-child { width: 22px; min-width: 22px; }
         .tbl-main th:nth-child(6), .tbl-main td:nth-child(6) { white-space: nowrap; }
@@ -8291,7 +8298,7 @@ const filteredList = pencairanList.filter(d => {
         .r { text-align: right; padding-left: 6px !important; padding-right: 6px !important; font-variant-numeric: tabular-nums; }
         .tbl-main th:last-child, .tbl-main td:last-child { padding-right: 7px !important; min-width: 72px; }
         .font-bold { font-weight: bold; }
-        .ttd-container { break-inside: avoid; margin-top: 8px !important; font-size: 8pt !important; }
+        .ttd-container { break-inside: avoid; margin-top: 10px !important; font-size: 9pt !important; }
     `;
 
     this.printDocument('Lampiran Permintaan Pembayaran', content, customStyle);
