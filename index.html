@@ -991,10 +991,17 @@
         ];
         syncPayload = Object.fromEntries(allowed.filter(k => Object.prototype.hasOwnProperty.call(payload, k)).map(k => [k, payload[k]]));
     }
-    // document_templates adalah data relasi tampilan, bukan kolom package_documents.
+    // Hanya kolom fisik package_documents yang boleh dikirim.
+    // document_templates adalah objek relasi untuk tampilan, bukan kolom database.
     if (sbTable === 'package_documents' && syncPayload && typeof syncPayload === 'object') {
-        const { document_templates, ...databasePayload } = syncPayload;
-        syncPayload = databasePayload;
+        const allowed = [
+            'id','created_at','package_id','document_name','document_code','template_id',
+            'document_number','document_date','status','version','generated',
+            'generated_document_id','file_url'
+        ];
+        syncPayload = Object.fromEntries(allowed
+            .filter(key => Object.prototype.hasOwnProperty.call(syncPayload, key))
+            .map(key => [key, syncPayload[key]]));
     }
 
     if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
@@ -5741,11 +5748,11 @@ importPencairanExcel(event) {
                 }).join('');
 
                 const content = `
-                    <div class="header" style="text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 15px; font-family: Arial, sans-serif;">
+                    <div class="header" style="text-align: center; font-weight: bold; font-size: 13pt; margin-bottom: 15px; font-family: Arial, sans-serif;">
                         TANDA TERIMA PEMBAYARAN
                     </div>
                     
-                    <table style="width: 100%; border: none; margin-bottom: 15px; font-size: 12pt; font-family: Arial, sans-serif;">
+                    <table style="width: 100%; border: none; margin-bottom: 15px; font-size: 10pt; font-family: Arial, sans-serif;">
                         <tr><td style="width: 110px; border:none;">Kegiatan</td><td style="width: 10px; border:none;">:</td><td style="border:none;">${pencairan.kegiatan || 'Pengelolaan Barang Milik Daerah'}</td></tr>
                         <tr><td style="border:none;">Sub Kegiatan</td><td style="border:none;">:</td><td style="border:none;">${pencairan.sub_kegiatan || '-'}</td></tr>
                         <tr><td style="border:none;">Judul</td><td style="border:none;">:</td><td style="border:none;">${spj.judul || '-'}</td></tr>
@@ -8288,7 +8295,7 @@ const filteredList = pencairanList.filter(d => {
         * { box-sizing: border-box; }
         html, body { font-family: 'Times New Roman', Times, serif; color: #000; width: 100%; margin: 0; padding: 0; }
         .tbl-main { width: 100%; max-width: 100%; border-collapse: collapse; table-layout: auto; page-break-inside: avoid; }
-        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px 5px; font-size: ${items.length > 8 ? '8.5pt' : '10pt'}; line-height: 1.2; overflow-wrap: break-word; word-break: normal; vertical-align: middle; }
+        .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px 5px; font-size: ${items.length > 8 ? '6.5pt' : '8pt'}; line-height: 1.2; overflow-wrap: break-word; word-break: normal; vertical-align: middle; }
         .tbl-main th { text-align: center; background: #f3f4f6; }
         .tbl-main th:first-child, .tbl-main td:first-child { width: 22px; min-width: 22px; }
         .tbl-main th:nth-child(6), .tbl-main td:nth-child(6) { white-space: nowrap; }
