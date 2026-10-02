@@ -6374,7 +6374,7 @@ renderSignPage(container, itemId) {
                                 </div>
                                 <div class="flex gap-2 mt-4">
                                     <button type="button" class="btn btn-primary py-3" onclick="app.printKendali()"><i class="ph ph-printer text-lg"></i> Cetak Kartu Kendali (Landscape)</button>
-                                    <button type="button" class="btn btn-outline py-3" onclick="app.exportKendaliExcel()"><i class="ph ph-file-xls text-lg"></i> Download Excel</button>
+                                    <button type="button" class="btn btn-outline py-3" onclick="app.downloadKendaliWord()"><i class="ph ph-file-doc text-lg"></i> Download Word</button>
                                 </div>
                             </form>
                         </div>
@@ -6701,7 +6701,7 @@ renderSignPage(container, itemId) {
 
            
 
-            printKendali() {
+            printKendali(downloadWord = false) {
                 const subKode = document.getElementById('kendali-sub').value;
                 const bulan = parseInt(document.getElementById('kendali-bulan').value);
                 const bulanNama = document.getElementById('kendali-bulan').options[document.getElementById('kendali-bulan').selectedIndex].text;
@@ -6824,16 +6824,15 @@ renderSignPage(container, itemId) {
                 // Sub Jumlah DPA harus identik dengan nilai pada baris Sub Kegiatan.
                 // Nilai tersebut sudah mengakumulasi seluruh rincian rekening di bawahnya.
                 const detailPagu = rekenings.filter(r => r.jenis === 'Detail').reduce((sum, r) => sum + (Number(r.pagu) || 0), 0);
-                let sumPagu = Number(map[subKode]?.pagu_calc) || detailPagu;
-                let sumLSlalu = 0, sumLSini = 0, sumGUlalu = 0, sumGUini = 0, sumTUlalu = 0, sumTUini = 0, sumTotSPJ = 0;
+                const subTotal = map[subKode] || {};
+                let sumPagu = Number(subTotal.pagu_calc) || detailPagu;
+                // Ambil total dari baris Sub Kegiatan yang sudah mengakumulasi seluruh anak rekening.
+                // Jangan jumlah ulang berdasarkan jumlah segmen kode; itu membuat kolom SPJ menjadi nol.
+                let sumLSlalu = Number(subTotal.ls_lalu) || 0, sumLSini = Number(subTotal.ls_ini) || 0;
+                let sumGUlalu = Number(subTotal.gu_lalu) || 0, sumGUini = Number(subTotal.gu_ini) || 0;
+                let sumTUlalu = Number(subTotal.tu_lalu) || 0, sumTUini = Number(subTotal.tu_ini) || 0;
 
                 const rowsHtml = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map(r => {
-                    if (r.kode.split('.').length === 7) {
-                        sumLSlalu += r.ls_lalu; sumLSini += r.ls_ini;
-                        sumGUlalu += r.gu_lalu; sumGUini += r.gu_ini;
-                        sumTUlalu += r.tu_lalu; sumTUini += r.tu_ini;
-                    }
-
                     const ls_sd = r.ls_lalu + r.ls_ini;
                     const gu_sd = r.gu_lalu + r.gu_ini;
                     const tu_sd = r.tu_lalu + r.tu_ini;
@@ -7001,8 +7000,21 @@ renderSignPage(container, itemId) {
                     .ttd-box p { margin: 2px 0; }
                 `;
 
+                if (downloadWord) {
+                    const wordHtml = `<!doctype html><html><head><meta charset="utf-8"><style>${customStyle}</style></head><body>${content}</body></html>`;
+                    const blob = new Blob(['\ufeff', wordHtml], { type: 'application/msword' });
+                    const safeName = String(subRecord?.uraian || subKode).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '');
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Kartu_Kendali_${safeName}_${bulanNama}_2026.doc`;
+                    document.body.appendChild(link); link.click(); link.remove();
+                    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+                    return;
+                }
                 this.printDocument('Kartu Kendali', content, customStyle);
             }
+
+            downloadKendaliWord() { this.printKendali(true); }
 
             // ==========================================
             // LOGIKA DOKUMEN DEPENDENCY ENGINE (Word)
