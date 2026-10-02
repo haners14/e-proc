@@ -1002,6 +1002,10 @@
         syncPayload = Object.fromEntries(allowed
             .filter(key => Object.prototype.hasOwnProperty.call(syncPayload, key))
             .map(key => [key, syncPayload[key]]));
+        // Template bawaan hanya tersedia di browser. Jangan kirim ID-nya ke FK Supabase.
+        if (syncPayload.template_id && !this.get('template').some(template => String(template.id) === String(syncPayload.template_id))) {
+            syncPayload.template_id = null;
+        }
     }
 
     if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
@@ -6817,7 +6821,10 @@ renderSignPage(container, itemId) {
                     }
                 });
 
-                let sumPagu = rekenings.filter(r => r.jenis === 'Detail').reduce((sum, r) => sum + (Number(r.pagu) || 0), 0);
+                // Sub Jumlah DPA harus identik dengan nilai pada baris Sub Kegiatan.
+                // Nilai tersebut sudah mengakumulasi seluruh rincian rekening di bawahnya.
+                const detailPagu = rekenings.filter(r => r.jenis === 'Detail').reduce((sum, r) => sum + (Number(r.pagu) || 0), 0);
+                let sumPagu = Number(map[subKode]?.pagu_calc) || detailPagu;
                 let sumLSlalu = 0, sumLSini = 0, sumGUlalu = 0, sumGUini = 0, sumTUlalu = 0, sumTUini = 0, sumTotSPJ = 0;
 
                 const rowsHtml = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map(r => {
@@ -6974,22 +6981,22 @@ renderSignPage(container, itemId) {
 
                 const customStyle = `
                     @page { size: landscape; margin: 10mm; }
-                    body { font-family: 'Times New Roman', Times, serif; font-size: 8px; color: #000; }
+                    body { font-family: 'Times New Roman', Times, serif; font-size: 10px; color: #000; }
                     .header { text-align: center; margin-bottom: 15px; }
-                    .header h2 { font-size: 12px; margin: 0; line-height: 1.4; }
-                    .meta-info { border: none; margin-bottom: 10px; font-weight: bold; font-size: 8px; }
+                    .header h2 { font-size: 14px; margin: 0; line-height: 1.4; }
+                    .meta-info { border: none; margin-bottom: 10px; font-weight: bold; font-size: 10px; }
                     .meta-info td { border: none; padding: 2px 0; }
                     
                     .tbl-main { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 3px 4px; }
+                    .tbl-main th, .tbl-main td { border: 1px solid #000; padding: 4px 5px; font-size: 9.5px; }
                     .tbl-main th { text-align: center; font-weight: bold; }
-                    .col-nums th { font-size: 7px; background: #f3f4f6; }
+                    .col-nums th { font-size: 8.5px; background: #f3f4f6; }
                     
                     .c { text-align: center; }
                     .r { text-align: right; }
                     .font-bold { font-weight: bold; }
                     
-                    .ttd-area { width: 100%; display: flex; justify-content: flex-end; margin-top: 20px; font-size: 9px; }
+                    .ttd-area { width: 100%; display: flex; justify-content: flex-end; margin-top: 20px; font-size: 10px; }
                     .ttd-box { text-align: center; width: 300px; }
                     .ttd-box p { margin: 2px 0; }
                 `;
