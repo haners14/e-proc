@@ -873,6 +873,17 @@
             metode_pemilihan: 'Pengadaan Langsung', durasi_kontrak: 30
         };
 
+        // Nilai ini dipakai bersama oleh Data Paket dan Master Template.
+        // "Umum" hanya untuk template lintas jenis, bukan jenis paket.
+        const PROCUREMENT_TYPES = [
+            'Barang',
+            'Konstruksi',
+            'Konsultansi Perencanaan Konstruksi',
+            'Konsultansi Pengawasan Konstruksi',
+            'Konsultansi Lainnya',
+            'Jasa Lainnya'
+        ];
+
         const BUILTIN_TEMPLATES = [
             {id:'NOTA_DINAS', code:'NOTA_DINAS', name:'Nota Dinas', file_url:'templates/1_NOTA_DINAS_TEMPLATE_revised.docx'},
             {id:'URAIAN_SINGKAT', code:'URAIAN_SINGKAT', name:'Uraian Singkat Pekerjaan', file_url:'templates/0_URAIAN_SINGKAT_TEMPLATE.docx'},
@@ -1053,6 +1064,18 @@
                 } catch (e) { console.error('Gagal menyimpan cadangan checklist', e); }
             },
 
+            clearChecklistOverride(packageId, documentName, fields = []) {
+                try {
+                    const key = `${String(packageId)}::${String(documentName || '').trim().toUpperCase()}`;
+                    const all = JSON.parse(localStorage.getItem('eproc_checklist_overrides_v1') || '{}');
+                    if (!all[key]) return;
+                    fields.forEach(field => delete all[key][field]);
+                    delete all[key].saved_at;
+                    if (Object.keys(all[key]).length === 0) delete all[key];
+                    localStorage.setItem('eproc_checklist_overrides_v1', JSON.stringify(all));
+                } catch (e) { console.error('Gagal membersihkan cadangan checklist', e); }
+            },
+
             saveSupportingOverride(packageId, state) {
                 try {
                     const all = JSON.parse(localStorage.getItem('eproc_supporting_overrides_v1') || '{}');
@@ -1079,7 +1102,11 @@
                 const newItem = { id: Utils.generateId(), created_at: new Date().toISOString(), ...payload };
                 if(!this.cache[sbTable]) this.cache[sbTable] = [];
                 this.cache[sbTable].unshift(newItem);
-                this._sync('POST', table, newItem);
+                this._sync('POST', table, newItem).then(response => {
+                    if (response && sbTable === 'package_documents') {
+                        this.clearChecklistOverride(newItem.package_id, newItem.document_name, ['status', 'generated', 'document_number', 'document_date']);
+                    }
+                });
                 return newItem;
             },
 
@@ -1169,7 +1196,11 @@
                         })();
                         delete cpy.personnel;
                     }                    
-                    this._sync('PATCH', table, cpy, id);
+                    this._sync('PATCH', table, cpy, id).then(response => {
+                        if (response && sbTable === 'package_documents') {
+                            this.clearChecklistOverride(updated.package_id, updated.document_name, Object.keys(cpy));
+                        }
+                    });
                     return updated;
                 }
                 return null;
@@ -1224,7 +1255,7 @@
                     { key: 'status', label: 'Status Verifikasi', type: 'select', options: ['Aktif', 'Blacklist'], formatter: Utils.getBadge }
                 ] 
             },
-            template: { title: 'Template Dokumen', table: 'template', fields: [ { key:'code', label:'Kode', type:'text', required:true }, { key:'name', label:'Nama Template', type:'text', required:true }, { key:'type', label:'Jenis', type:'select', options:['Barang','Konstruksi','Konsultansi','Jasa Lainnya','Umum'], required:true }, { key:'file_url', label:'URL Template DOCX', type:'textarea' }, { key:'filename', label:'Nama File', type:'text' }, { key:'last_updated', label:'Tanggal Update', type:'date', formatter:Utils.formatDate } ] },
+            template: { title: 'Template Dokumen', table: 'template', fields: [ { key:'code', label:'Kode', type:'text', required:true }, { key:'name', label:'Nama Template', type:'text', required:true }, { key:'type', label:'Jenis', type:'select', options:[...PROCUREMENT_TYPES, 'Umum'], required:true }, { key:'file_url', label:'URL Template DOCX', type:'textarea' }, { key:'filename', label:'Nama File', type:'text' }, { key:'last_updated', label:'Tanggal Update', type:'date', formatter:Utils.formatDate } ] },
             penomoran: { title: 'Format Penomoran', table: 'penomoran', fields: [{ key: 'code', label: 'Kode Dokumen', type: 'text', required: true, width: '150px' }, { key: 'format', label: 'Format Penomoran', type: 'text', required: true }, { key: 'counter', label: 'Counter Terakhir', type: 'number', required: true, width: '150px' }] },
             jenis: { title: 'Jenis Pengadaan', table: 'jenis', fields: [{ key: 'name', label: 'Nama Jenis', type: 'text', required: true }] },
             kontrak: { title: 'Jenis Kontrak', table: 'kontrak', fields: [{ key: 'name', label: 'Nama Kontrak', type: 'text', required: true }] },
@@ -2411,7 +2442,7 @@
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">Karakteristik Pengadaan</legend>
                                 <div class="grid grid-cols-2 gap-4 mt-2">
-                                    <div class="form-group"><label class="form-label">Jenis Pengadaan</label><select name="jenis_pengadaan" class="form-control"><option value="Barang" ${this.pkg.jenis_pengadaan==='Barang'?'selected':''}>Barang</option><option value="Pekerjaan Konstruksi" ${this.pkg.jenis_pengadaan==='Pekerjaan Konstruksi'?'selected':''}>Pekerjaan Konstruksi</option><option value="Jasa Konsultansi" ${this.pkg.jenis_pengadaan==='Jasa Konsultansi'?'selected':''}>Jasa Konsultansi</option><option value="Jasa Lainnya" ${this.pkg.jenis_pengadaan==='Jasa Lainnya'?'selected':''}>Jasa Lainnya</option></select></div>
+                                    <div class="form-group"><label class="form-label">Jenis Pengadaan</label><select name="jenis_pengadaan" class="form-control">${PROCUREMENT_TYPES.map(type => `<option value="${type}" ${(this.pkg.jenis_pengadaan === type || (type === 'Konstruksi' && this.pkg.jenis_pengadaan === 'Pekerjaan Konstruksi') || (type === 'Konsultansi Lainnya' && this.pkg.jenis_pengadaan === 'Jasa Konsultansi')) ? 'selected' : ''}>${type}</option>`).join('')}</select></div>
                                     <div class="form-group"><label class="form-label">Metode Pemilihan</label><select name="metode_pemilihan" class="form-control"><option value="E-Purchasing" ${this.pkg.metode_pemilihan==='E-Purchasing'?'selected':''}>E-Purchasing</option><option value="Tender" ${this.pkg.metode_pemilihan==='Tender'?'selected':''}>Tender</option><option value="Pengadaan Langsung" ${this.pkg.metode_pemilihan==='Pengadaan Langsung'?'selected':''}>Pengadaan Langsung</option></select></div>
                                     <div class="form-group"><label class="form-label">Jenis Kontrak</label><select name="jenis_kontrak" class="form-control"><option value="Lumsum" ${this.pkg.jenis_kontrak==='Lumsum'?'selected':''}>Lumsum</option><option value="Harga Satuan" ${this.pkg.jenis_kontrak==='Harga Satuan'?'selected':''}>Harga Satuan</option></select></div>
                                     <div class="form-group"><label class="form-label">Kata Kunci Penomoran</label><input type="text" name="keyword_penomoran" class="form-control" value="${this.pkg.keyword_penomoran || ''}"></div>
@@ -3522,9 +3553,9 @@ negPPN += negTotal - negSubTotal;
                         return curTime < bestTime ? cur : best;
                     }, null);
 
-                    matches.forEach(m => {
-                        if (m.id !== reg.id) DB.delete("package_documents", m.id);
-                    });
+                    // Jangan hapus data saat halaman sedang dirender. Pembersihan
+                    // duplikat ditangani oleh constraint database agar ceklis tidak
+                    // tampak hilang akibat request render yang berjalan bersamaan.
                 } else {
                     reg = DB.insert("package_documents", {
                         package_id: this.packageId,
@@ -3572,8 +3603,12 @@ negPPN += negTotal - negSubTotal;
 };
             // Urutkan checklist kronologis
             const sorted = registers.sort((a, b) => {
-    const da = new Date(a.document_date || '2100-01-01');
-    const db = new Date(b.document_date || '2100-01-01');
+    // Gunakan tanggal manual bila ada; bila belum ada, gunakan tanggal otomatis
+    // yang sedang ditampilkan. Jadi urutan tidak lagi mengikuti urutan daftar baku.
+    const dateA = a.document_date || app.calculateDocumentMeta(this.pkg, a.document_name).date || '2100-01-01';
+    const dateB = b.document_date || app.calculateDocumentMeta(this.pkg, b.document_name).date || '2100-01-01';
+    const da = new Date(`${dateA}T00:00:00`);
+    const db = new Date(`${dateB}T00:00:00`);
 
     // Urutkan berdasarkan tanggal terlebih dahulu
     if (da.getTime() !== db.getTime()) {
@@ -4860,6 +4895,7 @@ importPencairanExcel(event) {
                 
                 const docs = DB.get('package_documents').filter(d => d.package_id === packageId);
                 for (let d of docs) {
+                    DB.clearChecklistOverride(packageId, d.document_name, ['document_date']);
                     DB.update('package_documents', d.id, { document_date: null });
                 }
                 
@@ -4872,6 +4908,7 @@ importPencairanExcel(event) {
                 
                 const docs = DB.get('package_documents').filter(d => d.package_id === packageId);
                 for (let d of docs) {
+                    DB.clearChecklistOverride(packageId, d.document_name, ['document_number']);
                     DB.update('package_documents', d.id, { document_number: null });
                 }
                 
@@ -8371,12 +8408,23 @@ const filteredList = pencairanList.filter(d => {
             }
 
             normalizeProcurementType(value) {
-                const type = String(value || '').toLowerCase();
+                const type = String(value || '').trim().toLowerCase();
+                if (type.includes('konsultansi') && type.includes('perencanaan') && type.includes('konstruksi')) return 'Konsultansi Perencanaan Konstruksi';
+                if (type.includes('konsultansi') && type.includes('pengawasan') && type.includes('konstruksi')) return 'Konsultansi Pengawasan Konstruksi';
+                if (type.includes('konsultansi')) return 'Konsultansi Lainnya';
                 if (type.includes('konstruksi')) return 'Konstruksi';
-                if (type.includes('konsultansi')) return 'Konsultansi';
                 if (type.includes('barang')) return 'Barang';
                 if (type.includes('lain')) return 'Jasa Lainnya';
                 return 'Umum';
+            }
+
+            isTemplateCompatible(templateType, packageType) {
+                const rawTemplateType = String(templateType || '').trim();
+                const normalizedTemplateType = this.normalizeProcurementType(rawTemplateType);
+                return !rawTemplateType
+                    || normalizedTemplateType === packageType
+                    || normalizedTemplateType === 'Umum'
+                    || (packageType.startsWith('Konsultansi') && rawTemplateType.toLowerCase() === 'konsultansi');
             }
 
           selectTemplate(documentCode, pkg, templateId = null) {
@@ -8395,12 +8443,7 @@ const filteredList = pencairanList.filter(d => {
             if (!code) return null;
 
             const packageObj = pkg || {};
-            const jenisRaw = String(packageObj.jenis_pengadaan || packageObj.jenis || '').trim().toLowerCase();
-            let type = 'Umum';
-            if (jenisRaw.includes('konstruksi')) type = 'Konstruksi';
-            else if (jenisRaw.includes('konsultansi')) type = 'Konsultansi';
-            else if (jenisRaw.includes('barang')) type = 'Barang';
-            else if (jenisRaw.includes('lain')) type = 'Jasa Lainnya';
+            const type = this.normalizeProcurementType(packageObj.jenis_pengadaan || packageObj.jenis);
 
             // Cari hanya template dengan KODE dokumen yang diminta.
             // Jangan pernah fallback ke template dokumen lain.
@@ -8410,9 +8453,9 @@ const filteredList = pencairanList.filter(d => {
             if (!sameCode.length) return null;
 
             // Prioritas KODE + JENIS pengadaan.
-            const typed = sameCode.find(t =>
-                String(t.type || '').trim().toLowerCase() === type.toLowerCase()
-            );
+            const typed = sameCode.find(t => String(t.type || '').trim().toLowerCase() === type.toLowerCase())
+                // Template lama "Konsultansi" tetap dapat dipakai oleh tiga jenis konsultansi baru.
+                || (type.startsWith('Konsultansi') ? sameCode.find(t => String(t.type || '').trim().toLowerCase() === 'konsultansi') : null);
             if (typed) return typed;
 
             // Fallback ke template Umum dengan kode yang sama.
@@ -8447,7 +8490,7 @@ const filteredList = pencairanList.filter(d => {
 
             openDocumentForm(pkgId) {
                 const pkg = DB.getById('paket', pkgId), type = this.normalizeProcurementType(pkg?.jenis_pengadaan);
-                const templates = [...DB.get('template'), ...BUILTIN_TEMPLATES.filter(b => !DB.get('template').some(t => t.code === b.code))].filter(t => !t.type || this.normalizeProcurementType(t.type) === type || this.normalizeProcurementType(t.type) === 'Umum');
+                const templates = [...DB.get('template'), ...BUILTIN_TEMPLATES.filter(b => !DB.get('template').some(t => t.code === b.code))].filter(t => this.isTemplateCompatible(t.type, type));
                 const options = templates.map(t => `<option value="${t.id}" data-code="${t.code}">${t.name} (${t.code}) — ${t.type || 'Umum'}</option>`).join('');
                 const body = `<form id="document-master-form"><div class="bg-info-50 p-3 rounded text-sm mb-4">Jenis paket: <b>${type}</b>. Hanya template ${type} atau Umum yang ditampilkan; saat Generate, sistem memilih kecocokan kode + jenis dari Supabase.</div><div class="form-group"><label class="form-label">Nama Dokumen</label><input class="form-control" name="document_name" required placeholder="Contoh: Nota Dinas"></div><div class="form-group"><label class="form-label">Kode Dokumen</label><input class="form-control" name="document_code" placeholder="NOTA_DINAS"></div><div class="form-group"><label class="form-label">Template</label><select class="form-control" name="template_id"><option value="">Pilih otomatis sesuai jenis paket</option>${options}</select></div><div class="grid" style="grid-template-columns:1fr 1fr;gap:12px"><div class="form-group"><label class="form-label">Nomor Dokumen</label><input class="form-control" name="document_number"></div><div class="form-group"><label class="form-label">Tanggal Dokumen</label><input class="form-control" type="date" name="document_date"></div></div></form>`;
                 DOM.openModal('Tambah Dokumen Paket', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.saveDocumentMaster('${pkgId}')">Simpan</button>`);
@@ -9324,6 +9367,8 @@ const filteredList = pencairanList.filter(d => {
 
             resetDocumentNumber(docId, docName) {
                 if (!confirm(`Kembalikan nomor dokumen ${docName} ke format penomoran otomatis?`)) return;
+                const master = DB.getById('package_documents', docId);
+                if (master) DB.clearChecklistOverride(master.package_id, docName, ['document_number']);
                 DB.update('package_documents', docId, { document_number: null });
                 this.notify(`Nomor dokumen ${docName} berhasil direset.`, 'success');
                 this.reRenderCurrentView();
@@ -9331,6 +9376,8 @@ const filteredList = pencairanList.filter(d => {
 
             resetDocumentDate(docId, docName) {
                 if (!confirm(`Kembalikan tanggal dokumen ${docName} ke perhitungan jadwal otomatis?`)) return;
+                const master = DB.getById('package_documents', docId);
+                if (master) DB.clearChecklistOverride(master.package_id, docName, ['document_date']);
                 DB.update('package_documents', docId, { document_date: null });
                 this.notify(`Tanggal dokumen ${docName} berhasil direset ke jadwal Master Waktu.`, 'success');
                 this.reRenderCurrentView();
