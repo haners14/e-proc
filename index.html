@@ -1053,6 +1053,11 @@
         if (syncPayload.template_id && !this.get('template').some(template => String(template.id) === String(syncPayload.template_id))) {
             syncPayload.template_id = null;
         }
+        // File hasil generate masih berupa Blob lokal browser. Jangan kirim
+        // referensi sementara atau FK hasil generate ke server sebelum ada
+        // unggahan permanen di Storage; status checklist tetap dapat tersimpan.
+        if (typeof syncPayload.file_url === 'string' && syncPayload.file_url.startsWith('blob:')) delete syncPayload.file_url;
+        delete syncPayload.generated_document_id;
     }
 
     if (id && (method === 'PATCH' || method === 'DELETE')) url += `?id=eq.${id}`;
@@ -1282,6 +1287,9 @@
                     { key: 'type', label: 'Bentuk', type: 'select', options: ['Badan Usaha', 'Perorangan'], required: true }, 
                     { key: 'npwp', label: 'NPWP', type: 'text', required: true, width: '180px' }, 
                     { key: 'nib', label: 'NIB', type: 'text', hideInTable: true }, 
+                    { key: 'kbli', label: 'KBLI', type: 'text', hideInTable: true },
+                    { key: 'uraian_kbli', label: 'Uraian KBLI', type: 'textarea', hideInTable: true },
+                    { key: 'sbu', label: 'SBU', type: 'text', hideInTable: true },
                     { key: 'no_izin', label: 'Nomor Izin (IUJK/dll)', type: 'text', hideInTable: true }, 
                     { key: 'direktur', label: 'Nama Direktur', type: 'text', required: true }, 
                     { key: 'jabatan_direktur', label: 'Jabatan Direktur', type: 'text', hideInTable: true }, 
@@ -2497,6 +2505,16 @@
                             </fieldset>
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
+                                <legend class="font-semibold text-sm px-2 text-primary-700">Kualifikasi Penyedia untuk SDP</legend>
+                                <p class="text-xs text-muted mb-3">Data paket ini dipakai saat generate SDP. Jika kosong, sistem memakai data dari Master Penyedia.</p>
+                                <div class="grid grid-cols-2 gap-4 mt-2">
+                                    <div class="form-group"><label class="form-label">KBLI</label><input type="text" name="kbli" class="form-control" value="${this.pkg.kbli || ''}" placeholder="Contoh: 41019"></div>
+                                    <div class="form-group"><label class="form-label">SBU</label><input type="text" name="sbu" class="form-control" value="${this.pkg.sbu || ''}" placeholder="Contoh: BG004"></div>
+                                    <div class="form-group col-span-2"><label class="form-label">Uraian KBLI</label><textarea name="uraian_kbli" class="form-control" rows="2" placeholder="Uraian bidang usaha sesuai KBLI">${this.pkg.uraian_kbli || ''}</textarea></div>
+                                </div>
+                            </fieldset>
+
+                            <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">Waktu Pelaksanaan (Kontrak)</legend>
                                 <div class="grid grid-cols-3 gap-4 mt-2">
                                     <div class="form-group"><label class="form-label">Durasi (Hari Kalender)</label><input type="number" name="durasi_kontrak" class="form-control" value="${this.pkg.durasi_kontrak || ''}"></div>
@@ -2585,6 +2603,8 @@
                                     <h4 class="font-bold text-success-700 mb-3 uppercase tracking-wider text-xs">Legalitas & Perizinan</h4>
                                     <div class="mb-2"><span class="text-xs text-muted block">NPWP</span><span class="font-semibold">${sup.npwp}</span></div>
                                     <div class="mb-2"><span class="text-xs text-muted block">NIB</span><span class="font-semibold">${sup.nib}</span></div>
+                                    <div class="mb-2"><span class="text-xs text-muted block">KBLI</span><span class="font-semibold">${sup.kbli || '-'}</span></div>
+                                    <div class="mb-2"><span class="text-xs text-muted block">SBU</span><span class="font-semibold">${sup.sbu || '-'}</span></div>
                                 </div>
                                 <div>
                                     <h4 class="font-bold text-success-700 mb-3 uppercase tracking-wider text-xs">Direksi</h4>
@@ -3394,6 +3414,16 @@ negPPN += negTotal - negSubTotal;
     const rules = DB.get('jadwal_proses') || [];
     const holidays = DB.get('libur')?.map(x => x.date) || [];
     const overrides = this.pkg.jadwal_proses_override || {};
+    const processDocumentCodes = { upload: 'SDP', evaluasi: 'BA_EVALUASI', negosiasi: 'BA_NEGOSIASI', kontrak: 'SPK' };
+    const getLinkedDocument = (ruleName) => {
+        const name = String(ruleName || '').toLowerCase();
+        const key = Object.keys(processDocumentCodes).find(item => name.includes(item));
+        if (!key) return null;
+        const code = processDocumentCodes[key];
+        const doc = DB.get('package_documents').find(item => String(item.package_id) === String(this.packageId)
+            && normalizeTemplateDocumentCode(item.document_code) === code);
+        return doc?.document_date ? { code, date: doc.document_date } : null;
+    };
 
     // Urutan prioritas alur: Upload -> Evaluasi -> Negosiasi -> Kontrak
     const targetOrder = ['upload', 'evaluasi', 'negosiasi', 'kontrak'];
@@ -3412,8 +3442,15 @@ negPPN += negTotal - negSubTotal;
         let start, end, startTime = r.start_time || '08:00', endTime = r.end_time || '16:00', link = r.link || '', isManual = false;
         const ruleId = r.id || i;
         const override = overrides[`proc_${ruleId}`];
+        const linkedDocument = getLinkedDocument(r.name);
 
-        if (override) {
+        // Tanggal dokumen checklist adalah sumber utama jadwal proses.
+        // Upload ← SDP, Evaluasi ← BA Evaluasi, Negosiasi ← BA Negosiasi, Kontrak ← SPK.
+        if (linkedDocument) {
+            start = linkedDocument.date;
+            end = linkedDocument.date;
+            currentBaseDate = end;
+        } else if (override) {
             // Dukung data lama berupa tanggal saja, serta data baru berupa tanggal + jam.
             end = typeof override === 'string' ? override : override.end;
             startTime = typeof override === 'object' && override.start_time ? override.start_time : startTime;
@@ -3440,14 +3477,14 @@ negPPN += negTotal - negSubTotal;
             currentBaseDate = end; // Mengunci tahap berikutnya berurutan dari tahap ini
         }
         
-        calculated.push({ ...r, start, end, startTime, endTime, link, isManual });
+        calculated.push({ ...r, start, end, startTime, endTime, link, isManual, linkedDocument });
     });
     
     let rows = calculated.map((r, i) => {
         return `<tr>
             <td>${i + 1}</td>
             <td class="font-medium">${r.name}</td>
-            <td><span class="badge badge-success">Terkunci Berurutan</span></td>
+            <td>${r.linkedDocument ? `<span class="badge badge-info">Mengikuti ${r.linkedDocument.code}</span>` : '<span class="badge badge-success">Terkunci Berurutan</span>'}</td>
             <td>${Utils.formatDateShort(r.start)}<div class="text-xs text-muted">${r.startTime}</div></td>
             <td class="font-bold">${Utils.formatDateShort(r.end)}<div class="text-xs text-muted font-normal">${r.endTime}</div></td>
             <td>${r.link ? (String(r.link).startsWith('http') ? `<a class="text-primary-600 text-sm" href="${r.link}" target="_blank" rel="noopener">Buka link</a>` : `<span class="text-sm">${r.link}</span>`) : '<span class="text-muted">-</span>'}</td>
@@ -3581,9 +3618,13 @@ negPPN += negTotal - negSubTotal;
 
             const registers = docs.map(doc => {
                 const key = doc.trim().toUpperCase();
+                const standardCode = app.documentCode(doc);
                 const matches = DB.get("package_documents").filter(r =>
                     String(r.package_id) === String(this.packageId) &&
-                    (r.document_name || "").trim().toUpperCase() === key
+                    (
+                        (r.document_name || "").trim().toUpperCase() === key ||
+                        normalizeTemplateDocumentCode(r.document_code) === standardCode
+                    )
                 );
 
                 let reg;
@@ -3622,7 +3663,6 @@ negPPN += negTotal - negSubTotal;
                 // Normalisasi data lama. Nama dokumen adalah label tampilan,
                 // sedangkan document_code harus selalu memakai kode standar
                 // agar template BA_REVIU dan dokumen lain dapat ditemukan.
-                const standardCode = app.documentCode(doc);
                 if (String(reg.document_code || '').trim().toUpperCase() !== standardCode) {
                     reg.document_code = standardCode;
                     const selectedTemplate = app.selectTemplate(standardCode, this.pkg);
@@ -8889,12 +8929,13 @@ const filteredList = pencairanList.filter(d => {
             resolveDocumentMaster(reference, pkgId) {
                 const records = DB.get('package_documents');
                 const refKey = String(reference || '').trim().toUpperCase();
+                const standardCode = this.documentCode(reference);
                 let master = records.find(d => d.id === reference && d.package_id === pkgId) || records.find(d => d.package_id === pkgId && (
                     (d.document_name || '').trim().toUpperCase() === refKey ||
-                    (d.document_code || '').trim().toUpperCase() === refKey
+                    normalizeTemplateDocumentCode(d.document_code) === standardCode
                 ));
                 if (!master) {
-                    const code = this.documentCode(reference);
+                    const code = standardCode;
                     const pkg = DB.getById('paket', pkgId);
                     const template = this.selectTemplate(code, pkg);
                     master = DB.insert('package_documents', {package_id: pkgId, document_name: reference, document_code: code, template_id: template?.id || null, status: 'DRAFT', version: 1, generated: false});
@@ -9176,26 +9217,46 @@ const filteredList = pencairanList.filter(d => {
                 });
                 const processOverrides = pkg.jadwal_proses_override || {};
                 const holidays = (DB.get('libur') || []).map(x => x.date);
+                const processDocumentCodes = { upload: 'SDP', evaluasi: 'BA_EVALUASI', negosiasi: 'BA_NEGOSIASI', kontrak: 'SPK' };
+                const getChecklistDateForProcess = (ruleName) => {
+                    const name = String(ruleName || '').toLowerCase();
+                    const key = Object.keys(processDocumentCodes).find(item => name.includes(item));
+                    if (!key) return null;
+                    const code = processDocumentCodes[key];
+                    const linked = allPackageDocs.find(item => normalizeTemplateDocumentCode(item.document_code) === code);
+                    if (linked?.document_date) return { key, code, date: linked.document_date };
+                    // Saat dokumen sumber sedang digenerate, gunakan tanggal pada formnya.
+                    if (master && normalizeTemplateDocumentCode(master.document_code) === code && master.document_date) return { key, code, date: master.document_date };
+                    return null;
+                };
                 let processBase = pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().slice(0, 10);
                 let kontrakSchedule = null;
+                const processSchedules = {};
                 processRules.forEach((rule, index) => {
                     const id = rule.id || index;
                     const override = processOverrides[`proc_${id}`];
-                    const start = typeof override === 'object' && override.start
+                    const linkedDocument = getChecklistDateForProcess(rule.name);
+                    const calculatedStart = typeof override === 'object' && override.start
                         ? override.start
                         : Utils.addWorkingDays(processBase, Number(rule.start_after) || 0, holidays);
-                    const end = typeof override === 'string' ? override
-                        : (typeof override === 'object' && override.end ? override.end : Utils.addWorkingDays(start, Number(rule.duration) || 1, holidays));
+                    const calculatedEnd = typeof override === 'string' ? override
+                        : (typeof override === 'object' && override.end ? override.end : Utils.addWorkingDays(calculatedStart, Number(rule.duration) || 1, holidays));
+                    const start = linkedDocument?.date || calculatedStart;
+                    const end = linkedDocument?.date || calculatedEnd;
                     const schedule = {
                         start, end,
                         start_time: typeof override === 'object' && override.start_time ? override.start_time : (rule.start_time || '08:00'),
                         end_time: typeof override === 'object' && override.end_time ? override.end_time : (rule.end_time || '16:00'),
                         link: typeof override === 'object' && override.link ? override.link : (rule.link || '')
                     };
-                    if (String(rule.name || '').toLowerCase().includes('kontrak')) kontrakSchedule = schedule;
+                    const processKey = linkedDocument?.key || Object.keys(processDocumentCodes).find(key => String(rule.name || '').toLowerCase().includes(key));
+                    if (processKey) processSchedules[processKey] = schedule;
+                    if (processKey === 'kontrak') kontrakSchedule = schedule;
                     processBase = end;
                 });
                 kontrakSchedule = kontrakSchedule || { start: pkg.tgl_mulai || '', end: pkg.tgl_mulai || '', start_time: '08:00', end_time: '16:00', link: '' };
+                const getProcessSchedule = key => processSchedules[key] || { start: '', end: '', start_time: '08:00', end_time: '16:00', link: '' };
+                const formatProcessDate = value => value ? Utils.formatDate(value) : '-';
                 const tanggalUndanganKontrak = Utils.formatDate(kontrakSchedule.start);
                 const jamUndanganKontrak = `${kontrakSchedule.start_time} s.d. ${kontrakSchedule.end_time}`;
                 const linkUndanganKontrak = kontrakSchedule.link || 'Kantor BKAD Kota Bogor, Jalan Pemuda No. 31, Tanah Sareal, Kota Bogor';
@@ -9210,6 +9271,22 @@ const filteredList = pencairanList.filter(d => {
                     jam_kontrak: jamUndanganKontrak,
                     link_kontrak: linkUndanganKontrak,
                     waktu_undangan_kontrak: `${tanggalUndanganKontrak}, pukul ${jamUndanganKontrak}`,
+                    tanggal_upload_mulai: formatProcessDate(getProcessSchedule('upload').start),
+                    tanggal_upload_selesai: formatProcessDate(getProcessSchedule('upload').end),
+                    jam_upload_mulai: getProcessSchedule('upload').start_time,
+                    jam_upload_selesai: getProcessSchedule('upload').end_time,
+                    tanggal_evaluasi_mulai: formatProcessDate(getProcessSchedule('evaluasi').start),
+                    tanggal_evaluasi_selesai: formatProcessDate(getProcessSchedule('evaluasi').end),
+                    jam_evaluasi_mulai: getProcessSchedule('evaluasi').start_time,
+                    jam_evaluasi_selesai: getProcessSchedule('evaluasi').end_time,
+                    tanggal_negosiasi_mulai: formatProcessDate(getProcessSchedule('negosiasi').start),
+                    tanggal_negosiasi_selesai: formatProcessDate(getProcessSchedule('negosiasi').end),
+                    jam_negosiasi_mulai: getProcessSchedule('negosiasi').start_time,
+                    jam_negosiasi_selesai: getProcessSchedule('negosiasi').end_time,
+                    tanggal_kontrak_mulai: formatProcessDate(getProcessSchedule('kontrak').start),
+                    tanggal_kontrak_selesai: formatProcessDate(getProcessSchedule('kontrak').end),
+                    jam_kontrak_mulai: getProcessSchedule('kontrak').start_time,
+                    jam_kontrak_selesai: getProcessSchedule('kontrak').end_time,
                     
                     hari_tanggal_nota_dinas: `${days[new Date(dynamicDocVars.tanggal_nota_dinas || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_nota_dinas || '-'}`,
                     nomor_dokumen_nota_dinas: dynamicDocVars.nomor_nota_dinas || '-',
@@ -9241,8 +9318,9 @@ const filteredList = pencairanList.filter(d => {
                     nama_paket: pkg.name, nama_rekening: pkg.nama_rekening || "-", sumber_dana: pkg.sumber_pembiayaan || "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 30} Hari Kalender`,
                     nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
-                    kbli: supplier.kbli || pkg.kbli || '-',
-                    uraian_kbli: supplier.uraian_kbli || pkg.uraian_kbli || '-',
+                    kbli: pkg.kbli || supplier.kbli || '-',
+                    uraian_kbli: pkg.uraian_kbli || supplier.uraian_kbli || '-',
+                    sbu: pkg.sbu || supplier.sbu || supplier.sbu_konstruksi || '-',
                     kualifikasi_penyedia: supplier.kualifikasi || supplier.kualifikasi_penyedia || pkg.kualifikasi_penyedia || '-',
                     tahun_pajak_terakhir: supplier.tahun_pajak_terakhir || pkg.tahun_pajak_terakhir || '-',
                     nama_paket_upper: (pkg.name || "-").toUpperCase(),
