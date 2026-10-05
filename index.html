@@ -915,22 +915,25 @@
             const filename = `${prefix}_${suffix}.docx`;
             return { id:`SPSE_${code}_${suffix}`, code, name, type, filename, file_url:`${SPSE_TEMPLATE_BASE_URL}${encodeURIComponent(filename)}` };
         }));
+        const LEGACY_TEMPLATE_CODES = Object.freeze({
+            BA_REVIU_DOKUMEN_PERSIAPAN: 'BA_REVIU',
+            BA_REVIU_DPP: 'BA_REVIU',
+            BA_REVIU_DOK_PERSIAPAN: 'BA_REVIU',
+            UNDANGAN_PENGADAAN_LANGSUNG: 'UND_PENGADAAN',
+            UNDANGAN_VERIFIKASI: 'UND_VERIFIKASI',
+            UNDANGAN_REVIU: 'UND_REVIU',
+            UNDANGAN_KONTRAK: 'UND_KONTRAK',
+            RANCANGAN_SPK: 'SPK',
+            HPS: 'HPS_RAB'
+        });
+        const normalizeTemplateDocumentCode = value => {
+            const code = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+            return LEGACY_TEMPLATE_CODES[code] || code;
+        };
 
-        const BUILTIN_TEMPLATES = [
-            {id:'NOTA_DINAS', code:'NOTA_DINAS', name:'Nota Dinas', file_url:'templates/1_NOTA_DINAS_TEMPLATE_revised.docx'},
-            {id:'URAIAN_SINGKAT', code:'URAIAN_SINGKAT', name:'Uraian Singkat Pekerjaan', file_url:'templates/0_URAIAN_SINGKAT_TEMPLATE.docx'},
-            {id:'BA_REVIU', code:'BA_REVIU', name:'BA Reviu Dokumen Persiapan', file_url:'templates/2_BA_Reviu_DPP_TEMPLATE_revised.docx'},
-            {id:'SDP', code:'SDP', name:'SDP Pengadaan Langsung', file_url:'templates/5_SDP_Pengadaan_Langsung_TEMPLATE_revised.docx'},
-            {id:'SSKK', code:'SSKK', name:'SSKK', file_url:'templates/3_SSKK_TEMPLATE_revised.docx'},
-            {id:'SSKK_KONSTRUKSI', code:'SSKK_KONSTRUKSI', name:'SSKK Konstruksi', file_url:'templates/3_SSKK_TEMPLATE_Konstruksi.docx'},
-            {id:'SPK', code:'SPK', name:'Rancangan SPK', file_url:'templates/4_RANCANGAN_SPK_TEMPLATE_revised.docx'},
-            {id:'UND_KONTRAK', code:'UND_KONTRAK', name:'Undangan Kontrak', file_url:'templates/UND_KONTRAK.docx'},
-            {id:'UND_PENGADAAN', code:'UND_PENGADAAN', name:'Undangan Pengadaan Langsung', file_url:'templates/UND_PENGADAAN.docx'},
-            {id:'BA_KEMAJUAN',code:'BA_KEMAJUAN',name:'BA Kemajuan Pekerjaan',file_url:'templates/BA_KEMAJUAN.docx'},
-            {id:'BA_PEMERIKSAAN',code:'BA_PEMERIKSAAN',name:'BA Pemeriksaan Hasil Pekerjaan',file_url:'templates/BA_PEMERIKSAAN.docx'},
-            {id:'KPP3',code:'KPP3',name:'Kelengkapan Pengajuan Pihak Ketiga',file_url:'templates/KPP3.docx'},
-            ...SPSE_TEMPLATE_MANIFEST
-        ];
+        // Satu sumber template: kode standar + jenis paket. Jangan pakai lagi
+        // file fallback lama di folder /templates karena namanya tidak konsisten.
+        const BUILTIN_TEMPLATES = [...SPSE_TEMPLATE_MANIFEST];
 
         const DB = {
             cache: {}, isReady: false,
@@ -3615,6 +3618,19 @@ negPPN += negTotal - negSubTotal;
                         version: 1
                     });
                 }
+                // Normalisasi data lama. Nama dokumen adalah label tampilan,
+                // sedangkan document_code harus selalu memakai kode standar
+                // agar template BA_REVIU dan dokumen lain dapat ditemukan.
+                const standardCode = app.documentCode(doc);
+                if (String(reg.document_code || '').trim().toUpperCase() !== standardCode) {
+                    reg.document_code = standardCode;
+                    const selectedTemplate = app.selectTemplate(standardCode, this.pkg);
+                    if (selectedTemplate) reg.template_id = selectedTemplate.id;
+                    DB.update('package_documents', reg.id, {
+                        document_code: standardCode,
+                        template_id: reg.template_id || null
+                    });
+                }
                 const localOverride = DB.getChecklistOverride(this.packageId, doc);
                 if (localOverride) Object.assign(reg, localOverride);
                 return reg;
@@ -5038,7 +5054,7 @@ importPencairanExcel(event) {
                 const excel = files.find(file => /\.(xlsx|xls|csv)$/i.test(file.name));
                 const docxFiles = files.filter(file => /\.docx$/i.test(file.name));
                 const add = (row) => {
-                    const code = String(row['Kode'] || row.code || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+                    const code = normalizeTemplateDocumentCode(row['Kode'] || row.code || '');
                     const name = String(row['Nama Template'] || row.name || '').trim();
                     if (!code || !name) return false;
                     const exists = DB.get('template').some(t => String(t.code).toUpperCase() === code && String(t.type || 'Umum') === String(row['Jenis'] || row.type || 'Umum'));
@@ -8816,7 +8832,7 @@ const filteredList = pencairanList.filter(d => {
                 ))
             ];
 
-            const code = String(documentCode || '').trim().toUpperCase();
+            const code = normalizeTemplateDocumentCode(documentCode);
             if (!code) return null;
 
             const packageObj = pkg || {};
@@ -8825,7 +8841,7 @@ const filteredList = pencairanList.filter(d => {
             // Cari hanya template dengan KODE dokumen yang diminta.
             // Jangan pernah fallback ke template dokumen lain.
             const sameCode = templates.filter(t =>
-                String(t.code || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') === code.replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '') && String(t.file_url || '').trim()
+                normalizeTemplateDocumentCode(t.code) === code && String(t.file_url || '').trim()
             );
             if (!sameCode.length) return null;
 
