@@ -567,8 +567,8 @@
             <nav class="sidebar-nav" id="sidebar-nav">
                 <div class="nav-group">
                     <div class="nav-group-title">UTAMA</div>
-                    <div class="nav-item active" data-route="dashboard"><i class="ph ph-squares-four"></i> <span>Dashboard</span></div>
-                    <div class="nav-item" data-route="daftar-paket"><i class="ph ph-briefcase"></i> <span>Daftar Paket</span></div>
+                    <div class="nav-item" data-route="dashboard"><i class="ph ph-squares-four"></i> <span>Dashboard</span></div>
+                    <div class="nav-item active" data-route="daftar-paket"><i class="ph ph-briefcase"></i> <span>Daftar Paket</span></div>
                     <div class="nav-item" data-route="pengadaan-daftar"><i class="ph ph-list-bullets"></i> <span>Daftar Paket Rinci</span></div>
                 </div>
 
@@ -893,7 +893,7 @@
             {id:'SSKK_KONSTRUKSI', code:'SSKK_KONSTRUKSI', name:'SSKK Konstruksi', file_url:'templates/3_SSKK_TEMPLATE_Konstruksi.docx'},
             {id:'SPK', code:'SPK', name:'Rancangan SPK', file_url:'templates/4_RANCANGAN_SPK_TEMPLATE_revised.docx'},
             {id:'UND_KONTRAK', code:'UND_KONTRAK', name:'Undangan Kontrak', file_url:'templates/UND_KONTRAK.docx'},
-            {id:'UND_PENGADAAN', code:'UND_PENGADAAN', name:'Undangan Pengadaan', file_url:'templates/UND_PENGADAAN.docx'},
+            {id:'UND_PENGADAAN', code:'UND_PENGADAAN', name:'Undangan Pengadaan Langsung', file_url:'templates/UND_PENGADAAN.docx'},
             {id:'BA_KEMAJUAN',code:'BA_KEMAJUAN',name:'BA Kemajuan Pekerjaan',file_url:'templates/BA_KEMAJUAN.docx'},
             {id:'BA_PEMERIKSAAN',code:'BA_PEMERIKSAAN',name:'BA Pemeriksaan Hasil Pekerjaan',file_url:'templates/BA_PEMERIKSAAN.docx'},
             {id:'KPP3',code:'KPP3',name:'Kelengkapan Pengajuan Pihak Ketiga',file_url:'templates/KPP3.docx'},
@@ -1404,6 +1404,14 @@
                         <button class="btn btn-outline" onclick="document.getElementById('import-penyedia-excel').click()"><i class="ph ph-upload"></i> Import</button>
                         <button class="btn btn-outline" onclick="app.exportPenyediaExcel()"><i class="ph ph-export"></i> Export</button>
                     `;
+                } else if (this.schemaKey === 'template') {
+                    extraButtons = `
+                        <input type="file" id="import-template-file" accept=".xlsx,.xls,.csv,.docx" multiple style="display:none" onchange="app.importTemplates(event)">
+                        <button class="btn btn-outline" onclick="app.downloadTemplateImportFormat()"><i class="ph ph-file-xls"></i> Format Import</button>
+                        <button class="btn btn-outline" onclick="document.getElementById('import-template-file').click()"><i class="ph ph-upload"></i> Import</button>
+                        <button class="btn btn-outline" onclick="app.exportTemplates()"><i class="ph ph-download"></i> Export</button>
+                        <button class="btn btn-danger" onclick="app.deleteAllTemplates()"><i class="ph ph-trash"></i> Hapus Semua</button>
+                    `;
                 }
 
                 container.innerHTML = `
@@ -1768,7 +1776,7 @@
                     const value = Number(pkg.pembulatan_hps) || Number(total.hps) || Number(pkg.pagu) || 0;
                     return `<button type="button" class="card" onclick="app.navigate('workspace','${Utils.escapeAttr(pkg.id)}')" style="text-align:left;padding:16px;border-color:#E6EDF6;border-radius:14px;cursor:pointer"><div style="display:flex;justify-content:space-between;gap:10px"><b style="color:#12213F">${Utils.escapeHTML(pkg.name || 'Tanpa nama paket')}</b>${Utils.getBadge(pkg.stage)}</div><p style="font-size:12px;color:#64748B;margin:7px 0">${Utils.escapeHTML(pkg.opd || '-')} · ${Utils.escapeHTML(pkg.metode_pemilihan || '-')}</p><div style="display:flex;justify-content:space-between;font-size:12px;color:#64748B"><span>${Utils.formatCurrency(value) || 'Nilai belum diisi'}</span><b style="color:#1677FF">${Number(pkg.progress)||0}%</b></div></button>`;
                 }).join('') : '<div class="card" style="padding:18px;border-style:dashed;color:#64748B">Belum ada paket pada tahap ini.</div>';
-                container.innerHTML = `<div style="padding:26px;max-width:1500px;margin:0 auto;width:100%"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px"><div><h1 style="font-size:26px;margin:0;color:#0B2A67">Daftar Paket</h1><p style="color:#64748B;margin:6px 0 0">Monitoring paket pekerjaan berdasarkan tahapan proses.</p></div><div style="display:flex;gap:10px"><button class="btn btn-outline" onclick="app.navigate('pengadaan-daftar')">Daftar Paket Rinci <i class="ph ph-arrow-right"></i></button><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar');setTimeout(()=>app.crudEngine.showForm(),250)"><i class="ph ph-plus"></i> Tambah Paket Baru</button></div></div>${stages.map(stage => { const list=packages.filter(p=>String(p.stage||'BELUM PROSES').toUpperCase()===stage.key); return `<section style="margin-top:24px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 13px;border-radius:12px;background:${stage.color}10;border-left:4px solid ${stage.color}"><h2 style="font-size:16px;color:#12213F;margin:0"><i class="ph ${stage.icon}" style="color:${stage.color}"></i> ${stage.label} <small style="font-weight:600;color:${stage.color}">(${list.length} Paket)</small></h2><span style="font-size:11px;font-weight:700;letter-spacing:.05em;color:${stage.color}">${stage.key}</span></div><div class="sipanda-package-grid">${cards(list)}</div></section>`; }).join('')}</div>`;
+                container.innerHTML = `<div style="padding:26px;max-width:1500px;margin:0 auto;width:100%"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px"><div><h1 style="font-size:26px;margin:0;color:#0B2A67">Daftar Paket</h1><p style="color:#64748B;margin:6px 0 0">Monitoring paket pekerjaan berdasarkan tahapan proses.</p></div><div style="display:flex;gap:10px"><button class="btn btn-outline" onclick="app.navigate('pengadaan-daftar')">Daftar Paket Rinci <i class="ph ph-arrow-right"></i></button><button class="btn btn-primary" onclick="app.navigate('pengadaan-daftar');setTimeout(()=>app.crudEngine.showForm(),250)"><i class="ph ph-plus"></i> Tambah Paket Baru</button></div></div>${stages.map(stage => { const list=packages.filter(p=>String(p.stage||'BELUM PROSES').toUpperCase()===stage.key); return `<section style="margin-top:24px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 13px;border-radius:12px;background:${stage.color}10;border-left:4px solid ${stage.color}"><h2 style="font-size:16px;color:#12213F;margin:0"><i class="ph ${stage.icon}" style="color:${stage.color}"></i> ${stage.label} <small style="font-weight:600;color:#64748B">${list.length} paket</small></h2><span style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;background:#fff;color:${stage.color};border:1px solid ${stage.color}33;white-space:nowrap">${stage.label}</span></div><div class="sipanda-package-grid">${cards(list)}</div></section>`; }).join('')}</div>`;
            }
 
            static renderDashboard(container) {
@@ -2181,7 +2189,7 @@
                     return;
                 }
                 
-                const tabsList = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'Laporan', 'Catatan', 'Kalender', 'Aktivitas'];
+                const tabsList = ['Ringkasan', 'Data Paket', 'Pejabat', 'Penyedia', 'Harga', 'Jadwal', 'Jadwal Proses', 'Checklist', 'Copy SPSE', 'KAK', 'Rancangan Kontrak', 'Dokumen', 'Laporan', 'Catatan', 'Kalender', 'Aktivitas'];
 
                 container.innerHTML = `
                     <div class="workspace-header">
@@ -2337,6 +2345,7 @@
                     case 'jadwal': return this.renderJadwal();
                     case 'jadwalproses': return this.renderJadwalProses();
                     case 'checklist': return this.renderChecklist();
+                    case 'copyspse': return this.renderCopySPSE();
                     case 'kak': return this.renderKAK();
                     case 'rancangankontrak': return this.renderRancanganKontrak();
                     case 'dokumen': return this.renderDokumen();
@@ -3345,8 +3354,8 @@ negPPN += negTotal - negSubTotal;
             }
             
          renderJadwalProses() {
-    const rules = DB.get('jadwal_proses') || []; 
-    const holidays = DB.get('libur')?.map(x => x.date) || []; 
+    const rules = DB.get('jadwal_proses') || [];
+    const holidays = DB.get('libur')?.map(x => x.date) || [];
     const overrides = this.pkg.jadwal_proses_override || {};
 
     // Urutan prioritas alur: Upload -> Evaluasi -> Negosiasi -> Kontrak
@@ -3363,11 +3372,16 @@ negPPN += negTotal - negSubTotal;
     let calculated = [];
     
     sortedRules.forEach((r, i) => {
-        let start, end, isManual = false;
+        let start, end, startTime = r.start_time || '08:00', endTime = r.end_time || '16:00', link = r.link || '', isManual = false;
         const ruleId = r.id || i;
-        
-        if (overrides[`proc_${ruleId}`]) {
-            end = overrides[`proc_${ruleId}`];
+        const override = overrides[`proc_${ruleId}`];
+
+        if (override) {
+            // Dukung data lama berupa tanggal saja, serta data baru berupa tanggal + jam.
+            end = typeof override === 'string' ? override : override.end;
+            startTime = typeof override === 'object' && override.start_time ? override.start_time : startTime;
+            endTime = typeof override === 'object' && override.end_time ? override.end_time : endTime;
+            link = typeof override === 'object' && override.link ? override.link : link;
             let tempDate = new Date(end);
             let sub = 0;
             const dur = Number(r.duration) || 1;
@@ -3376,7 +3390,7 @@ negPPN += negTotal - negSubTotal;
                 const isWeekend = tempDate.getDay() === 0 || tempDate.getDay() === 6;
                 if(!isWeekend && !holidays.includes(tempDate.toISOString().split('T')[0])) sub++;
             }
-            start = tempDate.toISOString().split('T')[0];
+            start = typeof override === 'object' && override.start ? override.start : tempDate.toISOString().split('T')[0];
             isManual = true;
             currentBaseDate = end;
         } else {
@@ -3389,7 +3403,7 @@ negPPN += negTotal - negSubTotal;
             currentBaseDate = end; // Mengunci tahap berikutnya berurutan dari tahap ini
         }
         
-        calculated.push({ ...r, start, end, isManual });
+        calculated.push({ ...r, start, end, startTime, endTime, link, isManual });
     });
     
     let rows = calculated.map((r, i) => {
@@ -3397,8 +3411,9 @@ negPPN += negTotal - negSubTotal;
             <td>${i + 1}</td>
             <td class="font-medium">${r.name}</td>
             <td><span class="badge badge-success">Terkunci Berurutan</span></td>
-            <td>${Utils.formatDateShort(r.start)}</td>
-            <td class="font-bold">${Utils.formatDateShort(r.end)}</td>
+            <td>${Utils.formatDateShort(r.start)}<div class="text-xs text-muted">${r.startTime}</div></td>
+            <td class="font-bold">${Utils.formatDateShort(r.end)}<div class="text-xs text-muted font-normal">${r.endTime}</div></td>
+            <td>${r.link ? (String(r.link).startsWith('http') ? `<a class="text-primary-600 text-sm" href="${r.link}" target="_blank" rel="noopener">Buka link</a>` : `<span class="text-sm">${r.link}</span>`) : '<span class="text-muted">-</span>'}</td>
             <td>+${r.start_after} hari (Durasi: ${r.duration || 1} hari)</td>
         </tr>`;
     }).join('');
@@ -3408,7 +3423,7 @@ negPPN += negTotal - negSubTotal;
             <div class="flex justify-between items-center mb-6 border-b pb-2">
                 <div>
                     <h2 class="font-bold text-lg">Jadwal Proses Pengadaan Berurutan</h2>
-                    <p class="text-sm text-muted">Alur dikunci otomatis: Upload $\rightarrow$ Evaluasi $\rightarrow$ Negosiasi $\rightarrow$ Kontrak.</p>
+                    <p class="text-sm text-muted">Tahap berurutan. Tanggal dan jam mulai/selesai dapat disesuaikan manual.</p>
                 </div>
                 <div class="flex gap-2">
                     <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
@@ -3416,7 +3431,7 @@ negPPN += negTotal - negSubTotal;
                 </div>
             </div>
             <table class="data-table">
-                <thead><tr><th>No</th><th>Proses</th><th>Status Alur</th><th>Mulai</th><th>Tanggal Akhir</th><th>Selisih & Durasi</th></tr></thead>
+                <thead><tr><th>No</th><th>Proses</th><th>Status Alur</th><th>Mulai</th><th>Sampai</th><th>Tautan / Lokasi</th><th>Selisih & Durasi</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
@@ -3767,7 +3782,10 @@ negPPN += negTotal - negSubTotal;
                         </button>
                         <button class="btn btn-outline btn-sm text-warning" onclick="app.resetAllDocumentNumbers('${this.packageId}')">
                             <i class="ph ph-hash"></i> Reset Semua Nomor
-                        
+                        </button>
+                        <input type="file" id="import-checklist-excel" accept=".xlsx,.xls" style="display:none" onchange="app.importChecklist(event, '${this.packageId}')">
+                        <button class="btn btn-outline btn-sm" onclick="app.exportChecklist('${this.packageId}')"><i class="ph ph-export"></i> Export</button>
+                        <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-checklist-excel').click()"><i class="ph ph-upload"></i> Import</button>
                     </div>
                 </div>
                 <div class="table-container">
@@ -3825,8 +3843,25 @@ negPPN += negTotal - negSubTotal;
             try {
 
             const documentName = this.closest('tr[data-docid]')?.dataset.docname || '';
-            DB.saveChecklistOverride(this.dataset.packageid, documentName, { document_date: this.value });
-            DB.update('package_documents', this.dataset.id,{ document_date:this.value });
+            const packageId = this.dataset.packageid;
+            const selectedDate = this.value;
+            // Nomor format otomatis selalu memakai bulan dari tanggal dokumen.
+            // Saat tanggal diubah, hitung ulang nomor agar [bulan] dan [tahun] ikut berubah.
+            const pkg = DB.getById('paket', packageId);
+            const pkgForNumber = JSON.parse(JSON.stringify(pkg || {}));
+            pkgForNumber.checklists = pkgForNumber.checklists || [];
+            const saved = pkgForNumber.checklists.find(x => x.doc === documentName);
+            if (saved) {
+                saved.manual_date = selectedDate;
+                delete saved.manual_number;
+            } else {
+                pkgForNumber.checklists.push({ doc: documentName, manual_date: selectedDate });
+            }
+            const autoNumber = app.calculateDocumentMeta(pkgForNumber, documentName).number || '';
+            DB.saveChecklistOverride(packageId, documentName, { document_date: selectedDate, document_number: autoNumber });
+            DB.update('package_documents', this.dataset.id,{ document_date: selectedDate, document_number: autoNumber });
+            const numberInput = this.closest('tr[data-docid]')?.querySelector('.chk-master-input');
+            if (numberInput) numberInput.value = autoNumber;
 
                 app.notify("Tanggal dokumen tersimpan","success");
                 app.showAutoSaveStatus("saved");
@@ -3847,9 +3882,78 @@ negPPN += negTotal - negSubTotal;
 
 }
 
+            renderCopySPSE() {
+                const penyedia = DB.getById('penyedia', this.pkg.supplier_id) || {};
+                const alamat = penyedia.alamat || this.pkg.alamat_penyedia || 'Kantor BKAD Kota Bogor, Jalan Pemuda No. 31, Tanah Sareal, Kota Bogor';
+                const review = 'Kelengkapan Data Pengajuan Proses Pemilihan Penyedia Barang/Jasa (Kerangka Acuan Kerja/KAK, Harga Perkiraan Sendiri/HPS, Rencana Anggaran Biaya/RAB, Harga Survei, dan Draft Kontrak).';
+                const groups = [
+                    { title: 'Undangan Verifikasi', rows: [
+                        ['Tempat', alamat],
+                        ['Dokumen yang dibawa', 'Dokumen penawaran asli dan identitas perusahaan asli'],
+                        ['Kehadiran', 'Direktur atau yang mewakili dengan membawa surat kuasa']
+                    ]},
+                    { title: 'Undangan Reviu Dokumen Persiapan Pemilihan', rows: [
+                        ['Tempat', alamat],
+                        ['Kelengkapan', review],
+                        ['Pihak yang hadir', 'PPK/PPTK/Tim Teknis']
+                    ]},
+                    { title: 'Undangan Kontrak', rows: [
+                        ['Tempat', alamat],
+                        ['Dokumen yang dibawa', 'Identitas pribadi (KTP) asli dan stempel perusahaan'],
+                        ['Kehadiran', 'Direktur tidak diwakilkan']
+                    ]}
+                ];
+                const cards = groups.map((group, groupIndex) => `
+                    <section class="card p-5 mb-4">
+                        <h3 class="font-bold text-base mb-3">${group.title}</h3>
+                        <div class="divide-y border rounded-lg overflow-hidden">
+                            ${group.rows.map((row, rowIndex) => {
+                                const id = `spse-copy-${groupIndex}-${rowIndex}`;
+                                return `<div class="grid grid-cols-[180px_1fr_auto] gap-3 items-center p-3 bg-white">
+                                    <span class="text-sm font-semibold text-muted">${row[0]}</span>
+                                    <span id="${id}" class="text-sm leading-relaxed">${row[1]}</span>
+                                    <button class="btn btn-outline btn-sm" onclick="app.copySPSEValue('${id}')"><i class="ph ph-copy"></i> Copy</button>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </section>`).join('');
+                return `<div class="max-w-5xl mx-auto">
+                    <div class="mb-5"><h2 class="font-bold text-lg">Copy Data SPSE</h2><p class="text-sm text-muted">Salin cepat data undangan untuk diisikan ke aplikasi SPSE.</p></div>
+                    ${cards}
+                </div>`;
+            }
+
+            async copySPSEValue(elementId) {
+                const value = document.getElementById(elementId)?.textContent?.trim() || '';
+                if (!value) return this.notify('Data belum tersedia untuk disalin', 'error');
+                let copied = false;
+                try {
+                    if (navigator.clipboard?.writeText && window.isSecureContext) {
+                        await navigator.clipboard.writeText(value);
+                        copied = true;
+                    }
+                } catch (_) {}
+                if (!copied) {
+                    const area = document.createElement('textarea');
+                    area.value = value;
+                    area.setAttribute('readonly', '');
+                    area.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+                    document.body.appendChild(area);
+                    area.select();
+                    area.setSelectionRange(0, area.value.length);
+                    try { copied = document.execCommand('copy'); } catch (_) { copied = false; }
+                    area.remove();
+                }
+                if (copied) return this.notify('Teks berhasil disalin', 'success');
+                this.notify('Browser memblokir clipboard. Buka aplikasi lewat HTTPS lalu coba lagi.', 'error');
+            }
+
             renderKAK() {
                 const p = this.pkg;
                 const personnel = p.personnel || [];
+                const jenisPengadaan = p.jenis_pengadaan || p.jenis || 'Umum';
+                const konsultansi = String(jenisPengadaan).toLowerCase().includes('konsultansi');
+                const wajib = '<span style="color:#DC2626">*</span>';
                 
                 const trs = personnel.map((i, index) => `
                     <tr data-index="${index}">
@@ -3867,8 +3971,12 @@ negPPN += negTotal - negSubTotal;
                 return `
                     <div class="card p-6 max-w-5xl mx-auto border-t-4 border-t-primary-600">
                         <div class="flex justify-between items-center mb-6 border-b pb-4">
-                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Format Standar Jasa Konsultansi. Ketik otomatis tersimpan.</p></div>
+                            <div><h2 class="font-bold text-lg">Kerangka Acuan Kerja (KAK)</h2><p class="text-sm text-muted">Jenis: <b>${Utils.escapeHTML(jenisPengadaan)}</b>. Tanda <span style="color:#DC2626">*</span> wajib diisi. Ketik otomatis tersimpan.</p></div>
                             <div class="flex gap-2">
+                                <input type="file" id="import-kak-excel" accept=".xlsx,.xls" style="display:none" onchange="app.importKAK(event, '${this.packageId}')">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="app.downloadKAKImportFormat('${Utils.escapeAttr(jenisPengadaan)}')"><i class="ph ph-download"></i> Format KAK</button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('import-kak-excel').click()"><i class="ph ph-upload"></i> Import KAK</button>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="app.exportKAK('${this.packageId}')"><i class="ph ph-export"></i> Export KAK</button>
                                 <button class="btn btn-outline" onclick="app.runDocumentEngine('Uraian Singkat', '${this.packageId}')"><i class="ph ph-file-doc"></i> Generate Uraian Singkat</button>
                                 <button class="btn btn-outline" onclick="app.openDocumentOutput('KAK','${this.packageId}','KAK')"><i class="ph ph-printer"></i> Preview / Generate KAK</button>
                                 <button class="btn btn-primary" onclick="app.runDocumentEngine('KAK', '${this.packageId}')"><i class="ph ph-file-doc"></i> Generate KAK (Word)</button>
@@ -3878,20 +3986,20 @@ negPPN += negTotal - negSubTotal;
                             
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">1. Informasi Umum & Pendahuluan</legend>
-                                <div class="form-group"><label class="form-label">Latar Belakang</label><textarea name="latar_belakang" class="form-control" rows="3">${p.latar_belakang || ''}</textarea></div>
-                                <div class="form-group"><label class="form-label">Maksud & Tujuan</label><textarea name="maksud_tujuan" class="form-control" rows="3">${p.maksud_tujuan || ''}</textarea></div>
-                                <div class="form-group"><label class="form-label">Sasaran</label><textarea name="sasaran" class="form-control" rows="2">${p.sasaran || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Latar Belakang ${wajib}</label><textarea name="latar_belakang" class="form-control" rows="3" required>${p.latar_belakang || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Maksud & Tujuan ${wajib}</label><textarea name="maksud_tujuan" class="form-control" rows="3" required>${p.maksud_tujuan || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Sasaran ${wajib}</label><textarea name="sasaran" class="form-control" rows="2" required>${p.sasaran || ''}</textarea></div>
                                 <div class="form-group">
-                                    <label class="form-label">Dasar Hukum</label>
-                                    <textarea name="dasar_hukum" class="form-control" rows="4" placeholder="Masukkan dasar hukum penyusunan KAK">${p.dasar_hukum || ''}</textarea>
+                                    <label class="form-label">Dasar Hukum ${wajib}</label>
+                                    <textarea name="dasar_hukum" class="form-control" rows="4" placeholder="Masukkan dasar hukum penyusunan KAK" required>${p.dasar_hukum || ''}</textarea>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Spesifikasi Teknis</label>
-                                    <textarea name="spesifikasi_teknis" class="form-control" rows="5" placeholder="Masukkan spesifikasi teknis pekerjaan">${p.spesifikasi_teknis || ''}</textarea>
+                                    <label class="form-label">Spesifikasi Teknis ${konsultansi ? '' : wajib}</label>
+                                    <textarea name="spesifikasi_teknis" class="form-control" rows="5" placeholder="Masukkan spesifikasi teknis pekerjaan" ${konsultansi ? '' : 'required'}>${p.spesifikasi_teknis || ''}</textarea>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan</label><textarea name="organisasi_pengadaan" class="form-control" rows="2">${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
-                                    <div class="form-group"><label class="form-label">Sumber Pembiayaan</label><textarea name="sumber_pembiayaan" class="form-control" rows="2">${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Organisasi Pengadaan ${wajib}</label><textarea name="organisasi_pengadaan" class="form-control" rows="2" required>${p.organisasi_pengadaan || 'Pemerintah Kota Bogor\nBadan Keuangan dan Aset Daerah'}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Sumber Pembiayaan ${wajib}</label><textarea name="sumber_pembiayaan" class="form-control" rows="2" required>${p.sumber_pembiayaan || 'APBD Kota Bogor Tahun Anggaran ' + (p.tahun_anggaran||'2026')}</textarea></div>
                                 </div>
                             </fieldset>
 
@@ -3899,14 +4007,14 @@ negPPN += negTotal - negSubTotal;
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">2. Ruang Lingkup & Pelaksanaan</legend>
-                                <div class="form-group"><label class="form-label">Ruang Lingkup</label><textarea name="ruang_lingkup" class="form-control" rows="3">${p.ruang_lingkup || ''}</textarea></div>
+                                <div class="form-group"><label class="form-label">Ruang Lingkup ${wajib}</label><textarea name="ruang_lingkup" class="form-control" rows="3" required>${p.ruang_lingkup || ''}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group"><label class="form-label">Kewenangan Penyedia</label><textarea name="kewenangan_penyedia" class="form-control" rows="3">${p.kewenangan_penyedia || ''}</textarea></div>
-                                    <div class="form-group"><label class="form-label">Fasilitas yang Disediakan Penyedia</label><textarea name="fasilitas_penyedia" class="form-control" rows="3">${p.fasilitas_penyedia || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Kewenangan Penyedia ${konsultansi ? wajib : ''}</label><textarea name="kewenangan_penyedia" class="form-control" rows="3" ${konsultansi ? 'required' : ''}>${p.kewenangan_penyedia || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Fasilitas yang Disediakan Penyedia ${konsultansi ? wajib : ''}</label><textarea name="fasilitas_penyedia" class="form-control" rows="3" ${konsultansi ? 'required' : ''}>${p.fasilitas_penyedia || ''}</textarea></div>
                                 </div>
                             </fieldset>
 
-                            <fieldset class="border border-gray-200 p-4 rounded-md">
+                            <fieldset class="border border-gray-200 p-4 rounded-md" style="${konsultansi ? '' : 'display:none'}">
     <legend class="font-semibold text-sm px-2 flex justify-between w-full pr-4 items-center">
         <span class="text-primary-700">3. Tenaga Ahli Penyedia</span>
         <div class="flex gap-2">
@@ -3945,14 +4053,14 @@ negPPN += negTotal - negSubTotal;
 
                             <fieldset class="border border-gray-200 p-4 rounded-md">
                                 <legend class="font-semibold text-sm px-2 text-primary-700">4. Pelaporan & Hasil Akhir</legend>
-                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir)</label><textarea name="pelaporan" class="form-control" rows="4">${p.pelaporan || '1. Laporan Pendahuluan\n2. Laporan Bulanan\n3. Laporan Akhir'}</textarea></div>
+                                <div class="form-group"><label class="form-label">Pelaporan (Pendahuluan, Bulanan, Akhir) ${wajib}</label><textarea name="pelaporan" class="form-control" rows="4" required>${p.pelaporan || '1. Laporan Pendahuluan\n2. Laporan Bulanan\n3. Laporan Akhir'}</textarea></div>
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div class="form-group"><label class="form-label">Output</label><textarea name="output_kak" class="form-control" rows="2">${p.output_kak || ''}</textarea></div>
-                                    <div class="form-group"><label class="form-label">Outcome</label><textarea name="outcome" class="form-control" rows="2">${p.outcome || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Keluaran (Output) ${wajib}</label><textarea name="output_kak" class="form-control" rows="2" required>${p.output_kak || ''}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Hasil (Outcome) ${wajib}</label><textarea name="outcome" class="form-control" rows="2" required>${p.outcome || ''}</textarea></div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="form-group"><label class="form-label">Kewajiban Penggunaan PDN</label><textarea name="produksi_dalam_negeri" class="form-control" rows="2">${p.produksi_dalam_negeri || 'Kewajiban penggunaan produk dalam negeri sesuai ketentuan peraturan perundang-undangan.'}</textarea></div>
-                                    <div class="form-group"><label class="form-label">Alih Pengetahuan</label><textarea name="alih_pengetahuan" class="form-control" rows="2">${p.alih_pengetahuan || 'Penyedia Jasa Konsultansi berkewajiban menyelenggarakan pertemuan dan pembahasan dalam rangka alih pengetahuan.'}</textarea></div>
+                                    <div class="form-group"><label class="form-label">Alih Pengetahuan ${konsultansi ? wajib : ''}</label><textarea name="alih_pengetahuan" class="form-control" rows="2" ${konsultansi ? 'required' : ''}>${p.alih_pengetahuan || 'Penyedia Jasa Konsultansi berkewajiban menyelenggarakan pertemuan dan pembahasan dalam rangka alih pengetahuan.'}</textarea></div>
                                 </div>
                             </fieldset>
                         </form>
@@ -4857,6 +4965,102 @@ importPencairanExcel(event) {
                 this.notify('Template berhasil disalin. Silakan sesuaikan jenis dan kodenya.', 'success');
                 this.reRenderCurrentView();
             }
+
+            downloadTemplateImportFormat() {
+                const rows = [{
+                    'Kode': 'CONTOH_DOKUMEN',
+                    'Nama Template': 'Contoh Nama Dokumen',
+                    'Jenis': 'Umum',
+                    'URL Template DOCX': 'templates/nama_file.docx',
+                    'Nama File': 'nama_file.docx'
+                }];
+                const ws = XLSX.utils.json_to_sheet(rows);
+                ws['!cols'] = [{wch:22},{wch:34},{wch:38},{wch:46},{wch:28}];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Template Dokumen');
+                XLSX.writeFile(wb, 'Format_Import_Template_Dokumen_SPSE.xlsx');
+            }
+
+            exportTemplates() {
+                const rows = DB.get('template').map(t => ({
+                    'Kode': t.code || '',
+                    'Nama Template': t.name || '',
+                    'Jenis': t.type || 'Umum',
+                    'URL Template DOCX': t.file_url || '',
+                    'Nama File': t.filename || '',
+                    'Terakhir Diperbarui': t.last_updated || ''
+                }));
+                if (!rows.length) return this.notify('Belum ada template untuk diexport', 'error');
+                const ws = XLSX.utils.json_to_sheet(rows);
+                ws['!cols'] = [{wch:22},{wch:34},{wch:38},{wch:46},{wch:28},{wch:22}];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Template Dokumen');
+                XLSX.writeFile(wb, `Template_Dokumen_SPSE_${new Date().toISOString().slice(0,10)}.xlsx`);
+            }
+
+            importTemplates(event) {
+                const files = [...(event.target.files || [])];
+                if (!files.length) return;
+                const excel = files.find(file => /\.(xlsx|xls|csv)$/i.test(file.name));
+                const docxFiles = files.filter(file => /\.docx$/i.test(file.name));
+                const add = (row) => {
+                    const code = String(row['Kode'] || row.code || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+                    const name = String(row['Nama Template'] || row.name || '').trim();
+                    if (!code || !name) return false;
+                    const exists = DB.get('template').some(t => String(t.code).toUpperCase() === code && String(t.type || 'Umum') === String(row['Jenis'] || row.type || 'Umum'));
+                    const data = {
+                        id: Utils.generateId(), code, name,
+                        type: row['Jenis'] || row.type || 'Umum',
+                        file_url: row['URL Template DOCX'] || row.file_url || '',
+                        filename: row['Nama File'] || row.filename || '',
+                        last_updated: new Date().toISOString()
+                    };
+                    if (exists) {
+                        const old = DB.get('template').find(t => String(t.code).toUpperCase() === code && String(t.type || 'Umum') === data.type);
+                        const updateData = { ...data }; delete updateData.id;
+                        DB.update('template', old.id, updateData);
+                    } else DB.insert('template', data);
+                    return true;
+                };
+                const finish = (count) => {
+                    event.target.value = '';
+                    this.notify(`${count} template berhasil diimpor`, 'success');
+                    this.reRenderCurrentView();
+                };
+                if (excel) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const wb = XLSX.read(e.target.result, {type:'array'});
+                            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+                            const count = rows.reduce((n, row) => n + (add(row) ? 1 : 0), 0);
+                            finish(count);
+                        } catch (error) { console.error(error); this.notify('Format import template tidak dapat dibaca', 'error'); }
+                    };
+                    reader.readAsArrayBuffer(excel);
+                    return;
+                }
+                // DOCX lokal dapat dipakai langsung pada sesi browser ini. Untuk penggunaan lintas perangkat,
+                // ekspor metadata lalu gunakan URL Storage/hosting pada kolom URL Template DOCX.
+                const count = docxFiles.reduce((n, file) => n + (add({
+                    'Kode': file.name.replace(/\.docx$/i, ''),
+                    'Nama Template': file.name.replace(/\.docx$/i, '').replace(/[_-]+/g, ' '),
+                    'Jenis': 'Umum',
+                    'URL Template DOCX': URL.createObjectURL(file),
+                    'Nama File': file.name
+                }) ? 1 : 0), 0);
+                finish(count);
+                if (count) this.notify('DOCX tersimpan untuk sesi ini. Gunakan URL Storage agar permanen lintas perangkat.', 'info');
+            }
+
+            deleteAllTemplates() {
+                const count = DB.get('template').length;
+                if (!count) return this.notify('Tidak ada template tersimpan untuk dihapus', 'info');
+                if (!confirm(`Hapus seluruh ${count} template tersimpan? Template bawaan aplikasi tidak ikut terhapus.`)) return;
+                DB.get('template').map(t => t.id).forEach(id => DB.delete('template', id));
+                this.notify(`${count} template dihapus. Template bawaan tetap tersedia sebagai cadangan.`, 'success');
+                this.reRenderCurrentView();
+            }
             exportPersonnel(packageId) {
                 const pkg = DB.getById('paket', packageId);
                 if (!pkg || !pkg.personnel || pkg.personnel.length === 0) {
@@ -4877,6 +5081,145 @@ importPencairanExcel(event) {
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Tenaga Ahli");
                 XLSX.writeFile(wb, `Tenaga_Ahli_${pkg.id}.xlsx`);
+            }
+
+            getKAKFieldDefinitions(jenis = '') {
+                const type = String(jenis).toLowerCase();
+                const konsultansi = type.includes('konsultansi');
+                const base = [
+                    { key:'latar_belakang', label:'Latar Belakang', required:true },
+                    { key:'maksud_tujuan', label:'Maksud dan Tujuan', required:true },
+                    { key:'sasaran', label:'Sasaran', required:true },
+                    { key:'dasar_hukum', label:'Dasar Hukum', required:true },
+                    { key:'ruang_lingkup', label:'Ruang Lingkup Pekerjaan', required:true },
+                    { key:'organisasi_pengadaan', label:'Organisasi Pengadaan', required:true },
+                    { key:'sumber_pembiayaan', label:'Sumber Pembiayaan', required:true },
+                    { key:'output_kak', label:'Keluaran (Output)', required:true },
+                    { key:'outcome', label:'Hasil (Outcome)', required:true },
+                    { key:'pelaporan', label:'Pelaporan', required:true },
+                    { key:'produksi_dalam_negeri', label:'Penggunaan Produk Dalam Negeri', required:false }
+                ];
+                if (konsultansi) base.splice(5, 0,
+                    { key:'kewenangan_penyedia', label:'Kewenangan Penyedia', required:true },
+                    { key:'fasilitas_penyedia', label:'Fasilitas Penyedia', required:true },
+                    { key:'alih_pengetahuan', label:'Alih Pengetahuan', required:true }
+                );
+                else base.splice(5, 0, { key:'spesifikasi_teknis', label:'Spesifikasi Teknis', required:true });
+                return base;
+            }
+
+            downloadKAKImportFormat(jenis = '') {
+                const rows = this.getKAKFieldDefinitions(jenis).map(field => ({
+                    'Field': field.key, 'Label Isian': field.label, 'Wajib Diisi': field.required ? 'YA' : 'TIDAK', 'Nilai': ''
+                }));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'KAK');
+                if (String(jenis).toLowerCase().includes('konsultansi')) {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+                        ['Posisi / Jabatan', 'Pendidikan Minimal', 'Pengalaman (Thn)', 'Keahlian / Sertifikat', 'Jumlah', 'Orang Bulan (OB)'],
+                        ['', '', '', '', '', '']
+                    ]), 'Tenaga Ahli');
+                }
+                XLSX.writeFile(wb, `Format_Import_KAK_${String(jenis || 'Umum').replace(/[^a-z0-9]+/gi, '_')}.xlsx`);
+            }
+
+            exportKAK(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                if (!pkg) return this.notify('Paket tidak ditemukan', 'error');
+                const rows = this.getKAKFieldDefinitions(pkg.jenis_pengadaan || pkg.jenis).map(field => ({
+                    'Field': field.key, 'Label Isian': field.label, 'Wajib Diisi': field.required ? 'YA' : 'TIDAK', 'Nilai': pkg[field.key] || ''
+                }));
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'KAK');
+                if (String(pkg.jenis_pengadaan || pkg.jenis || '').toLowerCase().includes('konsultansi')) {
+                    const people = (pkg.personnel || []).map(person => ({
+                        'Posisi / Jabatan': person.jabatan || '', 'Pendidikan Minimal': person.pendidikan || '', 'Pengalaman (Thn)': person.pengalaman || '', 'Keahlian / Sertifikat': person.sertifikat || '', 'Jumlah': person.jumlah || 1, 'Orang Bulan (OB)': person.orang_bulan || 1
+                    }));
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(people), 'Tenaga Ahli');
+                }
+                XLSX.writeFile(wb, `KAK_${(pkg.kode_paket || pkg.id).replace(/[^a-z0-9]+/gi, '_')}.xlsx`);
+            }
+
+            importKAK(event, packageId) {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const workbook = XLSX.read(e.target.result, { type:'array' });
+                        const pkg = DB.getById('paket', packageId);
+                        const definitions = this.getKAKFieldDefinitions(pkg?.jenis_pengadaan || pkg?.jenis);
+                        const accepted = new Set(definitions.map(item => item.key));
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets.KAK || workbook.Sheets[workbook.SheetNames[0]], { defval:'' });
+                        const patch = {};
+                        rows.forEach(row => { const key = String(row.Field || row.field || '').trim(); if (accepted.has(key)) patch[key] = String(row.Nilai ?? row.nilai ?? '').trim(); });
+                        const missing = definitions.filter(item => item.required && !String(patch[item.key] || pkg?.[item.key] || '').trim()).map(item => item.label);
+                        if (missing.length) throw new Error(`Isian wajib belum ada: ${missing.join(', ')}`);
+                        const personnelSheet = workbook.Sheets['Tenaga Ahli'];
+                        if (personnelSheet) {
+                            const personnel = XLSX.utils.sheet_to_json(personnelSheet, { defval:'' }).filter(row => String(row['Posisi / Jabatan'] || '').trim()).map(row => ({
+                                jabatan:row['Posisi / Jabatan'], pendidikan:row['Pendidikan Minimal'], pengalaman:Number(row['Pengalaman (Thn)']) || 0, sertifikat:row['Keahlian / Sertifikat'], jumlah:Number(row.Jumlah) || 1, orang_bulan:Number(row['Orang Bulan (OB)']) || 1
+                            }));
+                            if (String(pkg?.jenis_pengadaan || pkg?.jenis || '').toLowerCase().includes('konsultansi') && !personnel.length) throw new Error('Jenis konsultansi wajib memiliki minimal satu tenaga ahli.');
+                            patch.personnel = personnel;
+                        }
+                        DB.update('paket', packageId, patch);
+                        this.notify('Data KAK berhasil diimpor', 'success');
+                        this.reRenderCurrentView();
+                    } catch (error) { this.notify(error.message || 'Format import KAK tidak valid', 'error'); }
+                    event.target.value = '';
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            exportChecklist(packageId) {
+                const pkg = DB.getById('paket', packageId);
+                const rows = DB.get('package_documents').filter(doc => String(doc.package_id) === String(packageId)).map(doc => ({
+                    'Kode Dokumen': doc.document_code || '', 'Nama Dokumen': doc.document_name || '', 'Nomor Dokumen': doc.document_number || '', 'Tanggal Dokumen': doc.document_date || '', 'Status': doc.status || 'DRAFT'
+                }));
+                if (!rows.length) return this.notify('Checklist belum tersedia untuk diexport', 'error');
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Checklist');
+                XLSX.writeFile(wb, `Checklist_${(pkg?.kode_paket || packageId).replace(/[^a-z0-9]+/gi, '_')}.xlsx`);
+            }
+
+            importChecklist(event, packageId) {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const workbook = XLSX.read(e.target.result, { type:'array' });
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets.Checklist || workbook.Sheets[workbook.SheetNames[0]], { defval:'' });
+                        const documents = DB.get('package_documents').filter(doc => String(doc.package_id) === String(packageId));
+                        const asDate = value => {
+                            if (typeof value === 'number' && value > 20000) {
+                                const parts = XLSX.SSF.parse_date_code(value);
+                                return parts ? `${parts.y}-${String(parts.m).padStart(2,'0')}-${String(parts.d).padStart(2,'0')}` : '';
+                            }
+                            const text = String(value || '').trim();
+                            if (!text) return '';
+                            const match = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+                            return match ? `${match[3]}-${match[2].padStart(2,'0')}-${match[1].padStart(2,'0')}` : text;
+                        };
+                        let changed = 0;
+                        rows.forEach(row => {
+                            const code = String(row['Kode Dokumen'] || '').trim().toUpperCase();
+                            const name = String(row['Nama Dokumen'] || '').trim();
+                            const doc = documents.find(item => code && String(item.document_code || '').toUpperCase() === code) || documents.find(item => name && String(item.document_name || '').toUpperCase() === name.toUpperCase());
+                            if (!doc) return;
+                            const update = { document_number:String(row['Nomor Dokumen'] || '').trim(), document_date:asDate(row['Tanggal Dokumen']), status:String(row.Status || doc.status || 'DRAFT').toUpperCase() };
+                            DB.update('package_documents', doc.id, update);
+                            DB.saveChecklistOverride(packageId, doc.document_name, { document_number:update.document_number, document_date:update.document_date });
+                            changed++;
+                        });
+                        if (!changed) throw new Error('Tidak ada baris yang cocok dengan dokumen checklist paket ini.');
+                        this.notify(`${changed} dokumen checklist berhasil diimpor`, 'success');
+                        this.reRenderCurrentView();
+                    } catch (error) { this.notify(error.message || 'Format import checklist tidak valid', 'error'); }
+                    event.target.value = '';
+                };
+                reader.readAsArrayBuffer(file);
             }
 
             downloadTemplatePersonnel() {
@@ -5395,13 +5738,13 @@ importPencairanExcel(event) {
                     const state = event.state || {};
                     const params = new URLSearchParams(window.location.search);
                     this.isPopNavigation = true;
-                    this.navigate(state.route || params.get('page') || 'dashboard', state.param || params.get('id') || null, {
+                    this.navigate(state.route || params.get('page') || 'daftar-paket', state.param || params.get('id') || null, {
                         history: false,
                         restoreScroll: Number(state.scrollY) || 0
                     });
                 });
                 const initialParams = new URLSearchParams(window.location.search);
-                this.navigate(initialParams.get('page') || 'dashboard', initialParams.get('id') || null, { replace: true });
+                this.navigate(initialParams.get('page') || 'daftar-paket', initialParams.get('id') || null, { replace: true });
             }
             async renderSignHeaderPage(container, spjId) {
                 // 1. Coba cari dulu dari cache lokal
@@ -8751,15 +9094,61 @@ const filteredList = pencairanList.filter(d => {
                 const pkgIdx = sortedPkgs.findIndex(p => p.id === pkgId);
                 const seqNum = String(pkgIdx >= 0 ? pkgIdx + 1 : 1).padStart(3, '0');
 
+                // Data Undangan Kontrak mengikuti Jadwal Proses, bukan tanggal hard-code.
+                // Dipakai oleh placeholder SDP: {tanggal_undangan_kontrak},
+                // {jam_undangan_kontrak}, dan {link_undangan_kontrak}.
+                const processRules = [...(DB.get('jadwal_proses') || [])].sort((a, b) => {
+                    const order = ['upload', 'evaluasi', 'negosiasi', 'kontrak'];
+                    const ai = order.findIndex(x => String(a.name || '').toLowerCase().includes(x));
+                    const bi = order.findIndex(x => String(b.name || '').toLowerCase().includes(x));
+                    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+                });
+                const processOverrides = pkg.jadwal_proses_override || {};
+                const holidays = (DB.get('libur') || []).map(x => x.date);
+                let processBase = pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().slice(0, 10);
+                let kontrakSchedule = null;
+                processRules.forEach((rule, index) => {
+                    const id = rule.id || index;
+                    const override = processOverrides[`proc_${id}`];
+                    const start = typeof override === 'object' && override.start
+                        ? override.start
+                        : Utils.addWorkingDays(processBase, Number(rule.start_after) || 0, holidays);
+                    const end = typeof override === 'string' ? override
+                        : (typeof override === 'object' && override.end ? override.end : Utils.addWorkingDays(start, Number(rule.duration) || 1, holidays));
+                    const schedule = {
+                        start, end,
+                        start_time: typeof override === 'object' && override.start_time ? override.start_time : (rule.start_time || '08:00'),
+                        end_time: typeof override === 'object' && override.end_time ? override.end_time : (rule.end_time || '16:00'),
+                        link: typeof override === 'object' && override.link ? override.link : (rule.link || '')
+                    };
+                    if (String(rule.name || '').toLowerCase().includes('kontrak')) kontrakSchedule = schedule;
+                    processBase = end;
+                });
+                kontrakSchedule = kontrakSchedule || { start: pkg.tgl_mulai || '', end: pkg.tgl_mulai || '', start_time: '08:00', end_time: '16:00', link: '' };
+                const tanggalUndanganKontrak = Utils.formatDate(kontrakSchedule.start);
+                const jamUndanganKontrak = `${kontrakSchedule.start_time} s.d. ${kontrakSchedule.end_time}`;
+                const linkUndanganKontrak = kontrakSchedule.link || 'Kantor BKAD Kota Bogor, Jalan Pemuda No. 31, Tanah Sareal, Kota Bogor';
+
                 return {
                     ...dynamicDocVars,
                     nomor_urut_paket: seqNum,
+                    tanggal_undangan_kontrak: tanggalUndanganKontrak,
+                    jam_undangan_kontrak: jamUndanganKontrak,
+                    link_undangan_kontrak: linkUndanganKontrak,
+                    tanggal_kontrak: tanggalUndanganKontrak,
+                    jam_kontrak: jamUndanganKontrak,
+                    link_kontrak: linkUndanganKontrak,
+                    waktu_undangan_kontrak: `${tanggalUndanganKontrak}, pukul ${jamUndanganKontrak}`,
                     
                     hari_tanggal_nota_dinas: `${days[new Date(dynamicDocVars.tanggal_nota_dinas || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_nota_dinas || '-'}`,
                     nomor_dokumen_nota_dinas: dynamicDocVars.nomor_nota_dinas || '-',
                     "hari_tanggal_undangan pengadaan": `${days[new Date(dynamicDocVars.tanggal_und_pengadaan || new Date()).getDay() || 0]}, ${dynamicDocVars.tanggal_und_pengadaan || '-'}`,
                     nomor_undangan_pengadaan: dynamicDocVars.nomor_und_pengadaan || '-',
+                    tanggal_undangan_pengadaan: dynamicDocVars.tanggal_und_pengadaan || Utils.formatDate(meta.date),
+                    hari_tanggal_undangan_pengadaan: dynamicDocVars.tanggal_und_pengadaan || Utils.formatDate(meta.date),
                     tanggal_hps: dynamicDocVars.tanggal_hps_rab || '-',
+                    tanggal_ba_nego: dynamicDocVars.tanggal_ba_negosiasi || Utils.formatDate(meta.date),
+                    tanggal_penawaran: pkg.tanggal_penawaran || dynamicDocVars.tanggal_sdp || Utils.formatDate(meta.date),
                     
                     nomor_ba: meta.number,
                     nomor_dokumen: meta.number,
@@ -8781,9 +9170,14 @@ const filteredList = pencairanList.filter(d => {
                     nama_paket: pkg.name, nama_rekening: pkg.nama_rekening || "-", sumber_dana: pkg.sumber_pembiayaan || "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
                     waktu_pelaksanaan: `${pkg.durasi_kontrak || 30} Hari Kalender`,
                     nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
+                    kbli: supplier.kbli || pkg.kbli || '-',
+                    uraian_kbli: supplier.uraian_kbli || pkg.uraian_kbli || '-',
+                    kualifikasi_penyedia: supplier.kualifikasi || supplier.kualifikasi_penyedia || pkg.kualifikasi_penyedia || '-',
+                    tahun_pajak_terakhir: supplier.tahun_pajak_terakhir || pkg.tahun_pajak_terakhir || '-',
                     nama_paket_upper: (pkg.name || "-").toUpperCase(),
                     
                     hps_nominal: Utils.formatNumber(hpsRound),
+                    hps: Utils.formatNumber(hpsRound),
                     hps_terbilang: Utils.toWords(hpsRound) + " rupiah",
                     terbilang_hps: Utils.toWords(hpsRound) + " rupiah",
                     
@@ -8936,6 +9330,7 @@ const filteredList = pencairanList.filter(d => {
     'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
     'BA Reviu Dokumen Persiapan': 'BA_REVIU',
     'SDP': 'SDP',
+    'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
     'BA Evaluasi': 'BA_EVALUASI',
     'Undangan Verifikasi': 'UND_VERIFIKASI',
     'BA Pembuktian Kualifikasi': 'BA_PEMBUKTIAN',
@@ -9255,29 +9650,35 @@ const filteredList = pencairanList.filter(d => {
                 const overrides = pkg.jadwal_proses_override || pkg.jadwal_override || {};
 
                 let html = `<div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">`;
-                html += `<p class="text-sm text-gray-500 mb-4">Ubah tanggal akhir pada tahapan di bawah ini untuk melakukan override manual. Kosongkan atau biarkan untuk mengikuti perhitungan otomatis.</p>`;
+                html += `<p class="text-sm text-gray-500 mb-4">Atur tanggal dan jam setiap tahap. Tahap berikutnya tetap mengikuti urutan jadwal proses.</p>`;
                 
                 if (type === 'proc') {
                     // Logika perhitungan otomatis untuk preview tanggal proses
                     let base = pkg.tgl_awal || pkg.tgl_mulai;
                     rules.forEach(r => {
-                        let autoEnd;
-                        if (overrides[`proc_${r.id}`]) {
-                            autoEnd = overrides[`proc_${r.id}`];
+                        const override = overrides[`proc_${r.id}`];
+                        let autoStart, autoEnd;
+                        if (override) {
+                            autoEnd = typeof override === 'string' ? override : override.end;
+                            autoStart = typeof override === 'object' && override.start ? override.start : autoEnd;
                             base = autoEnd;
                         } else {
-                            const start = Utils.addWorkingDays(base, r.start_after, holidays);
-                            autoEnd = Utils.addWorkingDays(start, r.duration, holidays);
+                            autoStart = Utils.addWorkingDays(base, r.start_after, holidays);
+                            autoEnd = Utils.addWorkingDays(autoStart, r.duration, holidays);
                             base = autoEnd;
                         }
 
-                        const overrideVal = overrides[`proc_${r.id}`] || '';
+                        const startTime = typeof override === 'object' && override.start_time ? override.start_time : (r.start_time || '08:00');
+                        const endTime = typeof override === 'object' && override.end_time ? override.end_time : (r.end_time || '16:00');
                         html += `
-                            <div class="flex flex-col gap-1 border-b pb-2">
+                            <div class="flex flex-col gap-1 border-b pb-3">
                                 <label class="text-sm font-semibold text-gray-700">Proses: ${r.name} (Durasi: ${r.duration} hari kerja)</label>
-                                <div class="flex gap-2 items-center">
-                                    <input type="date" id="override_proc_${r.id}" class="form-control w-full" value="${overrideVal || autoEnd}">
-                                    ${overrideVal ? `<span class="badge badge-warning text-xs px-2 py-1 rounded">Manual</span>` : `<span class="badge badge-info text-xs px-2 py-1 rounded">Auto</span>`}
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="text-xs text-muted">Mulai<input type="date" id="override_proc_start_${r.id}" class="form-control w-full mt-1" value="${autoStart}"></label>
+                                    <label class="text-xs text-muted">Jam mulai<input type="time" id="override_proc_start_time_${r.id}" class="form-control w-full mt-1" value="${startTime}"></label>
+                                    <label class="text-xs text-muted">Sampai<input type="date" id="override_proc_end_${r.id}" class="form-control w-full mt-1" value="${autoEnd}"></label>
+                                    <label class="text-xs text-muted">Jam selesai<input type="time" id="override_proc_end_time_${r.id}" class="form-control w-full mt-1" value="${endTime}"></label>
+                                    <label class="text-xs text-muted col-span-2">Tautan atau lokasi undangan<input type="text" id="override_proc_link_${r.id}" class="form-control w-full mt-1" value="${typeof override === 'object' && override.link ? override.link : (r.link || '')}" placeholder="https://... atau Kantor BKAD Kota Bogor"></label>
                                 </div>
                             </div>
                         `;
@@ -9318,16 +9719,18 @@ const filteredList = pencairanList.filter(d => {
                 const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || []; 
                 
                 rules.forEach(r => {
-                    // ID elemen HTML input disesuaikan dengan format saat render (override_proc_ID atau override_doc_ID)
-                    const inputEl = document.getElementById(`override_${type}_${r.id}`);
-                    if (inputEl) {
-                        const newVal = inputEl.value;
-                        if (newVal) {
-                            // Simpan langsung tanggal manual ke objek override dengan key yang sesuai
-                            pkg[targetKey][`${type}_${r.id}`] = newVal;
-                        } else {
-                            delete pkg[targetKey][`${type}_${r.id}`];
-                        }
+                    if (type === 'proc') {
+                        const start = document.getElementById(`override_proc_start_${r.id}`)?.value;
+                        const end = document.getElementById(`override_proc_end_${r.id}`)?.value;
+                        const start_time = document.getElementById(`override_proc_start_time_${r.id}`)?.value || '08:00';
+                        const end_time = document.getElementById(`override_proc_end_time_${r.id}`)?.value || '16:00';
+                        const link = document.getElementById(`override_proc_link_${r.id}`)?.value?.trim() || '';
+                        if (start && end) pkg[targetKey][`proc_${r.id}`] = { start, end, start_time, end_time, link };
+                        else delete pkg[targetKey][`proc_${r.id}`];
+                    } else {
+                        const inputEl = document.getElementById(`override_${type}_${r.id}`);
+                        if (inputEl && inputEl.value) pkg[targetKey][`${type}_${r.id}`] = inputEl.value;
+                        else delete pkg[targetKey][`${type}_${r.id}`];
                     }
                 });
                 
