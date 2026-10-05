@@ -1308,6 +1308,7 @@
                     { key: 'mak', label: 'MAK', type: 'text' }, 
                     { key: 'kode_rup', label: 'Kode RUP', type: 'text' }, 
                     { key: 'pagu', label: 'Nilai Pagu', type: 'text', formatter: v => Utils.formatCurrency(v) || '-' }, 
+                    { key: 'jenis_pengadaan', label: 'Jenis Pengadaan', type: 'select', options: PROCUREMENT_TYPES, required: true },
                     { key: 'metode_pemilihan', label: 'Metode', type: 'select', options: ['E-Purchasing', 'Tender', 'Pengadaan Langsung', 'Penunjukan Langsung'], required: true }, 
                     { 
                         key: 'stage', 
@@ -4406,6 +4407,7 @@ negPPN += negTotal - negSubTotal;
         "Nama Pekerjaan": p.name || '',
         "Uraian / Penanda": p.uraian || '',
         "Nilai Pagu": Number(p.pagu) || 0,
+        "Jenis Pengadaan": p.jenis_pengadaan || p.jenis || '',
         "Metode Pemilihan": p.metode_pemilihan || 'Pengadaan Langsung',
         "Tahapan": p.stage || 'BELUM PROSES',
         "Tahun Anggaran": p.tahun_anggaran || '2026',
@@ -4447,11 +4449,13 @@ importPaket(event) {
                 const paguVal = Number(String(r["Nilai Pagu"] || r["Pagu"] || '0').replace(/\D/g, '')) || 0;
                 const durasiVal = Number(r["Durasi Kontrak (Hari)"] || r["Durasi"] || 30);
                 const tglMulaiVal = String(r["Tanggal Mulai"] || r["Tgl Mulai"] || new Date().toISOString().split('T')[0]).trim();
+                const jenisPengadaan = String(r["Jenis Pengadaan"] || r["Jenis"] || '').trim();
 
                 const payload = {
                     name: namaPaket,
                     uraian: String(r["Uraian / Penanda"] || r["Uraian"] || '').trim(),
                     pagu: paguVal,
+                    jenis_pengadaan: jenisPengadaan,
                     metode_pemilihan: String(r["Metode Pemilihan"] || r["Metode"] || 'Pengadaan Langsung').trim(),
                     stage: String(r["Tahapan"] || 'BELUM PROSES').trim().toUpperCase(),
                     tahun_anggaran: String(r["Tahun Anggaran"] || '2026').trim(),
@@ -4461,6 +4465,9 @@ importPaket(event) {
                     durasi_kontrak: durasiVal,
                     tgl_mulai: tglMulaiVal
                 };
+                // File export lama belum memiliki kolom jenis. Jangan sampai
+                // impor file lama mengosongkan jenis yang sudah tersimpan.
+                if (!jenisPengadaan) delete payload.jenis_pengadaan;
 
                 // Cek apakah data sudah ada berdasarkan ID atau Nama Paket
                 let existing = null;
