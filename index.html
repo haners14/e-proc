@@ -9794,20 +9794,46 @@ const filteredList = pencairanList.filter(d => {
                 if (!pkg) return;
 
                 // Ambil aturan berdasarkan tipe: 'doc' untuk jadwal dokumen, 'proc' untuk jadwal proses pengadaan
-                const rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || [];
+                let rules = DB.get(type === 'doc' ? 'waktu' : 'jadwal_proses') || [];
                 const holidays = (DB.get('libur') || []).map(l => l.date);
                 const overrides = pkg.jadwal_proses_override || pkg.jadwal_override || {};
+
+                // Harus identik dengan tampilan tab Jadwal Proses.
+                // Jangan memakai urutan database karena baris master dapat tersimpan acak.
+                if (type === 'proc') {
+                    const order = ['upload', 'evaluasi', 'negosiasi', 'kontrak'];
+                    rules = [...rules].sort((a, b) => {
+                        const ai = order.findIndex(item => String(a.name || '').toLowerCase().includes(item));
+                        const bi = order.findIndex(item => String(b.name || '').toLowerCase().includes(item));
+                        return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+                    });
+                }
 
                 let html = `<div class="space-y-4 max-h-[60vh] overflow-y-auto p-2">`;
                 html += `<p class="text-sm text-gray-500 mb-4">Atur tanggal dan jam setiap tahap. Tahap berikutnya tetap mengikuti urutan jadwal proses.</p>`;
                 
                 if (type === 'proc') {
-                    // Logika perhitungan otomatis untuk preview tanggal proses
+                    // Sumber tanggal sama dengan tabel depan: dokumen checklist menang.
+                    const processDocumentCodes = { upload: 'SDP', evaluasi: 'BA_EVALUASI', negosiasi: 'BA_NEGOSIASI', kontrak: 'SPK' };
+                    const linkedDate = (ruleName) => {
+                        const name = String(ruleName || '').toLowerCase();
+                        const key = Object.keys(processDocumentCodes).find(item => name.includes(item));
+                        if (!key) return null;
+                        const code = processDocumentCodes[key];
+                        const doc = DB.get('package_documents').find(item => String(item.package_id) === String(pkgId)
+                            && normalizeTemplateDocumentCode(item.document_code) === code);
+                        return doc?.document_date ? { code, date: doc.document_date } : null;
+                    };
                     let base = pkg.tgl_awal || pkg.tgl_mulai;
-                    rules.forEach(r => {
+                    rules.forEach((r, index) => {
                         const override = overrides[`proc_${r.id}`];
+                        const linked = linkedDate(r.name);
                         let autoStart, autoEnd;
-                        if (override) {
+                        if (linked) {
+                            autoStart = linked.date;
+                            autoEnd = linked.date;
+                            base = linked.date;
+                        } else if (override) {
                             autoEnd = typeof override === 'string' ? override : override.end;
                             autoStart = typeof override === 'object' && override.start ? override.start : autoEnd;
                             base = autoEnd;
@@ -9822,10 +9848,11 @@ const filteredList = pencairanList.filter(d => {
                         html += `
                             <div class="flex flex-col gap-1 border-b pb-3">
                                 <label class="text-sm font-semibold text-gray-700">Proses: ${r.name} (Durasi: ${r.duration} hari kerja)</label>
+                                ${linked ? `<p class="text-xs text-primary-600">Mengikuti tanggal ${linked.code} pada Checklist. Ubah tanggal dokumen tersebut bila jadwal perlu digeser.</p>` : ''}
                                 <div class="grid grid-cols-2 gap-2">
-                                    <label class="text-xs text-muted">Mulai<input type="date" id="override_proc_start_${r.id}" class="form-control w-full mt-1" value="${autoStart}"></label>
+                                    <label class="text-xs text-muted">Mulai<input type="date" id="override_proc_start_${r.id}" class="form-control w-full mt-1" value="${autoStart}" ${linked ? 'disabled' : ''}></label>
                                     <label class="text-xs text-muted">Jam mulai<input type="time" id="override_proc_start_time_${r.id}" class="form-control w-full mt-1" value="${startTime}"></label>
-                                    <label class="text-xs text-muted">Sampai<input type="date" id="override_proc_end_${r.id}" class="form-control w-full mt-1" value="${autoEnd}"></label>
+                                    <label class="text-xs text-muted">Sampai<input type="date" id="override_proc_end_${r.id}" class="form-control w-full mt-1" value="${autoEnd}" ${linked ? 'disabled' : ''}></label>
                                     <label class="text-xs text-muted">Jam selesai<input type="time" id="override_proc_end_time_${r.id}" class="form-control w-full mt-1" value="${endTime}"></label>
                                     <label class="text-xs text-muted col-span-2">Tautan atau lokasi undangan<input type="text" id="override_proc_link_${r.id}" class="form-control w-full mt-1" value="${typeof override === 'object' && override.link ? override.link : (r.link || '')}" placeholder="https://... atau Kantor BKAD Kota Bogor"></label>
                                 </div>
