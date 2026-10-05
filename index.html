@@ -3962,7 +3962,7 @@ negPPN += negTotal - negSubTotal;
                                 return `<div class="grid grid-cols-[180px_1fr_auto] gap-3 items-center p-3 bg-white">
                                     <span class="text-sm font-semibold text-muted">${row[0]}</span>
                                     <span id="${id}" class="text-sm leading-relaxed">${row[1]}</span>
-                                    <button class="btn btn-outline btn-sm" onclick="app.copySPSEValue('${id}')"><i class="ph ph-copy"></i> Copy</button>
+                                    <button type="button" class="btn btn-outline btn-sm" onclick="app.copySPSEValue('${id}', this)"><i class="ph ph-copy"></i> Copy</button>
                                 </div>`;
                             }).join('')}
                         </div>
@@ -3973,29 +3973,43 @@ negPPN += negTotal - negSubTotal;
                 </div>`;
             }
 
-            async copySPSEValue(elementId) {
+            copySPSEValue(elementId, button = null) {
                 const value = document.getElementById(elementId)?.textContent?.trim() || '';
                 if (!value) return this.notify('Data belum tersedia untuk disalin', 'error');
-                let copied = false;
-                try {
-                    if (navigator.clipboard?.writeText && window.isSecureContext) {
-                        await navigator.clipboard.writeText(value);
-                        copied = true;
+
+                const markCopied = () => {
+                    if (button) {
+                        const original = button.innerHTML;
+                        button.innerHTML = '<i class="ph ph-check"></i> Tersalin';
+                        button.classList.add('btn-primary');
+                        setTimeout(() => { button.innerHTML = original; button.classList.remove('btn-primary'); }, 1600);
                     }
-                } catch (_) {}
-                if (!copied) {
+                    this.notify('Teks berhasil disalin', 'success');
+                };
+                const legacyCopy = () => {
                     const area = document.createElement('textarea');
                     area.value = value;
                     area.setAttribute('readonly', '');
-                    area.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+                    area.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;padding:0;border:0;opacity:0;z-index:-1';
                     document.body.appendChild(area);
+                    area.focus({ preventScroll:true });
                     area.select();
                     area.setSelectionRange(0, area.value.length);
-                    try { copied = document.execCommand('copy'); } catch (_) { copied = false; }
+                    let copied = false;
+                    try { copied = document.execCommand('copy'); } catch (_) {}
                     area.remove();
-                }
-                if (copied) return this.notify('Teks berhasil disalin', 'success');
-                this.notify('Browser memblokir clipboard. Buka aplikasi lewat HTTPS lalu coba lagi.', 'error');
+                    return copied;
+                };
+                const showManualCopy = () => {
+                    DOM.openModal('Salin Data SPSE', `<p class="text-sm text-muted mb-3">Browser menolak akses clipboard. Tekan <b>Ctrl/Cmd + C</b> setelah teks dipilih.</p><textarea id="spse-manual-copy" class="form-control" rows="7" readonly>${Utils.escapeHTML(value)}</textarea>`, `<button class="btn btn-primary" onclick="const e=document.getElementById('spse-manual-copy');e.focus();e.select();document.execCommand('copy');app.notify('Teks berhasil disalin','success');DOM.closeModal()"><i class="ph ph-copy"></i> Salin</button><button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button>`);
+                    setTimeout(() => { const area = document.getElementById('spse-manual-copy'); if (area) { area.focus(); area.select(); } }, 50);
+                };
+                if (navigator.clipboard?.writeText && window.isSecureContext) {
+                    navigator.clipboard.writeText(value).then(markCopied).catch(() => {
+                        if (legacyCopy()) markCopied(); else showManualCopy();
+                    });
+                } else if (legacyCopy()) markCopied();
+                else showManualCopy();
             }
 
             renderKAK() {
