@@ -884,6 +884,38 @@
             'Jasa Lainnya'
         ];
 
+        // Cadangan URL template resmi. Tetap import file Excel metadata agar data ini
+        // tersimpan di Supabase, tetapi checklist dapat memilih template yang tepat
+        // berdasarkan kode dokumen + jenis pengadaan sejak awal.
+        const SPSE_TEMPLATE_BASE_URL = 'https://oyskjxwcfekwcckjwviv.supabase.co/storage/v1/object/public/document-templates/';
+        const SPSE_TEMPLATE_TYPES = [
+            ['Barang', 'Barang'],
+            ['Konstruksi', 'Konstruksi'],
+            ['Konsultansi Perencanaan Konstruksi', 'Konsultansi_Perencanaan_Konstruksi'],
+            ['Konsultansi Pengawasan Konstruksi', 'Konsultansi_Pengawasan_Konstruksi'],
+            ['Konsultansi Lainnya', 'Konsultansi_Lainnya'],
+            ['Jasa Lainnya', 'Jasa_Lainnya']
+        ];
+        const SPSE_TEMPLATE_DOCUMENTS = [
+            ['NOTA_DINAS', 'NOTA_DINAS', 'Nota Dinas'],
+            ['URAIAN_SINGKAT', 'Uraian_Singkat', 'Uraian Singkat'],
+            ['BA_REVIU', 'BA_REVIU_DPP', 'BA Reviu Dokumen Persiapan'],
+            ['KAK', 'KAK', 'KAK'],
+            ['HPS_RAB', 'HPS', 'HPS RAB'],
+            ['SDP', 'SDP', 'SDP'],
+            ['BA_NEGOSIASI', 'BA_Negosiasi', 'BA Negosiasi'],
+            ['SPK', 'RANCANGAN_SPK', 'Rancangan SPK'],
+            ['SSUK', 'SSUK', 'SSUK'],
+            ['SSKK', 'SSKK', 'SSKK'],
+            ['BA_KEMAJUAN', 'BA_Kemajuan', 'BA Kemajuan Pekerjaan'],
+            ['BA_PEMERIKSAAN', 'BA_Pemeriksaan', 'BA Pemeriksaan Hasil Pekerjaan'],
+            ['KPP3', 'KPP3', 'Kelengkapan Pengajuan Pihak Ketiga']
+        ];
+        const SPSE_TEMPLATE_MANIFEST = SPSE_TEMPLATE_DOCUMENTS.flatMap(([code, prefix, name]) => SPSE_TEMPLATE_TYPES.map(([type, suffix]) => {
+            const filename = `${prefix}_${suffix}.docx`;
+            return { id:`SPSE_${code}_${suffix}`, code, name, type, filename, file_url:`${SPSE_TEMPLATE_BASE_URL}${encodeURIComponent(filename)}` };
+        }));
+
         const BUILTIN_TEMPLATES = [
             {id:'NOTA_DINAS', code:'NOTA_DINAS', name:'Nota Dinas', file_url:'templates/1_NOTA_DINAS_TEMPLATE_revised.docx'},
             {id:'URAIAN_SINGKAT', code:'URAIAN_SINGKAT', name:'Uraian Singkat Pekerjaan', file_url:'templates/0_URAIAN_SINGKAT_TEMPLATE.docx'},
@@ -897,6 +929,7 @@
             {id:'BA_KEMAJUAN',code:'BA_KEMAJUAN',name:'BA Kemajuan Pekerjaan',file_url:'templates/BA_KEMAJUAN.docx'},
             {id:'BA_PEMERIKSAAN',code:'BA_PEMERIKSAAN',name:'BA Pemeriksaan Hasil Pekerjaan',file_url:'templates/BA_PEMERIKSAAN.docx'},
             {id:'KPP3',code:'KPP3',name:'Kelengkapan Pengajuan Pihak Ketiga',file_url:'templates/KPP3.docx'},
+            ...SPSE_TEMPLATE_MANIFEST
         ];
 
         const DB = {
@@ -4245,6 +4278,7 @@ negPPN += negTotal - negSubTotal;
                 ...dbTemplates,
                 ...builtinTemplates.filter(b => !dbTemplates.some(t =>
                     String(t.code || '').trim().toUpperCase() === String(b.code || '').trim().toUpperCase()
+                    && this.normalizeProcurementType(t.type) === this.normalizeProcurementType(b.type)
                 ))
             ];
 
