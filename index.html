@@ -9173,6 +9173,12 @@ const filteredList = pencairanList.filter(d => {
                 });
 
                 const meta = master ? {number: master.document_number || '', date: master.document_date || ''} : this.getDocumentMeta(pkg, docName);
+                const isRancanganKontrak = normalizeTemplateDocumentCode(master?.document_code || docName) === 'RANCANGAN_KONTRAK';
+                // Rancangan Kontrak hanya menyebut jangka waktu hari kerja. Tanggal akhir
+                // tetap tersimpan pada data paket untuk kebutuhan jadwal/dokumen lain.
+                const tanggalAkhirKontrak = isRancanganKontrak ? '' : Utils.formatDate(pkg.tgl_selesai);
+                const satuanDurasiKontrak = isRancanganKontrak ? 'Hari Kerja' : 'Hari Kalender';
+                const durasiKontrak = Number(pkg.durasi_kontrak) || 30;
                 
                 const dateObj = new Date(meta.date || pkg.tgl_mulai || new Date().toISOString().split('T')[0]);
                 const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -9319,12 +9325,12 @@ const filteredList = pencairanList.filter(d => {
                     jenis_kontrak: pkg.jenis_kontrak || '-', jenis_pengadaan: pkg.jenis_pengadaan || '-',
                     alamat_penyedia: supplier.address || '-', email_penyedia: supplier.email || '-',
                     jabatan_direktur: supplier.jabatan_direktur || 'Direktur',
-                    tanggal_mulai_kontrak: Utils.formatDate(pkg.tgl_mulai), tanggal_akhir_kontrak: Utils.formatDate(pkg.tgl_selesai),
-                    tanggal_mulai_kerja: Utils.formatDate(pkg.tgl_mulai), tanggal_selesai: Utils.formatDate(pkg.tgl_selesai),
+                    tanggal_mulai_kontrak: Utils.formatDate(pkg.tgl_mulai), tanggal_akhir_kontrak: tanggalAkhirKontrak,
+                    tanggal_mulai_kerja: Utils.formatDate(pkg.tgl_mulai), tanggal_selesai: tanggalAkhirKontrak,
                     lingkup_pekerjaan: pkg.ruang_lingkup || pkg.uraian || '-',
                     hari_tanggal: Utils.formatDate(meta.date),
                     nama_paket: pkg.name, nama_rekening: pkg.nama_rekening || "-", sumber_dana: pkg.sumber_pembiayaan || "APBD Kota Bogor", tahun_anggaran: pkg.tahun_anggaran || "2026",
-                    waktu_pelaksanaan: `${pkg.durasi_kontrak || 30} Hari Kalender`,
+                    waktu_pelaksanaan: `${durasiKontrak} ${satuanDurasiKontrak}`,
                     nama_penyedia: supplier.name || '-', nama_direktur: supplier.direktur || "Direktur",
                     kbli: pkg.kbli || supplier.kbli || '-',
                     uraian_kbli: pkg.uraian_kbli || supplier.uraian_kbli || '-',
@@ -9365,7 +9371,7 @@ const filteredList = pencairanList.filter(d => {
                     nama_sub_kegiatan_upper: (pkg.nama_sub_kegiatan || "-").toUpperCase(),
 
                     
-                    lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${pkg.durasi_kontrak || 30} Hari Kalender`,
+                    lokasi: pkg.lokasi || "Kota Bogor", jangka_waktu: `${durasiKontrak} ${satuanDurasiKontrak}`,
 
                     nama_pa: pa.name || '-', nip_pa: pa.nip || '-',
                     nama_kpa: pa.name || '-', nip_kpa: pa.nip || '-',
@@ -9391,8 +9397,9 @@ const filteredList = pencairanList.filter(d => {
                     nilai_kontrak_terbilang: Utils.toWords(negoRound) + " rupiah",
                     progress_persen: pkg.progress || 100,
                     jumlah_hasil_pekerjaan: pkg.jumlah_hasil_pekerjaan || '-',
-                    durasi_kontrak: pkg.durasi_kontrak || 30,
-                    durasi_kontrak_terbilang: Utils.toWords(pkg.durasi_kontrak || 30),
+                    durasi_kontrak: durasiKontrak,
+                    durasi_kontrak_terbilang: Utils.toWords(durasiKontrak),
+                    durasi_kontrak_hari_kerja: `${durasiKontrak} Hari Kerja`,
                     
                     latar_belakang: pkg.latar_belakang || '-',
                     maksud_tujuan: pkg.maksud_tujuan || '-',
