@@ -8984,6 +8984,15 @@ const filteredList = pencairanList.filter(d => {
             downloadDocument(docId) { const master = DB.getById('package_documents', docId), item = master && this.getDocumentHistory(master)[0]; if(!item?.file_url) return; const a=document.createElement('a'); a.href=item.file_url; a.download=item.filename || item.name || 'dokumen'; a.click(); }
             showDocumentHistory(docId) { const master = DB.getById('package_documents', docId); const rows = master ? this.getDocumentHistory(master).map(x=>`<tr><td>v${x.version||1}</td><td>${x.filename||x.name}</td><td>${Utils.formatDate(x.document_date||x.date)}</td><td>${Utils.getBadge(x.status)}</td></tr>`).join('') : ''; DOM.openModal('Riwayat Dokumen', `<table class="data-table"><thead><tr><th>Versi</th><th>File</th><th>Tanggal</th><th>Status</th></tr></thead><tbody>${rows || '<tr><td colspan="4">Belum ada riwayat.</td></tr>'}</tbody></table>`, `<button class="btn btn-outline" onclick="DOM.closeModal()">Tutup</button>`); }
 
+            // Template di Storage bisa ditimpa memakai nama file yang sama.
+            // Tambahkan token berbeda per generate agar browser/CDN tidak mengirim DOCX cache.
+            getFreshTemplateUrl(fileUrl) {
+                const url = new URL(String(fileUrl || ''), window.location.href);
+                url.searchParams.delete('_sipanda_template');
+                url.searchParams.set('_sipanda_template', `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+                return url.toString();
+            }
+
             openDocumentOutput(name, pkgId, fallbackPrint = '') {
                 const master = this.resolveDocumentMaster(name, pkgId);
                 const latest = this.getDocumentHistory(master)[0];
@@ -9018,9 +9027,13 @@ const filteredList = pencairanList.filter(d => {
                     addLog(`Memulai Document Dependency Engine...`);
                     addLog(`Menyiapkan data payload untuk ${docName}...`);
                     const payload = this.prepareDocumentPayload(pkgId, docName, master);
-                    addLog(`Mengunduh file template dari server...`);
+                    const freshTemplateUrl = this.getFreshTemplateUrl(template.file_url);
+                    addLog(`Mengunduh versi terbaru template dari server...`);
                     
-                    const response = await fetch(template.file_url);
+                    const response = await fetch(freshTemplateUrl, {
+                        cache: 'no-store',
+                        headers: { 'Cache-Control': 'no-cache, no-store, max-age=0', 'Pragma': 'no-cache' }
+                    });
                     if (!response.ok) throw new Error("Gagal mengunduh template dari URL");
                     const arrayBuffer = await response.arrayBuffer();
 
