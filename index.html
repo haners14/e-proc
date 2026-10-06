@@ -1469,7 +1469,7 @@
                             <div><h1 class="text-2xl font-bold text-main">${this.schemaKey === 'paket' ? 'Daftar Paket Rinci' : this.schema.title}</h1><p class="text-muted text-sm mt-1">${this.schemaKey === 'paket' ? 'Kelola dan pantau seluruh paket pekerjaan pengadaan BMD.' : 'Live Sync dari Supabase.'}</p></div>
                             <div class="flex gap-2">
                                 ${extraButtons}
-                                <button class="btn btn-primary" onclick="app.crudEngine.showForm()"><i class="ph ph-plus"></i> Tambah Data</button>
+                                <button class="btn btn-primary" onclick="${this.schemaKey === 'template' ? 'app.openTemplateUploadForm()' : 'app.crudEngine.showForm()'}"><i class="ph ${this.schemaKey === 'template' ? 'ph-upload-simple' : 'ph-plus'}"></i> ${this.schemaKey === 'template' ? 'Upload Template' : 'Tambah Data'}</button>
                             </div>
                         </div>
                         <div class="card flex-1 flex flex-col overflow-hidden">
@@ -3504,6 +3504,10 @@ negPPN += negTotal - negSubTotal;
                     <p class="text-sm text-muted">Tahap berurutan. Tanggal dan jam mulai/selesai dapat disesuaikan manual.</p>
                 </div>
                 <div class="flex gap-2">
+                    <input type="file" id="import-proc-schedule-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="app.importProcessSchedule(event, '${this.packageId}')">
+                    <button class="btn btn-outline btn-sm" onclick="app.downloadProcessScheduleFormat()"><i class="ph ph-file-xls"></i> Format</button>
+                    <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-proc-schedule-file').click()"><i class="ph ph-upload-simple"></i> Import</button>
+                    <button class="btn btn-outline btn-sm" onclick="app.exportProcessSchedule('${this.packageId}')"><i class="ph ph-download-simple"></i> Export</button>
                     <button class="btn btn-outline btn-sm" onclick="app.editManualJadwal('${this.packageId}', 'proc')"><i class="ph ph-calendar-plus"></i> Edit Manual</button>
                     <button class="btn btn-outline btn-sm" onclick="app.navigate('master-jadwal-proses')">Atur Master Jadwal</button>
                 </div>
@@ -5084,6 +5088,77 @@ importPencairanExcel(event) {
                 DB.insert('template', newTemplate);
                 this.notify('Template berhasil disalin. Silakan sesuaikan jenis dan kodenya.', 'success');
                 this.reRenderCurrentView();
+            }
+
+            openTemplateUploadForm() {
+                const types = [...PROCUREMENT_TYPES, 'Umum'];
+                const typeOptions = types.map(type => `<option value="${Utils.escapeHTML(type)}">${Utils.escapeHTML(type)}</option>`).join('');
+                const body = `
+                    <form id="template-upload-form">
+                        <div class="form-group">
+                            <label class="form-label">File Template <span class="text-danger">*</span></label>
+                            <input class="form-control" name="template_file" type="file" accept=".docx,.pdf" required>
+                            <p class="text-xs text-muted mt-1">Format DOCX atau PDF. Nama file dipakai untuk URL Storage.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="form-group"><label class="form-label">Kode Dokumen <span class="text-danger">*</span></label><input class="form-control" name="code" placeholder="Contoh: RANCANGAN_SSKK" required></div>
+                            <div class="form-group"><label class="form-label">Jenis Pengadaan <span class="text-danger">*</span></label><select class="form-control" name="type" required><option value="">Pilih jenis</option>${typeOptions}</select></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Nama Template <span class="text-danger">*</span></label><input class="form-control" name="name" placeholder="Contoh: Rancangan SSKK Konstruksi" required></div>
+                        <div class="p-3 rounded-lg bg-blue-50 text-sm text-blue-700"><i class="ph ph-info"></i> File diunggah langsung ke Storage <b>document-templates</b>. Jika nama file sama, file lama ditimpa.</div>
+                    </form>`;
+                DOM.openModal('Upload Template Dokumen', body, `
+                    <button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button>
+                    <button class="btn btn-primary" onclick="app.saveTemplateUploadForm()"><i class="ph ph-upload-simple"></i> Upload & Simpan</button>
+                `);
+            }
+
+            async saveTemplateUploadForm() {
+                const form = document.getElementById('template-upload-form');
+                const file = form?.querySelector('[name="template_file"]')?.files?.[0];
+                const code = normalizeTemplateDocumentCode(form?.querySelector('[name="code"]')?.value || '');
+                const name = String(form?.querySelector('[name="name"]')?.value || '').trim();
+                const type = String(form?.querySelector('[name="type"]')?.value || '').trim();
+                if (!file || !code || !name || !type) return this.notify('File, kode, nama, dan jenis wajib diisi', 'error');
+                if (!/\.(docx|pdf)$/i.test(file.name)) return this.notify('File harus berformat DOCX atau PDF', 'error');
+
+                const token = Auth.session?.access_token;
+                if (!token) return this.notify('Sesi login diperlukan untuk mengunggah template', 'error');
+                const filename = file.name.replace(/[\\/]/g, '_');
+                const endpoint = `${SUPABASE_PROJECT_URL}/storage/v1/object/document-templates/${encodeURIComponent(filename)}`;
+                const mimeType = file.type || (/\.pdf$/i.test(filename) ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+                try {
+                    this.notify('Mengunggah file template...', 'info');
+                    const response = await window.__nativeFetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            apikey: SUPABASE_KEY,
+                            Authorization: `Bearer ${token}`,
+                            'x-upsert': 'true',
+                            'Content-Type': mimeType
+                        },
+                        body: file
+                    });
+                    if (!response.ok) {
+                        const detail = await response.text();
+                        throw new Error(detail || `Upload gagal (${response.status})`);
+                    }
+
+                    const fileUrl = `${SPSE_TEMPLATE_BASE_URL}${encodeURIComponent(filename)}`;
+                    const match = DB.get('template').find(item =>
+                        normalizeTemplateDocumentCode(item.code || '') === code && String(item.type || 'Umum') === type
+                    );
+                    const data = { code, name, type, file_url: fileUrl, filename, last_updated: new Date().toISOString() };
+                    if (match) DB.update('template', match.id, data);
+                    else DB.insert('template', { id: Utils.generateId(), ...data });
+                    DOM.closeModal();
+                    this.notify(`Template ${name} berhasil diunggah dan disimpan`, 'success');
+                    this.reRenderCurrentView();
+                } catch (error) {
+                    console.error('Template upload failed', error);
+                    this.notify(`Upload gagal: ${error.message || 'Periksa izin Storage'}`, 'error');
+                }
             }
 
             downloadTemplateImportFormat() {
@@ -9963,6 +10038,135 @@ const filteredList = pencairanList.filter(d => {
                 `;
 
                 DOM.openModal(`Edit Manual Jadwal ${type === 'doc' ? 'Dokumen' : 'Proses Pengadaan'}`, html, '', '700px');
+            }
+
+            getProcessScheduleRows(pkgId) {
+                const pkg = DB.getById('paket', pkgId);
+                if (!pkg) return [];
+                const holidays = (DB.get('libur') || []).map(item => item.date);
+                const order = ['upload', 'evaluasi', 'negosiasi', 'kontrak'];
+                const rules = [...(DB.get('jadwal_proses') || [])].sort((a, b) => {
+                    const ai = order.findIndex(item => String(a.name || '').toLowerCase().includes(item));
+                    const bi = order.findIndex(item => String(b.name || '').toLowerCase().includes(item));
+                    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+                });
+                const overrides = pkg.jadwal_proses_override || {};
+                const documentCodes = { upload: 'SDP', evaluasi: 'BA_EVALUASI', negosiasi: 'BA_NEGOSIASI', kontrak: 'SPK' };
+                let base = pkg.tgl_awal || pkg.tgl_mulai || new Date().toISOString().slice(0, 10);
+                return rules.map((rule, index) => {
+                    const manual = overrides[`proc_${rule.id}`];
+                    const key = Object.keys(documentCodes).find(item => String(rule.name || '').toLowerCase().includes(item));
+                    const code = key ? documentCodes[key] : '';
+                    const linked = code && DB.get('package_documents').find(item => String(item.package_id) === String(pkgId) && normalizeTemplateDocumentCode(item.document_code) === code);
+                    let start, end, startTime = rule.start_time || '08:00', endTime = rule.end_time || '16:00', link = rule.link || '', source = 'Otomatis';
+                    if (manual) {
+                        end = typeof manual === 'string' ? manual : manual.end;
+                        start = typeof manual === 'object' && manual.start ? manual.start : end;
+                        startTime = typeof manual === 'object' && manual.start_time ? manual.start_time : startTime;
+                        endTime = typeof manual === 'object' && manual.end_time ? manual.end_time : endTime;
+                        link = typeof manual === 'object' && manual.link ? manual.link : link;
+                        source = 'Import / Edit Manual';
+                    } else if (linked?.document_date) {
+                        start = linked.document_date; end = linked.document_date; source = `Mengikuti ${code}`;
+                    } else {
+                        start = Utils.addWorkingDays(base, Number(rule.start_after) || 0, holidays);
+                        end = Utils.addWorkingDays(start, Number(rule.duration) || 1, holidays);
+                    }
+                    base = end || base;
+                    return { no: index + 1, rule, start, end, startTime, endTime, link, source };
+                });
+            }
+
+            downloadProcessScheduleFormat() {
+                const rows = [{
+                    'Proses': 'Upload',
+                    'Mulai (YYYY-MM-DD)': '2026-10-06',
+                    'Jam Mulai (HH:MM)': '08:00',
+                    'Sampai (YYYY-MM-DD)': '2026-10-06',
+                    'Jam Selesai (HH:MM)': '16:00',
+                    'Tautan / Lokasi': 'Kantor BKAD Kota Bogor'
+                }];
+                const sheet = XLSX.utils.json_to_sheet(rows);
+                sheet['!cols'] = [{ wch:18 }, { wch:24 }, { wch:20 }, { wch:24 }, { wch:21 }, { wch:45 }];
+                const book = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(book, sheet, 'Jadwal Proses');
+                XLSX.writeFile(book, 'Format_Import_Jadwal_Proses.xlsx');
+            }
+
+            exportProcessSchedule(pkgId) {
+                const pkg = DB.getById('paket', pkgId);
+                const schedule = this.getProcessScheduleRows(pkgId);
+                if (!pkg || !schedule.length) return this.notify('Belum ada master jadwal proses untuk diexport', 'error');
+                const rows = schedule.map(item => ({
+                    'No': item.no,
+                    'Proses': item.rule.name || '',
+                    'Mulai (YYYY-MM-DD)': item.start || '',
+                    'Jam Mulai (HH:MM)': item.startTime || '',
+                    'Sampai (YYYY-MM-DD)': item.end || '',
+                    'Jam Selesai (HH:MM)': item.endTime || '',
+                    'Tautan / Lokasi': item.link || '',
+                    'Sumber': item.source
+                }));
+                const sheet = XLSX.utils.json_to_sheet(rows);
+                sheet['!cols'] = [{ wch:7 }, { wch:18 }, { wch:24 }, { wch:20 }, { wch:24 }, { wch:21 }, { wch:45 }, { wch:24 }];
+                const book = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(book, sheet, 'Jadwal Proses');
+                const fileName = String(pkg.name || pkgId).replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '');
+                XLSX.writeFile(book, `Jadwal_Proses_${fileName || pkgId}.xlsx`);
+            }
+
+            importProcessSchedule(event, pkgId) {
+                const file = event.target.files?.[0];
+                event.target.value = '';
+                if (!file) return;
+                const pkg = DB.getById('paket', pkgId);
+                if (!pkg) return this.notify('Paket tidak ditemukan', 'error');
+                const parseDate = (value) => {
+                    if (!value) return '';
+                    if (value instanceof Date && !Number.isNaN(value.valueOf())) return value.toISOString().slice(0, 10);
+                    if (typeof value === 'number' && XLSX.SSF?.parse_date_code) {
+                        const date = XLSX.SSF.parse_date_code(value);
+                        return date ? `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}` : '';
+                    }
+                    const text = String(value).trim();
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+                    const match = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+                    return match ? `${match[3]}-${String(match[2]).padStart(2, '0')}-${String(match[1]).padStart(2, '0')}` : '';
+                };
+                const reader = new FileReader();
+                reader.onload = (loadEvent) => {
+                    try {
+                        const book = XLSX.read(loadEvent.target.result, { type: 'array', cellDates: true });
+                        const rows = XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], { defval: '', raw: false });
+                        const rules = DB.get('jadwal_proses') || [];
+                        const normalize = value => String(value || '').toLowerCase().trim().replace(/\s+/g, ' ');
+                        const overrides = { ...(pkg.jadwal_proses_override || {}) };
+                        let imported = 0;
+                        rows.forEach(row => {
+                            const process = row['Proses'] || row.proses || row['Nama Proses'] || '';
+                            const rule = rules.find(item => normalize(item.name) === normalize(process));
+                            const start = parseDate(row['Mulai (YYYY-MM-DD)'] || row.Mulai || row.mulai);
+                            const end = parseDate(row['Sampai (YYYY-MM-DD)'] || row.Sampai || row.sampai || row['Tanggal Akhir']);
+                            if (!rule || !start || !end) return;
+                            overrides[`proc_${rule.id}`] = {
+                                start,
+                                end,
+                                start_time: String(row['Jam Mulai (HH:MM)'] || row['Jam Mulai'] || row.jam_mulai || rule.start_time || '08:00').trim(),
+                                end_time: String(row['Jam Selesai (HH:MM)'] || row['Jam Selesai'] || row.jam_selesai || rule.end_time || '16:00').trim(),
+                                link: String(row['Tautan / Lokasi'] || row.Tautan || row.Lokasi || row.link || '').trim()
+                            };
+                            imported++;
+                        });
+                        if (!imported) return this.notify('Tidak ada baris valid. Gunakan format import yang disediakan.', 'error');
+                        DB.update('paket', pkgId, { jadwal_proses_override: overrides });
+                        this.notify(`${imported} jadwal proses berhasil diimpor`, 'success');
+                        this.reRenderCurrentView();
+                    } catch (error) {
+                        console.error('Import jadwal proses gagal', error);
+                        this.notify('File jadwal tidak dapat dibaca', 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
             }
 
           saveManualJadwal(pkgId, type) {
