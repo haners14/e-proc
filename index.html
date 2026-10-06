@@ -8993,9 +8993,20 @@ const filteredList = pencairanList.filter(d => {
                 return url.toString();
             }
 
+            isStaticPdfTemplate(documentCode, fileUrl) {
+                return normalizeTemplateDocumentCode(documentCode) === 'SSUK'
+                    && /\.pdf(?:[?#]|$)/i.test(String(fileUrl || ''));
+            }
+
             openDocumentOutput(name, pkgId, fallbackPrint = '') {
                 const master = this.resolveDocumentMaster(name, pkgId);
                 const latest = this.getDocumentHistory(master)[0];
+                // SSUK PDF adalah dokumen statis. Selalu ambil lagi dari Storage agar
+                // file yang baru ditimpa tidak kalah oleh riwayat unduhan lama.
+                if (normalizeTemplateDocumentCode(master.document_code) === 'SSUK') {
+                    this.runDocumentEngine(master.id, pkgId);
+                    return;
+                }
                 if (latest?.file_url) { window.open(latest.file_url, '_blank'); return; }
                 this.runDocumentEngine(master.id, pkgId);
             }
@@ -9024,6 +9035,37 @@ const filteredList = pencairanList.filter(d => {
                 const addLog = (msg) => { logEl.innerHTML += `<div>> ${msg}</div>`; logEl.scrollTop = logEl.scrollHeight; };
 
                 try {
+                    if (this.isStaticPdfTemplate(resolvedCode, template.file_url)) {
+                        const freshTemplateUrl = this.getFreshTemplateUrl(template.file_url);
+                        addLog(`SSUK adalah PDF statis. Mengunduh versi terbaru dari Storage...`);
+                        const response = await fetch(freshTemplateUrl, {
+                            cache: 'no-store',
+                            headers: { 'Cache-Control': 'no-cache, no-store, max-age=0', 'Pragma': 'no-cache' }
+                        });
+                        if (!response.ok) throw new Error('Gagal mengunduh PDF SSUK dari URL template');
+                        const pdfBlob = await response.blob();
+                        const remoteName = decodeURIComponent(new URL(template.file_url, window.location.href).pathname.split('/').pop() || 'SSUK.pdf');
+                        saveAs(pdfBlob, remoteName);
+
+                        const version = Math.max(master.version || 0, ...this.getDocumentHistory(master).map(x => x.version || 0)) + 1;
+                        const generated = DB.insert('documents', {
+                            package_id: pkgId, doc_type: master.document_code, name: docName, status: 'FINAL',
+                            date: master.document_date || new Date().toISOString().split('T')[0],
+                            document_number: master.document_number, document_date: master.document_date,
+                            filename: remoteName, file_size: pdfBlob.size, file_url: template.file_url,
+                            version, generated_by: 'Template PDF Statis'
+                        });
+                        DB.update('package_documents', master.id, {
+                            generated_document_id: generated.id, version, status: 'FINAL', generated: true, file_url: template.file_url
+                        });
+                        addLog(`<span class="text-success font-bold">SELESAI! PDF SSUK asli berhasil diunduh.</span>`);
+                        setTimeout(() => {
+                            DOM.closeModal();
+                            this.notify('PDF SSUK berhasil diunduh', 'success');
+                            this.reRenderCurrentView();
+                        }, 900);
+                        return;
+                    }
                     addLog(`Memulai Document Dependency Engine...`);
                     addLog(`Menyiapkan data payload untuk ${docName}...`);
                     const payload = this.prepareDocumentPayload(pkgId, docName, master);
@@ -9147,9 +9189,14 @@ const filteredList = pencairanList.filter(d => {
                 const pa = pjb.find(p => p.id === pkg.pa_id) || pjb.find(p => p.role === 'PA/KPA') || { name: '-', nip: '-' };
 
                 const totals = DB.calculatePackageTotals(pkg);
-                const hpsRound = pkg.pembulatan_hps || totals.hps;
-                const penRound = pkg.pembulatan_penawaran || totals.penawaran;
-                const negoRound = pkg.pembulatan_negosiasi || totals.negosiasi;
+                // Nilai pembulatan di Rancangan Kontrak adalah sumber nilai resmi dokumen.
+                // Jangan jatuh kembali ke hitungan negosiasi sebelum pembulatan bila nilai itu sudah diisi.
+                const roundedValue = (value, fallback) => value !== '' && value !== null && value !== undefined && Number.isFinite(Number(value))
+                    ? Number(value) : (Number(fallback) || 0);
+                const hpsRound = roundedValue(pkg.pembulatan_hps, totals.hps);
+                const penRound = roundedValue(pkg.pembulatan_penawaran, totals.penawaran);
+                const negoRound = roundedValue(pkg.pembulatan_negosiasi, totals.negosiasi);
+                const nilaiKontrakFormat = Utils.formatCurrency(negoRound) || 'Rp 0';
 
                 let noCounter = 1;
                 let sub_hps = 0, sub_pen = 0, sub_neg = 0;
@@ -9364,7 +9411,8 @@ const filteredList = pencairanList.filter(d => {
                     penawaran_koreksi_nominal: Utils.formatNumber(penRound),
                     penawaran_koreksi_terbilang: Utils.toWords(penRound) + " rupiah",
                     
-                    negosiasi_nominal: Utils.formatNumber(negoRound),
+                    // Dipakai SSKK Konstruksi. Sudah termasuk Rp dan mengikuti pembulatan negosiasi.
+                    negosiasi_nominal: nilaiKontrakFormat,
                     negosiasi_terbilang: Utils.toWords(negoRound) + " rupiah",
                     terbilang_neg: Utils.toWords(negoRound) + " rupiah",
 
@@ -9406,7 +9454,7 @@ const filteredList = pencairanList.filter(d => {
                     nip_pptk: pptk.nip || '-',
                     nama_bendahara: bendahara.name || '-',
                     nip_bendahara: bendahara.nip || '-',
-                    nilai_kontrak_nominal: Utils.formatNumber(negoRound),
+                    nilai_kontrak_nominal: nilaiKontrakFormat,
                     nilai_kontrak_terbilang: Utils.toWords(negoRound) + " rupiah",
                     progress_persen: pkg.progress || 100,
                     jumlah_hasil_pekerjaan: pkg.jumlah_hasil_pekerjaan || '-',
