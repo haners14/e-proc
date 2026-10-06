@@ -909,6 +909,7 @@
             ['RANCANGAN_KONTRAK', 'RANCANGAN_SPK', 'Rancangan Kontrak'],
             ['SPK', 'RANCANGAN_SPK', 'Rancangan SPK'],
             ['SSUK', 'SSUK', 'SSUK'],
+            ['RANCANGAN_SSKK', 'RANCANGAN_SSKK', 'Rancangan SSKK'],
             ['SSKK', 'SSKK', 'SSKK'],
             ['BA_KEMAJUAN', 'BA_Kemajuan', 'BA Kemajuan Pekerjaan'],
             ['BA_PEMERIKSAAN', 'BA_Pemeriksaan', 'BA Pemeriksaan Hasil Pekerjaan'],
@@ -1454,7 +1455,7 @@
                     `;
                 } else if (this.schemaKey === 'template') {
                     extraButtons = `
-                        <input type="file" id="import-template-file" accept=".xlsx,.xls,.csv,.docx" multiple style="display:none" onchange="app.importTemplates(event)">
+                        <input type="file" id="import-template-file" accept=".xlsx,.xls,.csv,.docx,.pdf" multiple style="display:none" onchange="app.importTemplates(event)">
                         <button class="btn btn-outline" onclick="app.downloadTemplateImportFormat()"><i class="ph ph-file-xls"></i> Format Import</button>
                         <button class="btn btn-outline" onclick="document.getElementById('import-template-file').click()"><i class="ph ph-upload"></i> Import</button>
                         <button class="btn btn-outline" onclick="app.exportTemplates()"><i class="ph ph-download"></i> Export</button>
@@ -3604,6 +3605,7 @@ negPPN += negTotal - negSubTotal;
                         'Rancangan Kontrak',
                         'SPK',
                         'SSUK',
+                        'Rancangan SSKK',
                         'SSKK',
                         'SPMK',
                     
@@ -3700,14 +3702,15 @@ negPPN += negTotal - negSubTotal;
     'Rancangan Kontrak': 17,
     'SPK': 18,
     'SSUK': 19,
-    'SSKK': 20,
-    'SPMK': 21,
+    'Rancangan SSKK': 20,
+    'SSKK': 21,
+    'SPMK': 22,
 
-    'BA Kemajuan Pekerjaan': 22,
-    'BA Pemeriksaan Hasil Pekerjaan': 23,
-    'BAST': 24,
-    'Kelengkapan Pengajuan Pihak Ketiga': 25,
-    'BAP': 26
+    'BA Kemajuan Pekerjaan': 23,
+    'BA Pemeriksaan Hasil Pekerjaan': 24,
+    'BAST': 25,
+    'Kelengkapan Pengajuan Pihak Ketiga': 26,
+    'BAP': 27
 };
             // Urutkan checklist kronologis
             const sorted = registers.sort((a, b) => {
@@ -5119,7 +5122,7 @@ importPencairanExcel(event) {
                 const files = [...(event.target.files || [])];
                 if (!files.length) return;
                 const excel = files.find(file => /\.(xlsx|xls|csv)$/i.test(file.name));
-                const docxFiles = files.filter(file => /\.docx$/i.test(file.name));
+                const templateFiles = files.filter(file => /\.(docx|pdf)$/i.test(file.name));
                 const add = (row) => {
                     const code = normalizeTemplateDocumentCode(row['Kode'] || row.code || '');
                     const name = String(row['Nama Template'] || row.name || '').trim();
@@ -5157,17 +5160,17 @@ importPencairanExcel(event) {
                     reader.readAsArrayBuffer(excel);
                     return;
                 }
-                // DOCX lokal dapat dipakai langsung pada sesi browser ini. Untuk penggunaan lintas perangkat,
+                // DOCX/PDF lokal dapat dipakai langsung pada sesi browser ini. Untuk penggunaan lintas perangkat,
                 // ekspor metadata lalu gunakan URL Storage/hosting pada kolom URL Template DOCX.
-                const count = docxFiles.reduce((n, file) => n + (add({
-                    'Kode': file.name.replace(/\.docx$/i, ''),
-                    'Nama Template': file.name.replace(/\.docx$/i, '').replace(/[_-]+/g, ' '),
+                const count = templateFiles.reduce((n, file) => n + (add({
+                    'Kode': file.name.replace(/\.(docx|pdf)$/i, ''),
+                    'Nama Template': file.name.replace(/\.(docx|pdf)$/i, '').replace(/[_-]+/g, ' '),
                     'Jenis': 'Umum',
                     'URL Template DOCX': URL.createObjectURL(file),
                     'Nama File': file.name
                 }) ? 1 : 0), 0);
                 finish(count);
-                if (count) this.notify('DOCX tersimpan untuk sesi ini. Gunakan URL Storage agar permanen lintas perangkat.', 'info');
+                if (count) this.notify('Template tersimpan untuk sesi ini. Gunakan URL Storage agar permanen lintas perangkat.', 'info');
             }
 
             deleteAllTemplates() {
@@ -8854,6 +8857,7 @@ const filteredList = pencairanList.filter(d => {
                     'SPPBJ': 'SPPBJ',
                     'Undangan Penandatanganan Kontrak':'UND_KONTRAK',
                     'Rancangan Kontrak':'RANCANGAN_KONTRAK',
+                    'Rancangan SSKK':'RANCANGAN_SSKK',
                     'SPK':'SPK',
                     'SSUK':'SSUK',
                     'SSKK':'SSKK',
@@ -9244,7 +9248,7 @@ const filteredList = pencairanList.filter(d => {
                 const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
                 const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-                const docCodes = ['NOTA_DINAS', 'HPS_RAB', 'KAK', 'BA_REVIU', 'SDP', 'BA_EVALUASI', 'BA_PEMBUKTIAN', 'UNDANGAN_NEGOSIASI', 'BA_NEGOSIASI', 'UND_PENGADAAN', 'UND_VERIFIKASI', 'UND_REVIU', 'URAIAN_SINGKAT', 'BA_HASIL', 'SPPBJ', 'UND_KONTRAK', 'RANCANGAN_KONTRAK', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP', 'BA_KEMAJUAN', 'BA_PEMERIKSAAN', 'KPP3'];
+                const docCodes = ['NOTA_DINAS', 'HPS_RAB', 'KAK', 'BA_REVIU', 'SDP', 'BA_EVALUASI', 'BA_PEMBUKTIAN', 'UNDANGAN_NEGOSIASI', 'BA_NEGOSIASI', 'UND_PENGADAAN', 'UND_VERIFIKASI', 'UND_REVIU', 'URAIAN_SINGKAT', 'BA_HASIL', 'SPPBJ', 'UND_KONTRAK', 'RANCANGAN_KONTRAK', 'RANCANGAN_SSKK', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BAST', 'BAP', 'BA_KEMAJUAN', 'BA_PEMERIKSAAN', 'KPP3'];
                 const dynamicDocVars = {};
                 const allPackageDocs = DB.get('package_documents').filter(d => d.package_id === pkgId);
                 
@@ -9252,7 +9256,7 @@ const filteredList = pencairanList.filter(d => {
                     let d = allPackageDocs.find(x => x.document_code === code);
                     const lowerCode = code.toLowerCase();
                     const aliasesRev = {
-                        'NOTA_DINAS':'Nota Dinas', 'HPS_RAB':'HPS/RAB', 'KAK':'KAK', 'URAIAN_SINGKAT': 'Uraian Singkat', 'BA_REVIU': 'BA Reviu Dokumen Persiapan', 'SDP':'SDP', 'BA_EVALUASI':'BA Evaluasi', 'BA_PEMBUKTIAN':'BA Pembuktian Kualifikasi', 'UNDANGAN_NEGOSIASI':'Undangan Negosiasi', 'BA_NEGOSIASI':'BA Negosiasi', 'UND_PENGADAAN':'Undangan Pengadaan Langsung', 'UND_VERIFIKASI': 'Undangan Verifikasi', 'UND_REVIU': 'Undangan Reviu', 'BA_HASIL':'BA Hasil Pemilihan', 'SPPBJ':'SPPBJ', 'UND_KONTRAK': 'Undangan Penandatanganan Kontrak', 'RANCANGAN_KONTRAK': 'Rancangan Kontrak', 'SPK':'SPK', 'SSUK':'SSUK', 'SSKK':'SSKK', 'SPMK':'SPMK', 'BAST':'BAST', 'BAP':'BAP',
+                        'NOTA_DINAS':'Nota Dinas', 'HPS_RAB':'HPS/RAB', 'KAK':'KAK', 'URAIAN_SINGKAT': 'Uraian Singkat', 'BA_REVIU': 'BA Reviu Dokumen Persiapan', 'SDP':'SDP', 'BA_EVALUASI':'BA Evaluasi', 'BA_PEMBUKTIAN':'BA Pembuktian Kualifikasi', 'UNDANGAN_NEGOSIASI':'Undangan Negosiasi', 'BA_NEGOSIASI':'BA Negosiasi', 'UND_PENGADAAN':'Undangan Pengadaan Langsung', 'UND_VERIFIKASI': 'Undangan Verifikasi', 'UND_REVIU': 'Undangan Reviu', 'BA_HASIL':'BA Hasil Pemilihan', 'SPPBJ':'SPPBJ', 'UND_KONTRAK': 'Undangan Penandatanganan Kontrak', 'RANCANGAN_KONTRAK': 'Rancangan Kontrak', 'RANCANGAN_SSKK':'Rancangan SSKK', 'SPK':'SPK', 'SSUK':'SSUK', 'SSKK':'SSKK', 'SPMK':'SPMK', 'BAST':'BAST', 'BAP':'BAP',
     'BA_KEMAJUAN':'BA Kemajuan Pekerjaan',
     'BA_PEMERIKSAAN':'BA Pemeriksaan Hasil Pekerjaan',
     'KPP3':'Kelengkapan Pengajuan Pihak Ketiga'
@@ -9516,7 +9520,7 @@ const filteredList = pencairanList.filter(d => {
     
     let calcDate = ''; 
     
-    if (['SPK','SSUK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
+    if (['SPK','SSUK','Rancangan SSKK','SSKK','SPMK'].includes(doc) && pkg.tgl_mulai) {
     calcDate = pkg.tgl_mulai;
 
 } else if (
@@ -9553,6 +9557,7 @@ const filteredList = pencairanList.filter(d => {
     'KAK': 'KAK',
     'HPS/RAB': 'HPS_RAB',
     'Rancangan Kontrak': 'RANCANGAN_KONTRAK',
+    'Rancangan SSKK': 'RANCANGAN_SSKK',
     'BA Reviu Dokumen Persiapan': 'BA_REVIU',
     'SDP': 'SDP',
     'Undangan Pengadaan Langsung': 'UND_PENGADAAN',
@@ -9701,7 +9706,7 @@ const filteredList = pencairanList.filter(d => {
                     'HPS/RAB', 'Nota Dinas', 'Undangan Reviu', 'BA Reviu Dokumen Persiapan', 'Uraian Singkat', 'KAK', 'SDP',
                     'Undangan Pengadaan Langsung', 'BA Evaluasi', 'Undangan Verifikasi', 'BA Pembuktian Kualifikasi',
                     'Undangan Negosiasi', 'BA Negosiasi', 'BA Hasil Pemilihan', 'SPPBJ', 'Undangan Penandatanganan Kontrak',
-                    'Rancangan Kontrak', 'SPK', 'SSUK', 'SSKK', 'SPMK', 'BA Kemajuan Pekerjaan',
+                    'Rancangan Kontrak', 'SPK', 'SSUK', 'Rancangan SSKK', 'SSKK', 'SPMK', 'BA Kemajuan Pekerjaan',
                     'BA Pemeriksaan Hasil Pekerjaan', 'BAST', 'Kelengkapan Pengajuan Pihak Ketiga', 'BAP'
                 ];
                 const packageDocs = (DB.get('package_documents') || []).filter(x => x.package_id === pkgId);
