@@ -820,13 +820,30 @@
             async profile() {
                 const userId = this.session?.user?.id;
                 if (!userId) throw new Error('Sesi pengguna tidak ditemukan');
-                const response = await fetch(`${SUPABASE_URL}users?auth_user_id=eq.${encodeURIComponent(userId)}&select=username,nama_lengkap,role,active`, {
-                    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${this.session.access_token}` }
-                });
-                const rows = response.ok ? await response.json() : [];
+                const authUser = this.session.user || {};
+                let rows = [];
+                try {
+                    const response = await fetch(`${SUPABASE_URL}users?auth_user_id=eq.${encodeURIComponent(userId)}&select=username,nama_lengkap,role,active`, {
+                        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${this.session.access_token}` }
+                    });
+                    rows = response.ok ? await response.json() : [];
+                } catch (error) {
+                    console.warn('Profil aplikasi tidak dapat dibaca, memakai profil Auth.', error);
+                }
                 const profile = rows[0];
-                if (!profile || profile.active === false) throw new Error('Akun belum diaktifkan oleh administrator');
-                return profile;
+                if (profile.active === false) throw new Error('Akun belum diaktifkan oleh administrator');
+                if (profile) return profile;
+
+                // Akun sah dari Supabase Auth tetap dapat masuk. Profil tabel hanya
+                // memperkaya nama/role, bukan menjadi penghalang login.
+                const fallbackName = authUser.user_metadata?.nama_lengkap || authUser.user_metadata?.full_name || String(authUser.email || '').split('@')[0] || 'Pengguna';
+                return {
+                    username: authUser.user_metadata?.username || String(authUser.email || '').split('@')[0] || 'pengguna',
+                    nama_lengkap: fallbackName,
+                    role: authUser.user_metadata?.role || 'Staf Pengadaan',
+                    active: true,
+                    auth_only: true
+                };
             }
         };
 
