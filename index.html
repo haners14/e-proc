@@ -5477,10 +5477,13 @@ importPencairanExcel(event) {
             async resetAllDocumentNumbers(packageId) {
                 if (!confirm("Apakah Anda yakin ingin mereset seluruh nomor dokumen kembali ke format otomatis?")) return;
                 
-                const docs = DB.get('package_documents').filter(d => d.package_id === packageId);
+                const docs = DB.get('package_documents').filter(d => String(d.package_id) === String(packageId));
                 for (let d of docs) {
-                    DB.clearChecklistOverride(packageId, d.document_name, ['document_number']);
-                    DB.update('package_documents', d.id, { document_number: null });
+                    if (!await this.saveAutomaticDocumentNumber(d)) {
+                        this.notify(`Gagal menyimpan nomor ${d.document_name}. Coba kembali.`, 'error');
+                        this.reRenderCurrentView();
+                        return;
+                    }
                 }
                 
                 this.notify('Semua nomor dokumen berhasil direset ke otomatis', 'success');
@@ -9656,7 +9659,11 @@ const filteredList = pencairanList.filter(d => {
     }
     
     if (!calcDate) calcDate = pkg.tgl_awal || pkg.tgl_mulai || '';
-    const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : calcDate;
+    const checklistMaster = (DB.get('package_documents') || []).find(item =>
+        String(item.package_id) === String(pkg.id) &&
+        String(item.document_name || '').trim().toUpperCase() === String(doc || '').trim().toUpperCase()
+    );
+    const finalDate = savedChecklist.manual_date !== undefined ? savedChecklist.manual_date : (checklistMaster?.document_date || calcDate);
 
     // 2. Logika Penomoran Dokumen
     const aliases = {
@@ -10280,11 +10287,26 @@ const filteredList = pencairanList.filter(d => {
                 }
             }
 
-            resetDocumentNumber(docId, docName) {
+            async saveAutomaticDocumentNumber(master) {
+                const pkg = DB.getById('paket', master.package_id);
+                if (!pkg) return false;
+                const copy = JSON.parse(JSON.stringify(pkg));
+                const visibleDate = document.querySelector(`.chk-date-input[data-id="${CSS.escape(String(master.id))}"]`)?.value;
+                const date = visibleDate || master.document_date || this.calculateDocumentMeta(pkg, master.document_name).date;
+                copy.checklists = (copy.checklists || []).filter(item => item.doc !== master.document_name);
+                copy.checklists.push({doc: master.document_name, manual_date: date});
+                const number = this.calculateDocumentMeta(copy, master.document_name).number || null;
+                const response = await DB._sync('PATCH', 'package_documents', {document_number: number}, master.id);
+                if (!response) return false;
+                master.document_number = number;
+                DB.saveChecklistOverride(master.package_id, master.document_name, {document_number: number});
+                return true;
+            }
+
+            async resetDocumentNumber(docId, docName) {
                 if (!confirm(`Kembalikan nomor dokumen ${docName} ke format penomoran otomatis?`)) return;
                 const master = DB.getById('package_documents', docId);
-                if (master) DB.clearChecklistOverride(master.package_id, docName, ['document_number']);
-                DB.update('package_documents', docId, { document_number: null });
+                if (!master || !await this.saveAutomaticDocumentNumber(master)) return this.notify('Nomor gagal disimpan ke server.', 'error');
                 this.notify(`Nomor dokumen ${docName} berhasil direset.`, 'success');
                 this.reRenderCurrentView();
             }
