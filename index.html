@@ -787,6 +787,24 @@ button:focus-visible,.nav-item:focus-visible,input:focus-visible,select:focus-vi
                     return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
                 } catch (_) { return ''; }
             },
+            formatRupiahDecimal: amount => 'Rp ' + Utils.formatUnitPrice(amount),
+            moneyWords: amount => {
+                const rounded = Math.round((Number(amount) || 0) * 100);
+                const whole = Math.floor(rounded / 100), cents = rounded % 100;
+                return Utils.toWords(whole).trim() + ' rupiah' + (cents ? ' ' + Utils.toWords(cents).trim() + ' sen' : '');
+            },
+            resolvePA: (pejabat, selectedId) => {
+                const eligible = pejabat.filter(p => p.role === 'PA/KPA' && String(p.status || 'Aktif').toLowerCase() !== 'nonaktif');
+                return eligible.find(p => /\blia\s+kania\b/i.test(String(p.name || ''))) || eligible.find(p => String(p.id) === String(selectedId)) || eligible[0] || {name:'-',nip:'-'};
+            },
+            formatUnitPrice: amount => new Intl.NumberFormat('id-ID', {minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(amount) || 0),
+            parseUnitPrice: value => {
+                if (typeof value === 'number') return Math.round((value + Number.EPSILON) * 100) / 100;
+                const cleaned = String(value || '').replace(/Rp/gi, '').replace(/\s/g, '');
+                const normalized = cleaned.includes(',') ? cleaned.replace(/\./g, '').replace(',', '.') : (/^\d{1,3}(\.\d{3})+$/.test(cleaned) ? cleaned.replace(/\./g, '') : cleaned);
+                const number = Number(normalized);
+                return Number.isFinite(number) && number >= 0 ? Math.round((number + Number.EPSILON) * 100) / 100 : 0;
+            },
             formatNumber: (amount) => new Intl.NumberFormat('id-ID').format(Number(amount) || 0),
             formatCurrency: (amount) => { 
                 const v = Number(amount); 
@@ -2570,7 +2588,7 @@ button:focus-visible,.nav-item:focus-visible,input:focus-visible,select:focus-vi
                         {label:'Total HPS',value:hpsRound,icon:'ph-wallet',color:'#3155a4',note:'Harga perkiraan sendiri'},
                         {label:'Total Penawaran',value:offerRound,icon:'ph-file-text',color:'#b98022',note:'Nilai penawaran penyedia'},
                         {label:'Negosiasi / Kontrak',value:negoRound,icon:'ph-handshake',color:'#228674',note:'Nilai hasil negosiasi'}
-                    ].map((item,i)=>`<div class="pronex-value-item" style="--value-color:${item.color}"><div class="pronex-value-label"><span><i class="ph ${item.icon}"></i></span><b>${item.label}</b><small>0${i+1}</small></div><div class="pronex-value-amount ${item.value>0?'':'is-pending'}">${item.value>0?Utils.formatCurrency(item.value):'Belum tersedia'}</div><p>${item.value>0?item.note:'Lengkapi data pada tab Harga'}</p></div>`).join('')}</div>${efisiensi>0?`<div class="pronex-efficiency"><span><i class="ph ph-trend-down"></i> Efisiensi pengadaan</span><strong>${Utils.formatCurrency(efisiensi)}</strong><span>${((efisiensi/hpsRound)*100).toLocaleString('id-ID',{maximumFractionDigits:2})}% dari HPS</span></div>`:''}</section>
+                    ].map((item,i)=>`<div class="pronex-value-item" style="--value-color:${item.color}"><div class="pronex-value-label"><span><i class="ph ${item.icon}"></i></span><b>${item.label}</b><small>0${i+1}</small></div><div class="pronex-value-amount ${item.value>0?'':'is-pending'}">${item.value>0?Utils.formatRupiahDecimal(item.value):'Belum tersedia'}</div><p>${item.value>0?item.note:'Lengkapi data pada tab Harga'}</p></div>`).join('')}</div>${efisiensi>0?`<div class="pronex-efficiency"><span><i class="ph ph-trend-down"></i> Efisiensi pengadaan</span><strong>${Utils.formatRupiahDecimal(efisiensi)}</strong><span>${((efisiensi/hpsRound)*100).toLocaleString('id-ID',{maximumFractionDigits:2})}% dari HPS</span></div>`:''}</section>
                 `;
             }
 
@@ -2587,7 +2605,7 @@ button:focus-visible,.nav-item:focus-visible,input:focus-visible,select:focus-vi
                                 <div class="grid grid-cols-2 gap-4 mt-2">
                                     <div class="form-group col-span-2"><label class="form-label">Nama Paket</label><input type="text" name="name" class="form-control" value="${this.pkg.name || ''}"></div>
                                     <div class="form-group col-span-2"><label class="form-label">Uraian / Penanda Paket</label><textarea name="uraian" class="form-control" rows="2">${this.pkg.uraian || ''}</textarea></div>
-                                    <div class="form-group"><label class="form-label">Nilai Pagu (Rp)</label><input type="text" name="pagu" inputmode="numeric" class="form-control money-input" value="${Utils.formatNumber(this.pkg.pagu)}"></div>
+                                    <div class="form-group"><label class="form-label">Nilai Pagu (Rp)</label><input type="text" name="pagu" inputmode="decimal" class="form-control money-input" value="${Utils.formatNumber(this.pkg.pagu)}"></div>
                                     <div class="form-group"><label class="form-label">Lokasi Pekerjaan</label><input type="text" name="lokasi" class="form-control" value="${this.pkg.lokasi || ''}"></div>
                                     <div class="form-group"><label class="form-label">Tahun Anggaran</label><input type="text" name="tahun_anggaran" class="form-control" value="${this.pkg.tahun_anggaran || ''}"></div>
                                     <div class="form-group"><label class="form-label">OPD</label><input type="text" name="opd" class="form-control" value="${this.pkg.opd || 'Badan Keuangan dan Aset Daerah'}"></div>
@@ -2671,7 +2689,7 @@ button:focus-visible,.nav-item:focus-visible,input:focus-visible,select:focus-vi
                                 <div class="form-group"><label class="form-label">Pejabat Pengadaan (PP) / Pokja</label><select name="pp_id" class="form-control">${getOpts(ppList, this.pkg.pp_id)}</select></div>
                                 <div class="form-group"><label class="form-label">Pejabat Pelaksana Teknis Kegiatan (PPTK)</label><select name="pptk_id" class="form-control">${getOpts(pptkList, this.pkg.pptk_id)}</select></div>
                                 <div class="form-group"><label class="form-label">Bendahara</label><select name="bendahara_id" class="form-control">${getOpts(benList, this.pkg.bendahara_id)}</select></div>
-                                <div class="form-group"><label class="form-label">Pengguna Anggaran (PA/KPA)</label><select name="pa_id" class="form-control">${getOpts(paList, this.pkg.pa_id)}</select></div>
+                                <div class="form-group"><label class="form-label">Pengguna Anggaran (PA/KPA)</label><select name="pa_id" class="form-control">${getOpts(paList, Utils.resolvePA(pjbs, this.pkg.pa_id).id)}</select></div>
                             </form>
                         </div>
 
@@ -2824,14 +2842,14 @@ negPPN += negTotal - negSubTotal;
 
 <td class="bg-primary-50">
     <input type="text"
-        inputmode="numeric"
+        inputmode="decimal"
         class="cell-input hrg-input money-input text-right"
         data-field="harga_hps"
-        value="${Utils.formatNumber(i.harga_hps)}">
+        value="${Utils.formatUnitPrice(i.harga_hps)}">
 </td>
 
 <td class="cell-readonly total-cell bg-primary-100">
-    ${Utils.formatCurrency(hpsTotal)}
+    ${Utils.formatRupiahDecimal(hpsTotal)}
 </td>
 
 
@@ -2846,14 +2864,14 @@ negPPN += negTotal - negSubTotal;
 
 <td class="bg-warning-50">
     <input type="text"
-        inputmode="numeric"
+        inputmode="decimal"
         class="cell-input hrg-input money-input text-right"
         data-field="harga_pen"
-        value="${Utils.formatNumber(i.harga_pen)}">
+        value="${Utils.formatUnitPrice(i.harga_pen)}">
 </td>
 
 <td class="cell-readonly bg-warning-100">
-    ${Utils.formatCurrency(penTotal)}
+    ${Utils.formatRupiahDecimal(penTotal)}
 </td>
 
 
@@ -2868,14 +2886,14 @@ negPPN += negTotal - negSubTotal;
 
 <td class="bg-success-50">
     <input type="text"
-        inputmode="numeric"
+        inputmode="decimal"
         class="cell-input hrg-input money-input text-right"
         data-field="harga_neg"
-        value="${Utils.formatNumber(i.harga_neg)}">
+        value="${Utils.formatUnitPrice(i.harga_neg)}">
 </td>
 
 <td class="cell-readonly bg-success-100">
-    ${Utils.formatCurrency(negTotal)}
+    ${Utils.formatRupiahDecimal(negTotal)}
 </td>
 
 
@@ -2931,10 +2949,10 @@ negPPN += negTotal - negSubTotal;
                     return `
                     <div class="card p-4">
                         <label class="form-label font-bold">Pembulatan ${label}</label>
-                        <input data-round="pembulatan_${key}" class="form-control money-input font-bold" inputmode="numeric" value="${Utils.formatNumber(savedVal)}">
-                        <p class="text-sm font-semibold mt-2 text-primary-600" id="lbl-round-${key}">${Utils.formatCurrency(savedVal)}</p>
+                        <input data-round="pembulatan_${key}" class="form-control money-input font-bold" inputmode="decimal" value="${Utils.formatUnitPrice(savedVal)}">
+                        <p class="text-sm font-semibold mt-2 text-primary-600" id="lbl-round-${key}">${Utils.formatRupiahDecimal(savedVal)}</p>
                         <label class="form-label mt-3 text-xs font-semibold">Terbilang</label>
-                        <textarea class="form-control text-xs bg-gray-50" rows="3" readonly id="txt-round-${key}">${Utils.toWords(savedVal).trim()} rupiah</textarea>
+                        <textarea class="form-control text-xs bg-gray-50" rows="3" readonly id="txt-round-${key}">${Utils.moneyWords(savedVal)}</textarea>
                     </div>`;
                 };
 
@@ -3135,7 +3153,7 @@ negPPN += negTotal - negSubTotal;
     <td></td>
     <td class="cell-readonly total-cell bg-primary-50"
         id="sub-hps">
-        ${Utils.formatCurrency(hpsSub)}
+        ${Utils.formatRupiahDecimal(hpsSub)}
     </td>
 
     <!-- Penawaran -->
@@ -3143,7 +3161,7 @@ negPPN += negTotal - negSubTotal;
     <td></td>
     <td class="cell-readonly total-cell bg-warning-50"
         id="sub-pen">
-        ${Utils.formatCurrency(penSub)}
+        ${Utils.formatRupiahDecimal(penSub)}
     </td>
 
     <!-- Negosiasi -->
@@ -3151,7 +3169,7 @@ negPPN += negTotal - negSubTotal;
     <td></td>
     <td class="cell-readonly total-cell bg-success-50"
         id="sub-neg">
-        ${Utils.formatCurrency(negSub)}
+        ${Utils.formatRupiahDecimal(negSub)}
     </td>
 
     <!-- Pajak -->
@@ -3172,21 +3190,21 @@ negPPN += negTotal - negSubTotal;
     <td></td>
     <td class="cell-readonly total-cell bg-primary-50"
         id="tax-hps">
-        + ${Utils.formatCurrency(hpsPPN)}
+        + ${Utils.formatRupiahDecimal(hpsPPN)}
     </td>
 
     <td></td>
     <td></td>
     <td class="cell-readonly total-cell bg-warning-50"
         id="tax-pen">
-        + ${Utils.formatCurrency(penPPN)}
+        + ${Utils.formatRupiahDecimal(penPPN)}
     </td>
 
     <td></td>
     <td></td>
     <td class="cell-readonly total-cell bg-success-50"
         id="tax-neg">
-        + ${Utils.formatCurrency(negPPN)}
+        + ${Utils.formatRupiahDecimal(negPPN)}
     </td>
 
     <td></td>
@@ -3205,21 +3223,21 @@ negPPN += negTotal - negSubTotal;
     <td></td>
     <td class="cell-readonly total-cell bg-primary-100"
         id="grand-hps">
-        ${Utils.formatCurrency(hpsSub+hpsPPN)}
+        ${Utils.formatRupiahDecimal(hpsSub+hpsPPN)}
     </td>
 
     <td></td>
     <td></td>
     <td class="cell-readonly total-cell bg-warning-100"
         id="grand-pen">
-        ${Utils.formatCurrency(penSub+penPPN)}
+        ${Utils.formatRupiahDecimal(penSub+penPPN)}
     </td>
 
     <td></td>
     <td></td>
     <td class="cell-readonly total-cell bg-success-100"
         id="grand-neg">
-        ${Utils.formatCurrency(negSub+negPPN)}
+        ${Utils.formatRupiahDecimal(negSub+negPPN)}
     </td>
 
     <td></td>
@@ -3297,21 +3315,21 @@ negPPN += negTotal - negSubTotal;
 
     const row = document.getElementById(`row-total-${index}`);
     if(row){
-        row.textContent = Utils.formatCurrency(hpsTotal);
+        row.textContent = Utils.formatRupiahDecimal(hpsTotal);
     }
 
 });
 
                 const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
-                setEl('sub-hps', Utils.formatCurrency(hpsSub));
-                setEl('sub-pen', Utils.formatCurrency(penSub));
-                setEl('sub-neg', Utils.formatCurrency(negSub));
-                setEl('tax-hps', '+ ' + Utils.formatCurrency(hpsPPN));
-                setEl('tax-pen', '+ ' + Utils.formatCurrency(penPPN));
-                setEl('tax-neg', '+ ' + Utils.formatCurrency(negPPN));
-                setEl('grand-hps', Utils.formatCurrency(hpsSub+hpsPPN));
-                setEl('grand-pen', Utils.formatCurrency(penSub+penPPN));
-                setEl('grand-neg', Utils.formatCurrency(negSub+negPPN));
+                setEl('sub-hps', Utils.formatRupiahDecimal(hpsSub));
+                setEl('sub-pen', Utils.formatRupiahDecimal(penSub));
+                setEl('sub-neg', Utils.formatRupiahDecimal(negSub));
+                setEl('tax-hps', '+ ' + Utils.formatRupiahDecimal(hpsPPN));
+                setEl('tax-pen', '+ ' + Utils.formatRupiahDecimal(penPPN));
+                setEl('tax-neg', '+ ' + Utils.formatRupiahDecimal(negPPN));
+                setEl('grand-hps', Utils.formatRupiahDecimal(hpsSub+hpsPPN));
+                setEl('grand-pen', Utils.formatRupiahDecimal(penSub+penPPN));
+                setEl('grand-neg', Utils.formatRupiahDecimal(negSub+negPPN));
 
                 const t = DB.calculatePackageTotals(this.pkg);
 
@@ -3320,12 +3338,12 @@ negPPN += negTotal - negSubTotal;
                     const displayVal = this.pkg[`pembulatan_${key}`] || val;
                     if(!this.pkg[`pembulatan_${key}`]) {
                         const inp = document.querySelector(`input[data-round="pembulatan_${key}"]`);
-                        if(inp) inp.value = Utils.formatNumber(displayVal);
+                        if(inp) inp.value = Utils.formatUnitPrice(displayVal);
                     }
                     const p = document.getElementById(`lbl-round-${key}`);
-                    if(p) p.innerText = Utils.formatCurrency(displayVal);
+                    if(p) p.innerText = Utils.formatRupiahDecimal(displayVal);
                     const txt = document.getElementById(`txt-round-${key}`);
-                    if(txt) txt.value = Utils.toWords(displayVal).trim() + ' rupiah';
+                    if(txt) txt.value = Utils.moneyWords(displayVal);
                 };
                 
                 setRoundEl('hps', t.hps);
@@ -3372,7 +3390,10 @@ negPPN += negTotal - negSubTotal;
                         const field = e.target.dataset.field;
                         let val = e.target.value;
                         if(e.target.type === 'number') val = Number(val) || 0;
-                        if(e.target.classList.contains('money-input')) val = Number(String(val).replace(/\D/g, '')) || 0;
+                        if(e.target.classList.contains('money-input')) {
+                            val = Utils.parseUnitPrice(val);
+                            e.target.value = Utils.formatUnitPrice(val);
+                        }
                         
                         let items = this.pkg.items || [];
                         items[idx][field] = val;
@@ -3382,16 +3403,16 @@ negPPN += negTotal - negSubTotal;
                 });
                 
                 document.querySelectorAll('.money-input').forEach(el => {
+                    if (['harga_hps','harga_pen','harga_neg'].includes(el.dataset.field) || el.dataset.round) return;
                     el.addEventListener('input', e => { e.target.value = Utils.formatNumber(String(e.target.value).replace(/\D/g, '')); });
                 });
                 
                 document.querySelectorAll('[data-round]').forEach(el => {
-                    el.addEventListener('input', e => {
-                        const rawVal = String(e.target.value).replace(/\D/g, '');
-                        const cleanVal = Number(rawVal) || 0;
+                    el.addEventListener('change', e => {
+                        const cleanVal = Utils.parseUnitPrice(e.target.value);
                         
                         // Format ulang input menjadi pemisah ribuan titik
-                        e.target.value = Utils.formatNumber(cleanVal);
+                        e.target.value = Utils.formatUnitPrice(cleanVal);
 
                         // Simpan otomatis ke database paket
                         const roundKey = e.target.dataset.round; // contoh: pembulatan_penawaran atau pembulatan_negosiasi
@@ -3401,10 +3422,10 @@ negPPN += negTotal - negSubTotal;
                         const keyType = roundKey.replace('pembulatan_', '');
                         const lblEl = document.getElementById(`lbl-round-${keyType}`);
                         const txtEl = document.getElementById(`txt-round-${keyType}`);
-                        if (txtEl) txtEl.value = Utils.toWords(cleanVal).trim() + ' rupiah';
+                        if (txtEl) txtEl.value = Utils.moneyWords(cleanVal);
 
-                        if (lblEl) lblEl.innerText = Utils.formatCurrency(cleanVal);
-                        if (txtEl) txtEl.value = Utils.toWords(cleanVal).trim() + ' rupiah';
+                        if (lblEl) lblEl.innerText = Utils.formatRupiahDecimal(cleanVal);
+                        if (txtEl) txtEl.value = Utils.moneyWords(cleanVal);
                     });
                 });
 
@@ -9609,7 +9630,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 const pp = pjb.find(p => p.id === pkg.pp_id) || { name: '...', nip: '-' };
                 const pptk = pjb.find(p => p.id === pkg.pptk_id) || { name: '-', nip: '-' };
                 const bendahara = pjb.find(p => p.id === pkg.bendahara_id) || { name: '-', nip: '-' };
-                const pa = pjb.find(p => p.id === pkg.pa_id) || pjb.find(p => p.role === 'PA/KPA') || { name: '-', nip: '-' };
+                const pa = Utils.resolvePA(pjb, pkg.pa_id);
 
                 const totals = DB.calculatePackageTotals(pkg);
                 // Nilai pembulatan di Rancangan Kontrak adalah sumber nilai resmi dokumen.
