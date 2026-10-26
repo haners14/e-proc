@@ -6344,6 +6344,32 @@ importPencairanExcel(event) {
                 }
             }
 
+            spjReportStyle() {
+                return `
+                    @page { size: A4 landscape; margin: 12mm; }
+                    body { font-family: Arial,sans-serif; color:#000; font-size:10pt; }
+                    .header { text-align:center; font-size:14pt!important; line-height:1.3; margin:0 0 18px!important; font-weight:700; }
+                    table { width:100%; border-collapse:collapse; font-size:10pt!important; }
+                    table:not(.tbl-main) td { padding:5px 6px; line-height:1.4; vertical-align:top; }
+                    .tbl-main { table-layout:auto; }
+                    .tbl-main thead { display:table-header-group; }
+                    .tbl-main th { background:#1e3a8a!important; color:#fff!important; border:1px solid #000; padding:8px!important; font-size:10pt; text-align:center!important; vertical-align:middle!important; }
+                    .tbl-main td { border:1px solid #000; padding:7px 8px; line-height:1.4; vertical-align:middle!important; }
+                    .tbl-main tbody tr { height:88px; break-inside:avoid; }
+                    .tbl-main th:first-child { width:34px!important; }
+                    .tbl-main th:last-child { width:170px!important; }
+                    .spj-signature { width:168px; height:80px; display:block; margin:0 auto; object-fit:contain; filter:grayscale(1) brightness(0) drop-shadow(.35px 0 0 #000) drop-shadow(0 .35px 0 #000); }
+                    .ttd-container { display:flex; justify-content:space-between; align-items:flex-start; margin-top:30px!important; font-size:10pt!important; break-inside:avoid; }
+                    .ttd-container>div { width:310px!important; text-align:center; }
+                    .ttd-container p { margin:8px 0; line-height:1.4; }
+                    .tbl-main tfoot { display:table-row-group; }
+                    .tbl-main tfoot td { background:#1e3a8a!important; color:#fff!important; }
+                    .tbl-main tbody td { background:#fff; color:#000; }
+                    .ttd-container,.ttd-container p,.ttd-container b { color:#000!important; }
+                    @media print { * { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+                `;
+            }
+
          async printPresensiPDF(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
@@ -6364,7 +6390,7 @@ importPencairanExcel(event) {
                     
                     // Gunakan dataURL TTD persis seperti yang tersimpan di Supabase. Jangan generate ulang / ubah gambar.
                     const ttdContent = item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" alt="Tanda tangan ${nama}" style="max-height: 70px; max-width: 130px; display: block; margin: 0 auto; object-fit: contain;" />` 
+                        ? `<img src="${item.tanda_tangan}" alt="Tanda tangan ${nama}" class="spj-signature" />` 
                         : `<span style="color: #94a3b8; font-size: 10px;">....................</span>`;
 
                     return `
@@ -6391,12 +6417,12 @@ importPencairanExcel(event) {
 
                     <table class="tbl-main" style="width: 100%; border-collapse: collapse; font-size: 10pt; font-family: Arial, sans-serif;">
                        <thead>
-                            <tr style="background-color: #1e3a8a; color: white;">
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 45px;">NO.</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">NAMA</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">JABATAN</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">INSTANSI</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 140px;">TANDA TANGAN</th>
+                            <tr style="background-color: #dbeafe; color: #000;">
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 45px;">No.</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Nama</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Jabatan</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Instansi</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 170px;">TANDA TANGAN</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -6422,12 +6448,7 @@ importPencairanExcel(event) {
                     </div>
                 `;
 
-                const customStyle = `
-                    @page { size: landscape; margin: 15mm; } /* atau portrait untuk presensi */
-                    body { font-family: Arial, sans-serif; color: #000; }
-                    .tbl-main th { border: 1px solid #000; padding: 6px 8px; text-align: center !important; vertical-align: middle !important; }
-                    .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
-                `;
+                const customStyle = this.spjReportStyle();
 
                 this.printDocument('Daftar Presensi Kegiatan', content, customStyle);
             }
@@ -6448,8 +6469,8 @@ importPencairanExcel(event) {
                 let rowsHtml = items.map((item, idx) => {
                     // Bruto adalah subtotal = Qty × Harga Satuan, bukan harga satuan.
                     const bruto = Number(item.subtotal ?? ((Number(item.qty) || 1) * (Number(item.harga) || 0))) || 0;
-                    const pajak = Number(item.pph || item.nilai_pajak || 0);
-                    const bersih = Number(item.total || 0);
+                    const pajak = Number(item.nilai_pajak ?? ((Number(item.ppn) || 0) + (Number(item.pph) || 0))) || 0;
+                    const bersih = Number(item.total ?? (bruto - pajak)) || 0;
 
                     totalBruto += bruto;
                     totalPajak += pajak;
@@ -6461,7 +6482,7 @@ importPencairanExcel(event) {
 
                     // Gunakan dataURL TTD persis seperti yang tersimpan di Supabase.
                     const ttdContent = item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" alt="Tanda tangan ${nama}" style="max-height: 75px; max-width: 140px; display: block; margin: 0 auto; object-fit: contain;" />` 
+                        ? `<img src="${item.tanda_tangan}" alt="Tanda tangan ${nama}" class="spj-signature" />` 
                         : `<div style="height: 55px;"></div>`;
 
                     return `
@@ -6494,10 +6515,10 @@ importPencairanExcel(event) {
                                 <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 40px;">No.</th>
                                 <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Nama</th>
                                 <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle;">Jabatan</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 120px;">Jumlah (Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 120px;">Bruto (Rp)</th>
                                 <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 110px;">Pajak (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 140px;">Jumlah Diterima<br>Stlh Pajak (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 160px;">TTD</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 140px;">Neto Diterima<br>(Rp)</th>
+                                <th style="border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; width: 170px;">TANDA TANGAN</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -6536,12 +6557,7 @@ importPencairanExcel(event) {
                     </div>
                 `;
 
-                const customStyle = `
-                    @page { size: landscape; margin: 15mm; } /* atau portrait untuk presensi */
-                    body { font-family: Arial, sans-serif; color: #000; }
-                    .tbl-main th { border: 1px solid #000; padding: 6px 8px; text-align: center !important; vertical-align: middle !important; }
-                    .tbl-main td { border: 1px solid #000; padding: 6px 8px; }
-                `;
+                const customStyle = this.spjReportStyle();
 
                 this.printDocument('Tanda Terima Pembayaran', content, customStyle);
             }
@@ -7200,9 +7216,9 @@ renderSignPage(container, itemId) {
             }
 
             publicContactMarkup(name='') {
-                const message='Halo PIC PRONEX, saya memerlukan bantuan terkait data rekening, identitas penerima, atau tanda tangan SPJ.'+(name?' Nama penerima: '+name+'.':'')+' Kendala: ';
+                const message='Halo Farhan Ersandy, saya memerlukan bantuan terkait data rekening, identitas penerima, atau tanda tangan SPJ.'+(name?' Nama penerima: '+name+'.':'')+' Kendala: ';
                 const url='https://wa.me/628996666647?text='+encodeURIComponent(message);
-                return `<aside class="pronex-public-help"><span class="pronex-public-help-icon"><i class="ph ph-chat-circle-dots"></i></span><div><h2>Ada kendala pada data Anda?</h2><p>Rekening salah, identitas tidak sesuai, atau kesulitan tanda tangan? Hubungi PIC untuk bantuan.</p><small>PIC PRONEX · 08996666647</small></div><a class="pronex-whatsapp-link" href="${Utils.escapeAttr(url)}" target="_blank" rel="noopener noreferrer"><i class="ph ph-whatsapp-logo"></i> WhatsApp PIC <i class="ph ph-arrow-up-right"></i></a></aside>`;
+                return `<aside class="pronex-public-help"><span class="pronex-public-help-icon"><i class="ph ph-chat-circle-dots"></i></span><div><h2>Ada kendala pada data Anda?</h2><p>Rekening salah, identitas tidak sesuai, atau kesulitan tanda tangan? Hubungi Farhan Ersandy untuk bantuan.</p><small>CP: Farhan Ersandy · 08996666647</small></div><a class="pronex-whatsapp-link" href="${Utils.escapeAttr(url)}" target="_blank" rel="noopener noreferrer"><i class="ph ph-whatsapp-logo"></i> WhatsApp PIC <i class="ph ph-arrow-up-right"></i></a></aside>`;
             }
             publicSigningFrame(body,options={}) {
                 const subtitle=options.subtitle||'Periksa rincian pembayaran, lalu bubuhkan tanda tangan Anda.';
@@ -7275,45 +7291,68 @@ renderSignPage(container, itemId) {
                 }catch(err){if(error){error.textContent=err instanceof TypeError?'Koneksi terputus. Periksa jaringan lalu kirim kembali.':err.message;error.hidden=false}if(submit){submit.disabled=false;submit.innerHTML='Kirim tanda tangan <i class="ph ph-arrow-right"></i>'}}
             }
 
-            modalTambahSPJHeader() {
-                const pencairanList = DB.get('pencairan') || [];
-                const pencairanItems = DB.get('pencairan_items') || [];
-
-                let opts = '<option value="">-- Pilih Pengajuan Pencairan --</option>';
-                if (pencairanList.length > 0) {
-                    opts += pencairanList.map(p => {
-                        const items = pencairanItems.filter(i => String(i.pencairan_id) === String(p.id));
-                        const total = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
-                        return `<option value="${p.id}">[No: ${p.nomor || '-'}] — Sub Kegiatan: ${p.sub_kegiatan || '-'} (${p.bulan || '-'} 2026) | Total: Rp ${Utils.formatNumber(total)} (${items.length} Penerima)</option>`;
-                    }).join('');
+            getSPJPencairanChoices(month = '', sub = '') {
+                const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                const items = DB.get('pencairan_items') || [];
+                return [...(DB.get('pencairan') || [])].filter(p => {
+                    const m = String(p.tanggal || '').match(/^\d{4}-(\d{2})/);
+                    return (!month || (m && Number(m[1]) === Number(month))) && (!sub || String(p.sub_kegiatan || '').trim() === sub);
+                }).sort((a,b) => String(b.tanggal || '').localeCompare(String(a.tanggal || '')) || String(b.created_at || '').localeCompare(String(a.created_at || '')) || String(b.id).localeCompare(String(a.id))).map((p,index) => {
+                    const detail = items.filter(i => String(i.pencairan_id) === String(p.id));
+                    const totals = detail.reduce((sum,i) => {
+                        const bruto = Number(i.subtotal ?? ((Number(i.qty) || 1) * (Number(i.harga) || 0))) || 0;
+                        const pajak = Number(i.nilai_pajak ?? ((Number(i.ppn) || 0) + (Number(i.pph) || 0))) || 0;
+                        sum.bruto += bruto; sum.pajak += pajak; sum.neto += Number(i.total ?? (bruto - pajak)) || 0;
+                        return sum;
+                    }, {bruto:0,pajak:0,neto:0});
+                    const date = String(p.tanggal || '').match(/^(\d{4})-(\d{2})/);
+                    const period = date && months[Number(date[2])-1] ? months[Number(date[2])-1] + ' ' + date[1] : 'Tanggal belum diisi';
+                    return {value:String(p.id),text:`[No: ${p.nomor || '-'}] — ${p.sub_kegiatan || '-'} (${period}) | Bruto: Rp ${Utils.formatNumber(totals.bruto)} | Pajak: Rp ${Utils.formatNumber(totals.pajak)} | Neto: Rp ${Utils.formatNumber(totals.neto)} | ${detail.length} Penerima`,$order:index+1};
+                });
+            }
+            updateSPJPencairanChoices() {
+                const el = document.getElementById('select-pencairan-spj');
+                if (!el) return;
+                const choices = this.getSPJPencairanChoices(document.getElementById('spj-filter-bulan')?.value || '',document.getElementById('spj-filter-sub')?.value || '');
+                const selected = el.tomselect ? el.tomselect.getValue() : el.value;
+                const keep = choices.some(row => row.value === selected) ? selected : '';
+                if (el.tomselect) {
+                    el.tomselect.clear(true);
+                    el.tomselect.clearOptions();
+                    el.tomselect.addOptions(choices);
+                    el.tomselect.setValue(keep,true);
+                    el.tomselect.refreshOptions(false);
+                } else {
+                    el.innerHTML = '<option value="">-- Pilih Pengajuan Pencairan --</option>' + choices.map(row=>`<option value="${Utils.escapeAttr(row.value)}">${Utils.escapeHTML(row.text)}</option>`).join('');
+                    el.value = keep;
                 }
-
+                document.getElementById('spj-filter-count').textContent = choices.length + ' pengajuan · Terbaru lebih dahulu';
+            }
+            modalTambahSPJHeader() {
+                const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                const subs = [...new Set((DB.get('pencairan') || []).map(p=>String(p.sub_kegiatan || '').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
                 const body = `
-                    <form id="form-tambah-spj" class="flex flex-col gap-4" style="padding-bottom: 120px;">
+                    <form id="form-tambah-spj" class="flex flex-col gap-4" style="padding-bottom:80px">
                         <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Judul Absen / SPJ</label>
-                            <input type="text" name="judul" class="form-control" placeholder="Contoh: Honorarium Penanggungjawab Pengelola Keuangan Bulan Juni" required>
+                            <label class="form-label" for="spj-judul">Judul Absen / SPJ</label>
+                            <input id="spj-judul" type="text" name="judul" class="form-control" placeholder="Contoh: Honorarium bulan Oktober" required>
+                        </div>
+                        <div style="display:flex;flex-wrap:wrap;gap:10px">
+                            <div style="flex:1 1 150px;min-width:0"><label class="form-label" for="spj-filter-bulan">Bulan Pengajuan</label><select id="spj-filter-bulan" class="form-control" onchange="app.updateSPJPencairanChoices()"><option value="">Semua bulan</option>${months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select></div>
+                            <div style="flex:2 1 240px;min-width:0"><label class="form-label" for="spj-filter-sub">Sub Kegiatan</label><select id="spj-filter-sub" class="form-control" onchange="app.updateSPJPencairanChoices()"><option value="">Semua sub kegiatan</option>${subs.map(sub=>`<option value="${Utils.escapeAttr(sub)}">${Utils.escapeHTML(sub)}</option>`).join('')}</select></div>
                         </div>
                         <div class="form-group mb-0">
-                            <label class="form-label font-bold text-gray-700">Pilih Data Pengajuan Pencairan</label>
-                            <select id="select-pencairan-spj" name="pencairan_id" class="form-control searchable-select" required>
-                                ${opts}
-                            </select>
+                            <label class="form-label" for="select-pencairan-spj">Pilih Data Pengajuan Pencairan</label>
+                            <select id="select-pencairan-spj" name="pencairan_id" class="form-control" required></select>
+                            <small id="spj-filter-count" role="status" class="text-muted"></small>
                         </div>
-                    </form>
-                `;
-
+                    </form>`;
                 DOM.openModal('Tambah Header SPJ & Absen', body, `<button class="btn btn-outline" onclick="DOM.closeModal()">Batal</button><button class="btn btn-primary" onclick="app.simpanSPJHeader()">Simpan</button>`, '700px');
-
-                setTimeout(() => {
-                    if (window.TomSelect) {
-                        const el = document.getElementById('select-pencairan-spj');
-                        if (el) {
-                            if (el.tomselect) el.tomselect.destroy();
-                            new TomSelect(el, { create: false, sortField: { field: "text", direction: "asc" } });
-                        }
-                    }
-                }, 100);
+                this.updateSPJPencairanChoices();
+                const el = document.getElementById('select-pencairan-spj');
+                if (window.TomSelect && el && !el.tomselect) {
+                    new TomSelect(el, {create:false,sortField:[{field:'$order',direction:'asc'}],maxOptions:null,placeholder:'Cari nomor, sub kegiatan, atau bulan',render:{no_results:()=>'<div class="no-results">Tidak ada pengajuan sesuai filter.</div>'}});
+                }
             }
 
             async simpanSPJHeader() {
@@ -7368,6 +7407,24 @@ renderSignPage(container, itemId) {
                 DOM.openModal('Pratinjau tanda tangan',`<div class="pronex-signed-preview"><span class="badge badge-success">Sudah ditandatangani</span><h3>${Utils.escapeHTML(item.nama_penerima||'Penerima')}</h3><p>${Utils.escapeHTML(item.uraian||'')}</p><div class="pronex-signature-paper"><img src="${Utils.escapeAttr(signature)}" alt="Tanda tangan ${Utils.escapeAttr(item.nama_penerima||'penerima')}"></div><small>Dokumen ditampilkan dalam mode baca saja.</small></div>`,`<button class="btn btn-outline" onclick="app.bukaDetailSPJ('${Utils.escapeAttr(spjId)}')">Kembali ke detail SPJ</button>`,'650px');
             }
 
+            async resetSpjRecipientSignature(spjId, recipientId) {
+                const item = this.spjRecipientCache?.[String(spjId)]?.find(row => String(row.id) === String(recipientId));
+                if (!item || item.status_ttd !== 'SIGNED') return this.notify('Muat ulang detail SPJ terlebih dahulu.', 'info');
+                if (!confirm('Reset TTD ' + (item.nama_penerima || 'penerima') + '? TTD pada header SPJ ini akan dihapus agar penerima dapat menandatangani ulang.')) return;
+                const key = String(spjId) + ':' + String(recipientId);
+                this.spjResetPending = this.spjResetPending || new Set();
+                if (this.spjResetPending.has(key)) return;
+                this.spjResetPending.add(key);
+                try {
+                    await this.spjRequest({action:'reset_signature', spj_id:spjId, recipient_id:recipientId});
+                    delete this.spjRecipientCache[String(spjId)];
+                    await this.bukaDetailSPJ(spjId);
+                    this.notify('TTD direset. Buat atau bagikan ulang link agar penerima menandatangani kembali.', 'success');
+                } catch (error) {
+                    this.notify(error.message || 'Reset gagal. Tanda tangan belum diubah.', 'error');
+                } finally { this.spjResetPending.delete(key); }
+            }
+
             async bukaDetailSPJ(spjId) {
                 const spjHeaders = DB.cache['spj_headers'] || [];
                 const spj = spjHeaders.find(s => s.id === spjId);
@@ -7395,7 +7452,7 @@ renderSignPage(container, itemId) {
                             <td class="p-3 text-right">Rp ${Utils.formatNumber(item.pph || item.nilai_pajak || 0)}</td>
                             <td class="p-3 text-right font-bold text-primary-600">Rp ${Utils.formatNumber(item.total)}</td>
                             <td class="p-3 text-center">
-                                ${item.status_ttd==='UNKNOWN'?'<span class="badge badge-neutral">Belum terverifikasi</span>':isSigned ? `<button class="btn btn-outline btn-sm" onclick="app.previewSpjSignature('${Utils.escapeAttr(spj.id)}','${Utils.escapeAttr(item.id)}')"><i class="ph ph-eye"></i> Lihat TTD</button>` : '<span class="badge badge-warning">Belum TTD</span>'}
+                                ${item.status_ttd==='UNKNOWN'?'<span class="badge badge-neutral">Belum terverifikasi</span>':isSigned ? `<button class="btn btn-outline btn-sm" onclick="app.previewSpjSignature('${Utils.escapeAttr(spj.id)}','${Utils.escapeAttr(item.id)}')"><i class="ph ph-eye"></i> Lihat TTD</button>${!this.spjDetailWarning ? `<button class="btn btn-outline btn-sm text-danger" style="margin-top:6px" onclick="app.resetSpjRecipientSignature('${Utils.escapeAttr(spj.id)}','${Utils.escapeAttr(item.id)}')"><i class="ph ph-arrow-counter-clockwise"></i> Reset TTD</button>` : ''}` : '<span class="badge badge-warning">Belum TTD</span>'}
                             </td>
                         </tr>
                     `;
