@@ -8018,20 +8018,18 @@ renderSignPage(container, itemId) {
                 const pencairanList = DB.get('pencairan') || [];
 const pencairanItems = DB.get('pencairan_items') || [];
 
-const filterBulan = document.getElementById('filter-pencairan-bulan')?.value || '';
-const filterSub = document.getElementById('filter-pencairan-sub')?.value || '';
-
-const filteredList = pencairanList.filter(d => {
-    const bulan = new Date(d.tanggal).getMonth() + 1;
-
-    const cocokBulan =
-        !filterBulan || bulan === Number(filterBulan);
-
-    const cocokSub =
-        !filterSub || d.sub_kegiatan === filterSub;
-
-    return cocokBulan && cocokSub;
-});
+                const filters = this.pengajuanFilters || (this.pengajuanFilters = {bulan: '', sub: ''});
+                const filterBulan = filters.bulan;
+                const filterSub = filters.sub;
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                const subKegiatan = [...new Set(pencairanList.map(d => String(d.sub_kegiatan || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'id'));
+                const filteredList = pencairanList.filter(d => {
+                    // Read calendar month directly; timezone conversion must not move month boundaries.
+                    const dateMatch = String(d.tanggal || '').match(/^\d{4}-(\d{2})-\d{2}(?:T|$)/);
+                    const bulan = dateMatch ? Number(dateMatch[1]) : NaN;
+                    return (!filterBulan || bulan === Number(filterBulan)) &&
+                        (!filterSub || String(d.sub_kegiatan || '').trim() === filterSub);
+                });
 
                 let rows = filteredList.map((d, i) => {
                     const items = pencairanItems.filter(item => String(item.pencairan_id) === String(d.id));
@@ -8094,6 +8092,24 @@ const filteredList = pencairanList.filter(d => {
                                 <button class="btn btn-primary" onclick="app.formHeaderPencairan()"><i class="ph ph-plus"></i> Buat Pengajuan Baru</button>
                             </div>
                         </div>
+                        <div class="card mb-4" style="padding:16px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+                            <div style="flex:2 1 260px;min-width:0">
+                                <label class="form-label" for="filter-pencairan-sub">Sub Kegiatan</label>
+                                <select class="form-control" style="width:100%" id="filter-pencairan-sub" onchange="app.setPengajuanFilter('sub',this.value)">
+                                    <option value="">Semua sub kegiatan</option>
+                                    ${subKegiatan.map(sub => `<option value="${Utils.escapeAttr(sub)}" ${filterSub === sub ? 'selected' : ''}>${Utils.escapeHTML(sub)}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div style="flex:1 1 180px;min-width:0">
+                                <label class="form-label" for="filter-pencairan-bulan">Bulan Pengajuan</label>
+                                <select class="form-control" style="width:100%" id="filter-pencairan-bulan" onchange="app.setPengajuanFilter('bulan',this.value)">
+                                    <option value="">Semua bulan</option>
+                                    ${monthNames.map((month, index) => `<option value="${index + 1}" ${filterBulan === String(index + 1) ? 'selected' : ''}>${month}</option>`).join('')}
+                                </select>
+                            </div>
+                            <button class="btn btn-outline" onclick="app.resetPengajuanFilters()" ${!filterSub && !filterBulan ? 'disabled' : ''}>Reset filter</button>
+                            <span class="text-sm text-muted" role="status" style="flex-basis:100%">Menampilkan ${filteredList.length} dari ${pencairanList.length} pengajuan · Bulan berdasarkan tanggal pengajuan.</span>
+                        </div>
                         <div class="card flex-1 overflow-auto">
                             <table class="data-table pronex-money-table">
                                 <thead>
@@ -8110,7 +8126,7 @@ const filteredList = pencairanList.filter(d => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${rows.length ? rows : '<tr><td colspan="9" class="text-center text-muted py-8">Belum ada data pengajuan pencairan.</td></tr>'}
+                                    ${rows.length ? rows : `<tr><td colspan="9" class="text-center text-muted py-8">${filterSub || filterBulan ? 'Tidak ada pengajuan sesuai filter. Ubah atau reset filter.' : 'Belum ada data pengajuan pencairan.'}</td></tr>`}
                                 </tbody>
                             </table>
                         </div>
@@ -8118,6 +8134,16 @@ const filteredList = pencairanList.filter(d => {
                 `;
             }
             
+            setPengajuanFilter(key, value) {
+                if (!['bulan', 'sub'].includes(key)) return;
+                this.pengajuanFilters = {...(this.pengajuanFilters || {bulan: '', sub: ''}), [key]: value};
+                this.reRenderCurrentView();
+            }
+            resetPengajuanFilters() {
+                this.pengajuanFilters = {bulan: '', sub: ''};
+                this.reRenderCurrentView();
+            }
+
           nextPengajuanNumber(jenis='LS',tanggal='',excludeId=null) {
                 const kind=String(jenis||'LS').toUpperCase();
                 const year=String(tanggal||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta'}).format(new Date())).slice(0,4);
