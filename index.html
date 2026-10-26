@@ -6547,120 +6547,36 @@ importPencairanExcel(event) {
             }
 
             printPaguReport() {
-                let rekenings = [...DB.get('master_rekening')].sort((a,b) => a.kode.localeCompare(b.kode));
-                let pencairanHead = DB.get('pencairan') || [];
-                let pencairanItems = DB.get('pencairan_items') || [];
-                
-                let map = {};
-                rekenings.forEach(r => {
-                    map[r.kode] = { 
-                        ...r, 
-                        pagu_calc: r.jenis === 'Detail' ? (Number(r.pagu) || 0) : 0, 
-                        realisasi_total: 0,
-                        realisasi_bulan: {} 
-                    };
-                    for(let i = 1; i <= 12; i++) {
-                        map[r.kode].realisasi_bulan[i] = { LS: 0, GU: 0, TU: 0, TOTAL: 0 };
-                    }
-                });
-
-                pencairanItems.forEach(item => {
-                    const rekMaster = DB.getById('master_rekening', item.rekening_id);
-                    if (!rekMaster) return;
-                    
-                    if (map[rekMaster.kode]) {
-                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
-                        if (head && (head.status.toUpperCase() === 'FINAL' || head.status.toUpperCase() === 'SELESAI' || head.status.toUpperCase() === 'DRAFT')) {
-                            const date = new Date(head.tanggal);
-                            const month = date.getMonth() + 1;
-                            const jenis = head.jenis_pencairan || head.jenis || 'LS';
-                            const amount = Number(item.subtotal) || Number(item.total) || 0;
-
-                            if (map[rekMaster.kode].realisasi_bulan[month]) {
-                                map[rekMaster.kode].realisasi_bulan[month][jenis] += amount;
-                                map[rekMaster.kode].realisasi_bulan[month].TOTAL += amount;
-                                map[rekMaster.kode].realisasi_total += amount;
-                            }
-                        }
-                    }
-                });
-
-                let codes = Object.keys(map).sort((a,b) => b.length - a.length);
-                codes.forEach(code => {
-                    let parentCode = null; let maxLen = 0;
-                    for (let possibleParent of codes) {
-                        if (possibleParent.length < code.length && code.startsWith(possibleParent + '.')) {
-                            if (possibleParent.length > maxLen) { maxLen = possibleParent.length; parentCode = possibleParent; }
-                        }
-                    }
-                    if (parentCode && map[parentCode]) {
-                        map[parentCode].pagu_calc += map[code].pagu_calc;
-                        map[parentCode].realisasi_total += map[code].realisasi_total;
-                    }
-                });
-
-                const getStyleByLevel = (kode) => {
-                    const parts = kode.split('.');
-                    if (parts.length <= 5) return 'font-weight: 700; background-color: #fef08a;'; 
-                    if (parts.length === 6) return 'font-weight: 700; background-color: #facc15;'; 
-                    if (parts.length === 8) return 'font-weight: 700; background-color: #ffffff;'; 
-                    if (parts.length >= 12) return 'background-color: #e0f2fe;'; 
-                    return 'background-color: #ffffff;'; 
-                };
-
-                let rows = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map((r) => {
-                    const sisa = r.pagu_calc - r.realisasi_total;
-                    const style = getStyleByLevel(r.kode);
-                    const border = 'border: 1px solid #000; padding: 4px 6px;';
-                    
-                    return `
-                    <tr style="${style} font-size: 8.5pt;">
-                        <td style="${border}">${r.kode}</td>
-                        <td style="${border}">${r.uraian}</td>
-                        <td style="${border} text-align: right; font-weight: 600;">${Utils.formatNumber(r.pagu_calc)}</td>
-                        <td style="${border} text-align: right; font-weight: bold; color: #15803d;">${Utils.formatNumber(r.realisasi_total)}</td>
-                        <td style="${border} text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'};">${Utils.formatNumber(sisa)}</td>
-                    </tr>`;
+                const rows = this.getPaguRealisasiRows();
+                const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                const money = value => Utils.formatNumber(value || 0);
+                const sections = Array.from({length:4}, (_, quarter) => {
+                    const indices = [quarter * 3 + 1, quarter * 3 + 2, quarter * 3 + 3];
+                    const body = rows.map(r => {
+                        const periodTotal = indices.reduce((sum, month) => sum + r.realisasi_bulan[month].TOTAL, 0);
+                        const remaining = r.pagu_calc - r.realisasi_total;
+                        return `<tr class="${r.jenis === 'Detail' ? 'detail' : 'group'}"><td>${Utils.escapeHTML(r.kode)}</td><td>${Utils.escapeHTML(r.uraian)}</td><td class="num">${money(r.pagu_calc)}</td>${indices.map(month => ['LS','GU','TU','TOTAL'].map(kind => `<td class="num ${kind === 'TOTAL' ? 'subtotal' : ''}">${money(r.realisasi_bulan[month][kind])}</td>`).join('')).join('')}<td class="num subtotal">${money(periodTotal)}</td><td class="num">${money(r.realisasi_total)}</td><td class="num">${this.paguPercentage(r.pagu_calc,r.realisasi_total)}</td><td class="num">${money(remaining)}</td></tr>`;
+                    }).join('');
+                    return `<section class="pagu-quarter"><h2>PEMERINTAH KOTA BOGOR<br>BADAN KEUANGAN DAN ASET DAERAH</h2><h3>LAPORAN RINCI PAGU DAN REALISASI ANGGARAN</h3><p>Triwulan ${quarter+1} · ${months[indices[0]-1]}–${months[indices[2]-1]} · Seluruh nilai dalam rupiah</p><table><thead><tr><th rowspan="2">Kode Rekening</th><th rowspan="2" class="description">Uraian Program / Kegiatan / Rincian Objek</th><th rowspan="2">Pagu Anggaran</th>${indices.map(month=>`<th colspan="4">${months[month-1]}</th>`).join('')}<th rowspan="2">Total Triwulan</th><th rowspan="2">Total Realisasi<br>Semua Bulan</th><th rowspan="2">Realisasi (%)<br>Semua Bulan</th><th rowspan="2">Sisa Anggaran</th></tr><tr>${indices.map(()=>'<th>LS</th><th>GU</th><th>TU</th><th>Total</th>').join('')}</tr></thead><tbody>${body || '<tr><td colspan="19">Belum ada data rekening.</td></tr>'}</tbody></table><p class="note">Persentase = total realisasi semua bulan ÷ pagu × 100. Pagu nol: —. Termasuk pengajuan Draft, Final, dan Selesai, sesuai menu Pagu &amp; Realisasi. Baris induk merupakan akumulasi rincian; jangan dijumlahkan kembali.</p></section>`;
                 }).join('');
-
-                const content = `
-                    <div style="text-align: center; margin-bottom: 15px; font-family: 'Times New Roman', Times, serif;">
-                        <h2 style="font-size: 12pt; margin: 0; line-height: 1.3;">PEMERINTAH KOTA BOGOR<br>BADAN KEUANGAN DAN ASET DAERAH<br>LAPORAN PAGU DAN REALISASI ANGGARAN</h2>
-                        <p style="font-size: 9.5pt; margin-top: 5px; font-weight: bold;">Tahun Anggaran 2026</p>
-                    </div>
-
-                    <table style="width: 100%; border-collapse: collapse; font-size: 8.5pt; font-family: 'Times New Roman', Times, serif;">
-                        <thead>
-                            <tr style="background-color: #f3f4f6; text-align: center;">
-                                <th style="border: 1px solid #000; padding: 6px; width: 150px;">Kode Rekening</th>
-                                <th style="border: 1px solid #000; padding: 6px;">Uraian Program / Kegiatan / Rincian Objek</th>
-                                <th style="border: 1px solid #000; padding: 6px; width: 140px; text-align: right;">Pagu Anggaran (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 6px; width: 140px; text-align: right;">Total Realisasi (Rp)</th>
-                                <th style="border: 1px solid #000; padding: 6px; width: 140px; text-align: right;">Sisa Anggaran (Rp)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                        </tbody>
-                    </table>
-
-                    <div style="display: flex; justify-content: flex-end; margin-top: 30px; font-size: 9.5pt; font-family: 'Times New Roman', Times, serif;">
-                        <div style="text-align: center; width: 280px;">
-                            <p>Bogor, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JUNI 2026</p>
-                            <p><b>PEJABAT PELAKSANA TEKNIS KEGIATAN</b></p>
-                            <br><br><br><br>
-                            <p style="text-decoration: underline; font-weight: bold;">AGIH PRIBADI KUSUMAH, S.E., M.Si</p>
-                            <p>NIP. 198503292011011001</p>
-                        </div>
-                    </div>
-                `;
-
-                const customStyle = `
-                    @page { size: landscape; margin: 10mm; }
-                    body { font-family: 'Times New Roman', Times, serif; color: #000; }
-                `;
-
-                this.printDocument('Laporan Pagu & Realisasi Anggaran', content, customStyle);
+                this.printDocument('Laporan Rinci Pagu & Realisasi', sections, `
+                    @page { size: A3 landscape; margin: 9mm; }
+                    body { font-family: Arial, sans-serif; color:#172c53; }
+                    .pagu-quarter { break-before:page; }
+                    .pagu-quarter:first-child { break-before:auto; }
+                    .pagu-quarter h2,.pagu-quarter h3 { text-align:center; margin:3px 0; font-size:12pt; }
+                    .pagu-quarter p { text-align:center; font-size:8pt; margin:6px 0 12px; }
+                    .pagu-quarter table { width:100%; border-collapse:collapse; font-size:7pt; }
+                    .pagu-quarter th,.pagu-quarter td { border:1px solid #9aaac0; padding:4px 3px; overflow-wrap:anywhere; }
+                    .pagu-quarter th { background:#e6eef8; text-align:center; }
+                    .pagu-quarter .description { min-width:140px; }
+                    .pagu-quarter .num { text-align:right; white-space:nowrap; }
+                    .pagu-quarter .group { background:#f0f4fa; font-weight:bold; }
+                    .pagu-quarter .subtotal { background:#edf6ff; }
+                    .pagu-quarter thead { display:table-header-group; }
+                    .pagu-quarter tr { break-inside:avoid; }
+                    .pagu-quarter p.note { text-align:left;font-size:7pt;line-height:1.5; }
+                `);
             }
 
             bindNav() {
@@ -6906,7 +6822,10 @@ renderSignPage(container, itemId) {
             // LOGIKA DPA & PERTANGGUNGJAWABAN DIPINDAH KE CLASS APP
             // ==========================================
             
-            renderPagu(container) {
+            paguPercentage(pagu, realisasi) {
+                return Number(pagu) > 0 ? (Number(realisasi) / Number(pagu) * 100).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%' : '—';
+            }
+            getPaguRealisasiRows() {
                 // 1. Ambil Data
                 let rekenings = [...DB.get('master_rekening')].sort((a,b) => a.kode.localeCompare(b.kode));
                 let pencairanHead = DB.get('pencairan') || [];
@@ -6933,11 +6852,12 @@ renderSignPage(container, itemId) {
                     if (!rekMaster) return;
                     
                     if (map[rekMaster.kode]) {
-                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
-                        if (head && (head.status.toUpperCase() === 'FINAL' || head.status.toUpperCase() === 'SELESAI' || head.status.toUpperCase() === 'DRAFT')) {
+                        const head = pencairanHead.find(h => String(h.id) === String(item.pencairan_id));
+                        if (head && (String(head.status || '').toUpperCase() === 'FINAL' || String(head.status || '').toUpperCase() === 'SELESAI' || String(head.status || '').toUpperCase() === 'DRAFT')) {
                             const date = new Date(head.tanggal);
                             const month = date.getMonth() + 1;
-                            const jenis = head.jenis_pencairan || head.jenis || 'LS';
+                            const rawJenis = String(head.jenis_pencairan || head.jenis || 'LS').toUpperCase();
+                            const jenis = ['LS', 'GU', 'TU'].includes(rawJenis) ? rawJenis : 'LS';
                             const amount = Number(item.subtotal) || Number(item.total) || 0;
 
                             if (map[rekMaster.kode].realisasi_bulan[month]) {
@@ -6970,6 +6890,11 @@ renderSignPage(container, itemId) {
                     }
                 });
 
+                return Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode));
+            }
+            renderPagu(container) {
+                const paguRows = this.getPaguRealisasiRows();
+
                 const getStyleByLevel = (kode) => {
                     const parts = kode.split('.');
                     if (parts.length <= 5) return 'font-weight: 700; background-color: #fef08a;'; 
@@ -6979,7 +6904,7 @@ renderSignPage(container, itemId) {
                     return 'background-color: #ffffff;'; 
                 };
 
-                let rows = Object.values(map).sort((a,b) => a.kode.localeCompare(b.kode)).map((r) => {
+                let rows = paguRows.map((r) => {
                     const sisa = r.pagu_calc - r.realisasi_total;
                     const style = getStyleByLevel(r.kode);
                     const borderDashed = 'border-bottom: 1px dashed #000; border-right: 1px dashed #000; padding: 6px 12px;';
@@ -7001,6 +6926,7 @@ renderSignPage(container, itemId) {
                         <td class="sticky left-[150px] z-10 min-w-[300px]" style="${style} ${borderDashed}">${r.uraian}</td>
                         <td style="${borderDashed} text-align: right; font-weight: 600; white-space: nowrap;">${Utils.formatNumber(r.pagu_calc)}</td>
                         ${monthCols}
+                        <td style="${borderDashed} text-align:right;white-space:nowrap;font-weight:bold">${this.paguPercentage(r.pagu_calc, r.realisasi_total)}</td>
                         <td style="${borderDashed} text-align: right; font-weight: bold; color: #15803d; white-space: nowrap;">${Utils.formatNumber(r.realisasi_total)}</td>
                        <td style="${borderDashed} text-align: right; font-weight: bold; color: ${sisa < 0 ? '#dc2626' : '#2563eb'}; white-space: nowrap;">
                             ${Utils.formatNumber(sisa)}
@@ -7029,7 +6955,7 @@ renderSignPage(container, itemId) {
                         <div class="flex justify-between items-center mb-6 flex-shrink-0">
                             <div>
                                 <h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1>
-                                <p class="text-muted text-sm mt-1">Matriks Berjenjang DPA. Terhubung dengan form pengajuan pencairan.</p>
+                                <p class="text-muted text-sm mt-1">Matriks Berjenjang DPA. Realisasi (%) = total realisasi ÷ pagu × 100. Pagu nol ditampilkan —. Termasuk pengajuan Draft, Final, dan Selesai.</p>
                             </div>
                            <div class="flex gap-2">
                                 <input type="file" id="import-rekening-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importRekening(event)">
@@ -7050,6 +6976,7 @@ renderSignPage(container, itemId) {
                                             <th rowspan="2" class="sticky left-[150px] z-30" style="background-color: #f3f4f6; border-right: 1px dashed #000; border-bottom: 1px dashed #000; padding: 8px;">Uraian Program / Kegiatan / Rincian Objek</th>
                                             <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: right; min-width: 120px; padding: 8px;">Pagu Anggaran</th>
                                             ${monthHeaders1}
+                                            <th rowspan="2" style="border-right:1px dashed #000;border-bottom:1px dashed #000;min-width:100px;padding:8px">Realisasi (%)</th>
                                             <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: right; min-width: 120px; padding: 8px;">Total Realisasi</th>
                                             <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: right; min-width: 120px; padding: 8px;">Sisa Anggaran</th>
                                             <th rowspan="2" style="border-right: 1px dashed #000; border-bottom: 1px dashed #000; text-align: center; min-width: 90px; padding: 8px;">Aksi</th>
