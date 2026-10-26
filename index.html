@@ -6344,6 +6344,40 @@ importPencairanExcel(event) {
                 }
             }
 
+            async signatureForReport(source) {
+                if (!/^data:image\/png;base64,/.test(String(source || ''))) return source;
+                try {
+                    const image = new Image();
+                    await new Promise((resolve, reject) => {
+                        const timer = setTimeout(() => reject(new Error('Signature timeout')), 5000);
+                        image.onload = () => { clearTimeout(timer); resolve(); };
+                        image.onerror = () => { clearTimeout(timer); reject(new Error('Invalid signature')); };
+                        image.src = source;
+                    });
+                    if (!image.naturalWidth || !image.naturalHeight || image.naturalWidth * image.naturalHeight > 16000000) return source;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.naturalWidth; canvas.height = image.naturalHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(image, 0, 0);
+                    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                    let left = canvas.width, top = canvas.height, right = -1, bottom = -1;
+                    for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+                        const offset = (y * canvas.width + x) * 4;
+                        if (pixels[offset+3] > 24 && Math.min(pixels[offset], pixels[offset+1], pixels[offset+2]) < 220) {
+                            left = Math.min(left,x); top = Math.min(top,y); right = Math.max(right,x); bottom = Math.max(bottom,y);
+                        }
+                    }
+                    if (right < left || bottom < top) return source;
+                    const pad = Math.max(4, Math.round(Math.max(right-left,bottom-top) * .05));
+                    left = Math.max(0,left-pad); top = Math.max(0,top-pad);
+                    right = Math.min(canvas.width-1,right+pad); bottom = Math.min(canvas.height-1,bottom+pad);
+                    const result = document.createElement('canvas');
+                    result.width = right-left+1; result.height = bottom-top+1;
+                    result.getContext('2d').drawImage(canvas,left,top,result.width,result.height,0,0,result.width,result.height);
+                    return result.toDataURL('image/png');
+                } catch (_) { return source; }
+            }
+
             spjReportStyle() {
                 return `
                     @page { size: A4 landscape; margin: 12mm; }
@@ -6355,10 +6389,10 @@ importPencairanExcel(event) {
                     .tbl-main thead { display:table-header-group; }
                     .tbl-main th { background:#1e3a8a!important; color:#fff!important; border:1px solid #000; padding:8px!important; font-size:10pt; text-align:center!important; vertical-align:middle!important; }
                     .tbl-main td { border:1px solid #000; padding:7px 8px; line-height:1.4; vertical-align:middle!important; }
-                    .tbl-main tbody tr { height:88px; break-inside:avoid; }
+                    .tbl-main tbody tr { height:81px; break-inside:avoid; }
                     .tbl-main th:first-child { width:34px!important; }
-                    .tbl-main th:last-child { width:170px!important; }
-                    .spj-signature { width:168px; height:80px; display:block; margin:0 auto; object-fit:contain; filter:grayscale(1) brightness(0) drop-shadow(.35px 0 0 #000) drop-shadow(0 .35px 0 #000); }
+                    .tbl-main th:last-child { width:142px!important; }
+                    .spj-signature { width:137.7px; height:68.85px; display:block; margin:0 auto; object-fit:contain; filter:grayscale(1) brightness(0) drop-shadow(.35px 0 0 #000) drop-shadow(0 .35px 0 #000); }
                     .ttd-container { display:flex; justify-content:space-between; align-items:flex-start; margin-top:30px!important; font-size:10pt!important; break-inside:avoid; }
                     .ttd-container>div { width:310px!important; text-align:center; }
                     .ttd-container p { margin:8px 0; line-height:1.4; }
@@ -6380,6 +6414,7 @@ importPencairanExcel(event) {
                 // Ambil data TERBARU dari Supabase agar TTD yang dicetak persis dengan yang tersimpan.
                 const items = await this.getSpjHeaderRecipients(spjId);
                 const listPenyedia = DB.get('penyedia') || [];
+                const reportSignatures = await Promise.all(items.map(item => this.signatureForReport(item.tanda_tangan)));
 
                 let rowsHtml = items.map((item, idx) => {
                     const matchedPenyedia = listPenyedia.find(p => p.id === item.penyedia_id || p.name?.toLowerCase() === item.nama_penerima?.toLowerCase());
@@ -6390,7 +6425,7 @@ importPencairanExcel(event) {
                     
                     // Gunakan dataURL TTD persis seperti yang tersimpan di Supabase. Jangan generate ulang / ubah gambar.
                     const ttdContent = item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" alt="Tanda tangan ${nama}" class="spj-signature" />` 
+                        ? `<img src="${reportSignatures[idx]}" alt="Tanda tangan ${nama}" class="spj-signature" />` 
                         : `<span style="color: #94a3b8; font-size: 10px;">....................</span>`;
 
                     return `
@@ -6463,6 +6498,7 @@ importPencairanExcel(event) {
                 // Ambil data TERBARU dari Supabase agar TTD yang dicetak persis dengan yang tersimpan.
                 const items = await this.getSpjHeaderRecipients(spjId);
                 const listPenyedia = DB.get('penyedia') || [];
+                const reportSignatures = await Promise.all(items.map(item => this.signatureForReport(item.tanda_tangan)));
 
                 let totalBruto = 0, totalPajak = 0, totalBersih = 0;
 
@@ -6482,7 +6518,7 @@ importPencairanExcel(event) {
 
                     // Gunakan dataURL TTD persis seperti yang tersimpan di Supabase.
                     const ttdContent = item.tanda_tangan 
-                        ? `<img src="${item.tanda_tangan}" alt="Tanda tangan ${nama}" class="spj-signature" />` 
+                        ? `<img src="${reportSignatures[idx]}" alt="Tanda tangan ${nama}" class="spj-signature" />` 
                         : `<div style="height: 55px;"></div>`;
 
                     return `
