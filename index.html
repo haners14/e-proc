@@ -6557,7 +6557,7 @@ importPencairanExcel(event) {
                         const remaining = r.pagu_calc - r.realisasi_total;
                         return `<tr class="${r.jenis === 'Detail' ? 'detail' : 'group'}"><td>${Utils.escapeHTML(r.kode)}</td><td>${Utils.escapeHTML(r.uraian)}</td><td class="num">${money(r.pagu_calc)}</td>${indices.map(month => ['LS','GU','TU','TOTAL'].map(kind => `<td class="num ${kind === 'TOTAL' ? 'subtotal' : ''}">${money(r.realisasi_bulan[month][kind])}</td>`).join('')).join('')}<td class="num subtotal">${money(periodTotal)}</td><td class="num">${money(r.realisasi_total)}</td><td class="num">${this.paguPercentage(r.pagu_calc,r.realisasi_total)}</td><td class="num">${money(remaining)}</td></tr>`;
                     }).join('');
-                    return `<section class="pagu-quarter"><h2>PEMERINTAH KOTA BOGOR<br>BADAN KEUANGAN DAN ASET DAERAH</h2><h3>LAPORAN RINCI PAGU DAN REALISASI ANGGARAN</h3><p>Triwulan ${quarter+1} · ${months[indices[0]-1]}–${months[indices[2]-1]} · Seluruh nilai dalam rupiah</p><table><thead><tr><th rowspan="2">Kode Rekening</th><th rowspan="2" class="description">Uraian Program / Kegiatan / Rincian Objek</th><th rowspan="2">Pagu Anggaran</th>${indices.map(month=>`<th colspan="4">${months[month-1]}</th>`).join('')}<th rowspan="2">Total Triwulan</th><th rowspan="2">Total Realisasi<br>Semua Bulan</th><th rowspan="2">Realisasi (%)<br>Semua Bulan</th><th rowspan="2">Sisa Anggaran</th></tr><tr>${indices.map(()=>'<th>LS</th><th>GU</th><th>TU</th><th>Total</th>').join('')}</tr></thead><tbody>${body || '<tr><td colspan="19">Belum ada data rekening.</td></tr>'}</tbody></table><p class="note">Persentase = total realisasi semua bulan ÷ pagu × 100. Pagu nol: —. Termasuk pengajuan Draft, Final, dan Selesai, sesuai menu Pagu &amp; Realisasi. Baris induk merupakan akumulasi rincian; jangan dijumlahkan kembali.</p></section>`;
+                    return `<section class="pagu-quarter"><h2>PEMERINTAH KOTA BOGOR<br>BADAN KEUANGAN DAN ASET DAERAH</h2><h3>LAPORAN RINCI PAGU DAN REALISASI ANGGARAN</h3><p>Triwulan ${quarter+1} · ${months[indices[0]-1]}–${months[indices[2]-1]} · Seluruh nilai dalam rupiah</p><table><thead><tr><th rowspan="2">Kode Rekening</th><th rowspan="2" class="description">Uraian Program / Kegiatan / Rincian Objek</th><th rowspan="2">Pagu Anggaran</th>${indices.map(month=>`<th colspan="4">${months[month-1]}</th>`).join('')}<th rowspan="2">Total Triwulan</th><th rowspan="2">Total Realisasi<br>Semua Bulan</th><th rowspan="2">Realisasi (%)<br>Semua Bulan</th><th rowspan="2">Sisa Anggaran</th></tr><tr>${indices.map(()=>'<th>LS</th><th>GU</th><th>TU</th><th>Total</th>').join('')}</tr></thead><tbody>${body || '<tr><td colspan="19">Belum ada data rekening.</td></tr>'}</tbody></table><p class="note">Persentase = total realisasi semua bulan ÷ pagu × 100. Pagu nol: —. Hanya pengajuan berstatus Selesai, sesuai menu Pagu &amp; Realisasi. Baris induk merupakan akumulasi rincian; jangan dijumlahkan kembali.</p></section>`;
                 }).join('');
                 this.printDocument('Laporan Rinci Pagu & Realisasi', sections, `
                     @page { size: A3 landscape; margin: 9mm; }
@@ -6822,6 +6822,17 @@ renderSignPage(container, itemId) {
             // LOGIKA DPA & PERTANGGUNGJAWABAN DIPINDAH KE CLASS APP
             // ==========================================
             
+            isPencairanSelesai(header) {
+                return String(header?.status || '').trim().toUpperCase() === 'SELESAI';
+            }
+            setPencairanStatus(id, status) {
+                if (!['Draft', 'Selesai'].includes(status)) return;
+                const header = (DB.get('pencairan') || []).find(row => String(row.id) === String(id));
+                if (!header) return this.notify('Pengajuan tidak ditemukan', 'error');
+                DB.update('pencairan', header.id, {status});
+                this.renderPengajuan(this.routerView);
+                this.notify(status === 'Selesai' ? 'Status Selesai: masuk realisasi dan kartu kendali.' : 'Status Draft: tidak dihitung sebagai realisasi.', 'success');
+            }
             paguPercentage(pagu, realisasi) {
                 return Number(pagu) > 0 ? (Number(realisasi) / Number(pagu) * 100).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%' : '—';
             }
@@ -6853,7 +6864,7 @@ renderSignPage(container, itemId) {
                     
                     if (map[rekMaster.kode]) {
                         const head = pencairanHead.find(h => String(h.id) === String(item.pencairan_id));
-                        if (head && (String(head.status || '').toUpperCase() === 'FINAL' || String(head.status || '').toUpperCase() === 'SELESAI' || String(head.status || '').toUpperCase() === 'DRAFT')) {
+                        if (head && this.isPencairanSelesai(head)) {
                             const date = new Date(head.tanggal);
                             const month = date.getMonth() + 1;
                             const rawJenis = String(head.jenis_pencairan || head.jenis || 'LS').toUpperCase();
@@ -6955,7 +6966,7 @@ renderSignPage(container, itemId) {
                         <div class="flex justify-between items-center mb-6 flex-shrink-0">
                             <div>
                                 <h1 class="text-2xl font-bold text-main">Pagu & Realisasi Anggaran</h1>
-                                <p class="text-muted text-sm mt-1">Matriks Berjenjang DPA. Realisasi (%) = total realisasi ÷ pagu × 100. Pagu nol ditampilkan —. Termasuk pengajuan Draft, Final, dan Selesai.</p>
+                                <p class="text-muted text-sm mt-1">Matriks Berjenjang DPA. Realisasi (%) = total realisasi ÷ pagu × 100. Pagu nol ditampilkan —. Hanya pengajuan berstatus Selesai.</p>
                             </div>
                            <div class="flex gap-2">
                                 <input type="file" id="import-rekening-excel" accept=".xlsx, .xls" style="display:none;" onchange="app.importRekening(event)">
@@ -7490,8 +7501,8 @@ renderSignPage(container, itemId) {
                     const rekKode = rekMaster.kode;
 
                     if (map[rekKode]) {
-                        const head = pencairanHead.find(h => h.id === item.pencairan_id);
-                        if (head && (head.status.toUpperCase() === 'FINAL' || head.status.toUpperCase() === 'SELESAI' || head.status.toUpperCase() === 'DRAFT')) {
+                        const head = pencairanHead.find(h => String(h.id) === String(item.pencairan_id));
+                        if (head && this.isPencairanSelesai(head)) {
                             const date = new Date(head.tanggal);
                             const itemBulan = date.getMonth() + 1;
                             const isLalu = itemBulan < bulan;
@@ -7990,7 +8001,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                             <td class="p-3 text-right">Rp ${Utils.formatNumber(totalBruto)}</td>
                             <td class="p-3 text-right text-danger">Rp ${Utils.formatNumber(totalPotongan)}</td>
                             <td class="p-3 text-right font-bold text-success">Rp ${Utils.formatNumber(totalDibayarkan)}</td>
-                            <td class="p-3 text-center">${Utils.getBadge(d.status || 'Draft')}</td>
+                            <td class="p-3 text-center"><select class="form-control" style="min-width:105px;font-size:12px" aria-label="Status pengajuan ${Utils.escapeAttr(d.nomor || String(d.id))}" onchange="app.setPencairanStatus('${Utils.escapeAttr(String(d.id))}',this.value)"><option value="Draft" ${!this.isPencairanSelesai(d) ? 'selected' : ''}>Draft</option><option value="Selesai" ${this.isPencairanSelesai(d) ? 'selected' : ''}>Selesai</option></select></td>
                             <td class="p-3 text-center">
                                 <div class="flex justify-center gap-1">
                                     <button class="btn btn-ghost btn-sm text-primary" title="Kelola Rincian Detail Item" onclick="app.formDetailPencairan('${d.id}')"><i class="ph ph-list-checks text-lg"></i> Detail</button>
@@ -8137,6 +8148,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                                 </select>
                             </div>
                         </div>
+                        <div class="form-group"><label class="form-label" for="pencairan-status">Status Pengajuan</label><select id="pencairan-status" name="status" class="form-control"><option value="Draft" ${!this.isPencairanSelesai(header) ? 'selected' : ''}>Draft</option><option value="Selesai" ${this.isPencairanSelesai(header) ? 'selected' : ''}>Selesai</option></select><small class="text-muted">Hanya Selesai dihitung pada Pagu &amp; Realisasi, PDF, dan Kartu Kendali.</small></div>
                     </form>
                 `;
 
@@ -8165,7 +8177,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     ...formData,
                     bulan: namaBulan,
                     kegiatan: 'Pengelolaan Barang Milik Daerah',
-                    status: 'Draft'
+                    status: formData.status === 'Selesai' ? 'Selesai' : 'Draft'
                 };
 
                 if (id) {
@@ -8858,7 +8870,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
 
                     const others = (DB.get('pencairan_items') || []).filter(i => String(i.pencairan_id) !== String(pencairanId));
                     DB.cache['pencairan_items'] = [...payloads, ...others];
-                    DB.update('pencairan', pencairanId, { total: totalHeader, status: 'Final' });
+                    DB.update('pencairan', pencairanId, { total: totalHeader });
 
                     DOM.closeModal();
                     this.notify('Rincian item pencairan berhasil disimpan', 'success');
@@ -8894,6 +8906,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 const newHeaderId = Utils.generateId();
                 const newHeader = {
                     ...header,
+                    status: 'Draft',
                     id: newHeaderId,
                     nomor: this.nextPencairanNumber(header.nomor),
                     created_at: new Date().toISOString()
