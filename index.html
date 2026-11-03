@@ -7198,12 +7198,14 @@ renderSignPage(container, itemId) {
                     return result;
                 }catch(error){if(error.name==='AbortError'||error instanceof TypeError)throw new Error('Layanan SPJ belum dapat dijangkau. Periksa koneksi, deployment public-spj, dan konfigurasi CORS Supabase.');throw error}finally{clearTimeout(timer)}
             }
-            async getSpjShareLink(spjId) {
-                const id=String(spjId);this.issuedSpjLinks=this.issuedSpjLinks||{};
+            async getSpjShareLink(spjId, openPresensi = false) {
+                const access=await this.spjRequest({action:'access_status',spj_id:spjId});
+                if(access.locked&&!openPresensi)throw new Error('Presensi terkunci. Buka melalui Detail SPJ terlebih dahulu.');
+                const id=String(spjId);if(openPresensi&&this.issuedSpjLinks)delete this.issuedSpjLinks[id];this.issuedSpjLinks=this.issuedSpjLinks||{};
                 if(this.issuedSpjLinks[id])return this.issuedSpjLinks[id];
                 this.spjLinkRequests=this.spjLinkRequests||{};
                 if(!this.spjLinkRequests[id])this.spjLinkRequests[id]=(async()=>{
-                    const result=await this.spjRequest({action:'issue',scope:'shared',spj_id:spjId,expires_in_hours:0});
+                    const result=await this.spjRequest({action:'issue',scope:'shared',spj_id:spjId,expires_in_hours:0,open_presensi:openPresensi});
                     if(!result.non_expiring)throw new Error('Backend belum mendukung link tanpa kedaluwarsa.');
                     if(!result.url)throw new Error('Server tidak mengembalikan tautan presensi.');
                     this.issuedSpjLinks[id]=result.url;return result.url;
@@ -7464,6 +7466,16 @@ renderSignPage(container, itemId) {
                 DOM.openModal('Pratinjau tanda tangan',`<div class="pronex-signed-preview"><span class="badge badge-success">Sudah ditandatangani</span><h3>${Utils.escapeHTML(item.nama_penerima||'Penerima')}</h3><p>${Utils.escapeHTML(item.uraian||'')}</p><div class="pronex-signature-paper"><img src="${Utils.escapeAttr(signature)}" alt="Tanda tangan ${Utils.escapeAttr(item.nama_penerima||'penerima')}"></div><small>Dokumen ditampilkan dalam mode baca saja.</small></div>`,`<button class="btn btn-outline" onclick="app.bukaDetailSPJ('${Utils.escapeAttr(spjId)}')">Kembali ke detail SPJ</button>`,'650px');
             }
 
+            async setSpjPresensiLock(spjId, locked) {
+                try {
+                    if (locked) await this.spjRequest({action:'lock_presensi',spj_id:spjId});
+                    else await this.getSpjShareLink(spjId,true);
+                    if(locked&&this.issuedSpjLinks)delete this.issuedSpjLinks[String(spjId)];
+                    await this.bukaDetailSPJ(spjId);
+                    this.notify(locked?'Presensi dikunci. Link lama tidak berlaku.':'Presensi dibuka. Salin dan bagikan link baru.','success');
+                } catch(error){this.notify(error.message,'error');}
+            }
+
             async resetSpjRecipientSignature(spjId, recipientId) {
                 const item = this.spjRecipientCache?.[String(spjId)]?.find(row => String(row.id) === String(recipientId));
                 if (!item || item.status_ttd !== 'SIGNED') return this.notify('Muat ulang detail SPJ terlebih dahulu.', 'info');
@@ -7496,6 +7508,8 @@ renderSignPage(container, itemId) {
                     items=cached||DB.get('pencairan_items').filter(row=>String(row.pencairan_id)===String(spj.pencairan_id)).map(row=>({...row,status_ttd:'UNKNOWN'}));
                     this.spjDetailWarning=cached?'Koneksi layanan SPJ terputus. Status TTD berikut berasal dari cache sesi.':'Layanan SPJ belum terhubung. Rincian pengajuan tetap ditampilkan; status tanda tangan belum dapat diverifikasi.';
                 }
+                let presensiAccess=null;
+                try{presensiAccess=await this.spjRequest({action:'access_status',spj_id:spj.id});}catch(_){}
                 const signUrl = `${window.location.origin + window.location.pathname}?action=sign_header&spj_id=${spj.id}`;
 
                 let listHtml = items.map((item, idx) => {
@@ -7516,7 +7530,7 @@ renderSignPage(container, itemId) {
                 }).join('');
 
                 const body = `
-                    <div class="space-y-6">${this.spjDetailWarning?`<p class="pronex-spj-warning" role="status">${Utils.escapeHTML(this.spjDetailWarning)}</p>`:''}
+                    <div class="space-y-6"><div class="card p-4"><b>Presensi: ${presensiAccess ? (presensiAccess.locked ? 'Terkunci' : 'Terbuka') : 'Status belum tersedia'}</b><p class="text-sm text-muted">Kunci menonaktifkan link lama. Buka lalu bagikan link baru untuk akses data dan TTD.</p>${presensiAccess ? `<button class="btn btn-outline" onclick="app.setSpjPresensiLock('${Utils.escapeAttr(spj.id)}',${!presensiAccess.locked})">${presensiAccess.locked ? 'Buka Presensi' : 'Kunci Presensi'}</button>` : ''}</div>${this.spjDetailWarning?`<p class="pronex-spj-warning" role="status">${Utils.escapeHTML(this.spjDetailWarning)}</p>`:''}
                         <div class="card p-5 bg-white border border-gray-200 shadow-sm rounded-lg space-y-3">
                             <div class="border-b pb-3 flex justify-between items-center">
                                 <div>
