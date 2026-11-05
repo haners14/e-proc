@@ -6220,7 +6220,7 @@ importPencairanExcel(event) {
                             </div>
                             <div>
                                 <label class="form-label text-xs font-semibold">${item.payment_method === 'kode_bayar' ? 'Institusi & Kode Bayar' : 'Bank & Rekening'}</label>
-                                <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar — ' + (item.bank || 'Telkom') : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
+                                <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? (item.bank || 'Telkom') : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
                             </div>
                         </div>
 
@@ -6790,7 +6790,7 @@ renderSignPage(container, itemId) {
                                     </div>
                                     <div>
                                         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">${item.payment_method === 'kode_bayar' ? 'Institusi & Kode Bayar:' : 'Bank & Nomor Rekening:'}</label>
-                                        <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar — ' + (item.bank || 'Telkom') : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
+                                        <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? (item.bank || 'Telkom') : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
                                     </div>
                                 </div>
 
@@ -9109,6 +9109,13 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 return result;
             }
 
+            getPaymentColumnLabels(items = []) {
+                const hasCode = items.some(item => item.payment_method === 'kode_bayar');
+                const hasAccount = items.some(item => item.payment_method !== 'kode_bayar');
+                if (hasCode && hasAccount) return ['Tujuan Pembayaran', 'Nomor Pembayaran'];
+                return hasCode ? ['Institusi', 'Kode Bayar'] : ['Bank', 'Rekening'];
+            }
+
             exportLampiranPencairanExcel(pencairanId) {
                 const header = DB.getById('pencairan', pencairanId);
                 if (!header) return this.notify('Pengajuan tidak ditemukan', 'error');
@@ -9129,7 +9136,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     ['Sub Kegiatan', header.sub_kegiatan || ''],
                     ['Tanggal', header.tanggal || ''],
                     [],
-                    ['No', 'Kode Rekening', 'Uraian Rekening', 'Keperluan', 'Nama Penerima', 'NPWP/NIK', 'Bank / Institusi', 'Rekening / Kode Bayar', 'Jumlah', 'PPN', 'PPh 21', 'PPh 22', 'PPh 23', 'PPh 4 Ayat 2', 'Jumlah Potongan', 'Jumlah Dibayarkan'],
+                    ['No', 'Kode Rekening', 'Uraian Rekening', 'Keperluan', 'Nama Penerima', 'NPWP/NIK', ...this.getPaymentColumnLabels(items), 'Jumlah', 'PPN', 'PPh 21', 'PPh 22', 'PPh 23', 'PPh 4 Ayat 2', 'Jumlah Potongan', 'Jumlah Dibayarkan'],
                     ...rows,
                     ['JUMLAH TOTAL', '', '', '', '', '', '', '', ...Array.from({ length: 8 }, (_, offset) => rows.reduce((sum, row) => sum + Number(row[8 + offset] || 0), 0))]
                 ];
@@ -9208,7 +9215,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 <td>${rek.uraian || '-'}</td>
                 <td><b>${item.uraian || '-'}</b></td>
                 <td><b>${item.nama_penerima || '-'}</b><br><span style="font-size:7pt;">NPWP/NIK: ${npwpNik}</span></td>
-                <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar — ' + (item.bank || 'Telkom') : item.bank || '-')}</td>
+                <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? (item.bank || 'Telkom') : item.bank || '-')}</td>
                 <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')}</td>
                 <td class="r">${Utils.formatNumber(bruto)}</td>
                 <td class="r">${ppn ? Utils.formatNumber(ppn) : '-'}</td>
@@ -9241,8 +9248,8 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     <th rowspan="2">Uraian Rekening</th>
                     <th rowspan="2">Keperluan</th>
                     <th rowspan="2">Nama Penerima</th>
-                    <th rowspan="2">Bank / Institusi</th>
-                    <th rowspan="2">Rekening / Kode Bayar</th>
+                    <th rowspan="2">${this.getPaymentColumnLabels(items)[0]}</th>
+                    <th rowspan="2">${this.getPaymentColumnLabels(items)[1]}</th>
                     <th rowspan="2">Jumlah</th>
                     <th colspan="5">Potongan</th>
                     <th rowspan="2">Jumlah Potongan</th>
