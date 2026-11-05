@@ -4907,7 +4907,7 @@ hideLoginOverlay() {
                                 no_izin: String(r["Nomor Izin"] || '').trim(),
                                 direktur: String(r["Nama Direktur"] || '').trim(),
                                 jabatan_direktur: String(r["Jabatan Direktur"] || '').trim(),
-                                bank: String(r["Bank"] || '').trim(),
+                                bank: String(r["Metode Pembayaran"] || '').toLowerCase() === 'kode_bayar' ? String(r["Institusi"] || r["Bank"] || 'Telkom').trim() : String(r["Bank"] || '').trim(),
                                 no_rekening: String(r["Nomor Rekening"] || '').trim(),
                                 an_rekening: String(r["Atas Nama Rekening"] || '').trim(),
                                 status: String(r["Status Verifikasi"] || 'Aktif').trim()
@@ -4966,7 +4966,8 @@ hideLoginOverlay() {
             "Uraian Keperluan": item.uraian || '',
             "Nama Penerima": item.nama_penerima || '',
             "NPWP / NIK": npwpNik,
-            "Bank": item.bank || '',
+            "Bank": item.payment_method === 'kode_bayar' ? '' : item.bank || '',
+            "Institusi": item.payment_method === 'kode_bayar' ? item.bank || 'Telkom' : '',
             "Nomor Rekening Bank": item.no_rekening || '',
             "Metode Pembayaran": item.payment_method || 'rekening',
             "Kode Bayar": item.payment_code || '',
@@ -5113,7 +5114,7 @@ importPencairanExcel(event) {
                     rekening_id: rekMatch ? rekMatch.id : null,
                     uraian: String(r["Uraian Keperluan"] || '').trim(),
                     nama_penerima: String(r["Nama Penerima"] || '').trim(),
-                    bank: String(r["Bank"] || '').trim(),
+                    bank: String(r["Metode Pembayaran"] || '').toLowerCase() === 'kode_bayar' ? String(r["Institusi"] || r["Bank"] || 'Telkom').trim() : String(r["Bank"] || '').trim(),
                     no_rekening: String(r["Nomor Rekening Bank"] || '').trim(),
                     payment_method: String(r["Metode Pembayaran"] || '').toLowerCase() === 'kode_bayar' ? 'kode_bayar' : 'rekening',
                     payment_code: String(r["Kode Bayar"] || '').trim() || null,
@@ -6218,8 +6219,8 @@ importPencairanExcel(event) {
                                 <input type="text" class="form-control" value="${item.nama_penerima || '-'}" readonly style="background: #f8fafc;">
                             </div>
                             <div>
-                                <label class="form-label text-xs font-semibold">Bank & Rekening</label>
-                                <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar' : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
+                                <label class="form-label text-xs font-semibold">${item.payment_method === 'kode_bayar' ? 'Institusi & Kode Bayar' : 'Bank & Rekening'}</label>
+                                <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar — ' + (item.bank || 'Telkom') : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
                             </div>
                         </div>
 
@@ -6788,8 +6789,8 @@ renderSignPage(container, itemId) {
                                         <input type="text" class="form-control" value="${item.nama_penerima || '-'}" readonly style="background: #f8fafc;">
                                     </div>
                                     <div>
-                                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">Bank & Nomor Rekening:</label>
-                                        <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar' : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
+                                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">${item.payment_method === 'kode_bayar' ? 'Institusi & Kode Bayar:' : 'Bank & Nomor Rekening:'}</label>
+                                        <input type="text" class="form-control" value="${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar — ' + (item.bank || 'Telkom') : item.bank || '-')} (${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')})" readonly style="background: #f8fafc;">
                                     </div>
                                 </div>
 
@@ -7321,7 +7322,7 @@ renderSignPage(container, itemId) {
                 const expiry=new Date(data.expires_at);
                 const expiryLabel=data.expires_at==='infinity'||data.non_expiring?'Tanpa kedaluwarsa':Number.isNaN(expiry.getTime())?'Masa berlaku tidak tersedia':'Berlaku sampai '+new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(expiry)+' WIB';
                 const options=recipients.map(item=>`<option value="${Utils.escapeAttr(item.id)}" ${String(item.id)===String(selectedId)?'selected':''}>${Utils.escapeHTML(item.name)}${item.signed?' — Sudah TTD':''}</option>`).join('');
-                const details=r?`<div class="pronex-public-details"><div class="pronex-public-person"><span class="pronex-public-avatar"><i class="ph ph-user"></i></span><div><small>Penerima</small><h2>${Utils.escapeHTML(r.name)}</h2><p>Periksa kesesuaian data penerima sebelum menandatangani.</p></div><span class="badge ${r.signed?'badge-success':'badge-info'}">${r.signed?'Sudah TTD':'Belum TTD'}</span></div><dl class="pronex-public-bank-grid"><div><dt>Bank</dt><dd>${Utils.escapeHTML(r.bank||'Belum tersedia')}</dd></div><div><dt>${r.payment_method === 'kode_bayar' ? 'Kode bayar' : 'Nomor rekening'}</dt><dd class="pronex-public-account">${Utils.escapeHTML(r.account||'Belum tersedia')}</dd></div><div><dt>${Utils.escapeHTML(r.identity_label||'NIK / NPWP')}</dt><dd class="pronex-public-identity">${Utils.escapeHTML(r.identity||r.nik||r.npwp||'Belum tersedia')}</dd></div></dl><div class="pronex-public-amounts">${[['Bruto',r.gross],['Potongan pajak',r.tax],['Diterima',r.net]].map(([label,value])=>`<div><span>${label}</span><strong>Rp ${Utils.formatNumber(value)}</strong></div>`).join('')}</div></div>`:'';
+                const details=r?`<div class="pronex-public-details"><div class="pronex-public-person"><span class="pronex-public-avatar"><i class="ph ph-user"></i></span><div><small>Penerima</small><h2>${Utils.escapeHTML(r.name)}</h2><p>Periksa kesesuaian data penerima sebelum menandatangani.</p></div><span class="badge ${r.signed?'badge-success':'badge-info'}">${r.signed?'Sudah TTD':'Belum TTD'}</span></div><dl class="pronex-public-bank-grid"><div><dt>${r.payment_method === 'kode_bayar' ? 'Institusi' : 'Bank'}</dt><dd>${Utils.escapeHTML(r.payment_method === 'kode_bayar' ? (r.bank && r.bank !== '-' ? r.bank : 'Telkom') : r.bank||'Belum tersedia')}</dd></div><div><dt>${r.payment_method === 'kode_bayar' ? 'Kode bayar' : 'Nomor rekening'}</dt><dd class="pronex-public-account">${Utils.escapeHTML(r.account||'Belum tersedia')}</dd></div><div><dt>${Utils.escapeHTML(r.identity_label||'NIK / NPWP')}</dt><dd class="pronex-public-identity">${Utils.escapeHTML(r.identity||r.nik||r.npwp||'Belum tersedia')}</dd></div></dl><div class="pronex-public-amounts">${[['Bruto',r.gross],['Potongan pajak',r.tax],['Diterima',r.net]].map(([label,value])=>`<div><span>${label}</span><strong>Rp ${Utils.formatNumber(value)}</strong></div>`).join('')}</div></div>`:'';
                 const signing=!r?`<div class="pronex-public-empty"><i class="ph ph-signature"></i><h2>Pilih nama untuk melanjutkan</h2><p>Rincian pembayaran dan area tanda tangan akan tampil di sini.</p></div>`:r.signed?`<div class="pronex-public-signed"><span class="pronex-public-success"><i class="ph ph-check"></i></span><h2>Tanda tangan sudah tercatat</h2><p>Rincian penerima tetap dapat dilihat. Tanda tangan tidak dapat diubah atau dikirim ulang.</p>${r._signature?`<div class="pronex-signature-paper"><img src="${Utils.escapeAttr(r._signature)}" alt="Pratinjau tanda tangan Anda"></div>`:''}<small>Pengelola dapat melihat bukti TTD melalui Detail SPJ → Lihat TTD.</small></div>`:`<div class="pronex-sign-area"><div class="pronex-sign-area-heading"><div><h2>Tanda tangan digital</h2><p>Gunakan jari atau mouse pada bidang di bawah.</p></div><span><i class="ph ph-pen-nib"></i></span></div><div class="pronex-canvas-wrap"><canvas id="public-sign-canvas" width="840" height="280" aria-label="Area tanda tangan"></canvas><span class="pronex-sign-baseline">Tanda tangan di atas garis ini</span></div><p id="public-sign-error" class="pronex-sign-error" role="status" hidden></p><div class="pronex-public-sign-actions"><button type="button" class="btn btn-outline" onclick="app.clearPublicSignature()"><i class="ph ph-eraser"></i> Bersihkan</button><button type="button" id="public-sign-submit" class="btn btn-primary" onclick="app.submitPublicTokenSignature('${Utils.escapeAttr(token)}')">Kirim tanda tangan <i class="ph ph-arrow-right"></i></button></div></div>`;
                 root.className='pronex-public-page';root.removeAttribute('style');
                 const signedCount=recipients.filter(item=>item.signed).length;
@@ -8373,7 +8374,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                             </td>
                             <td class="p-3">
                                 <div class="font-semibold">${item.nama_penerima || '-'}</div>
-                                <div class="text-xs text-muted">${item.payment_method === 'kode_bayar' ? 'Kode Bayar: ' + Utils.escapeHTML(item.payment_code || '-') : Utils.escapeHTML(item.bank || '') + ' - ' + Utils.escapeHTML(item.no_rekening || '')}</div>
+                                <div class="text-xs text-muted">${item.payment_method === 'kode_bayar' ? Utils.escapeHTML(item.bank || 'Telkom') + ' · Kode Bayar: ' + Utils.escapeHTML(item.payment_code || '-') : Utils.escapeHTML(item.bank || '') + ' - ' + Utils.escapeHTML(item.no_rekening || '')}</div>
                             </td>
                             <td class="p-3 text-right">Rp ${Utils.formatNumber(bruto)}</td>
                             <td class="p-3 text-right">Rp ${Utils.formatNumber(dpp)}</td>
@@ -8448,6 +8449,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     input.required=!code;input.closest('.form-group').hidden=code;
                 }
                 const wrap=document.getElementById('detail_payment_code_wrap');if(wrap)wrap.hidden=!code;
+                const institution=document.getElementById('detail_payment_institution');if(institution){institution.closest('.form-group').hidden=!code;institution.required=code;}
                 const input=document.getElementById('detail_payment_code');if(input)input.required=code;
             }
 
@@ -8580,6 +8582,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                                 </select>
                             </div>
                             <div class="form-group mt-3"><label class="form-label" for="detail_payment_method">Tujuan Pembayaran</label><select id="detail_payment_method" class="form-control" onchange="app.togglePaymentMethod()"><option value="rekening" ${existingItem?.payment_method !== 'kode_bayar' ? 'selected' : ''}>Rekening</option><option value="kode_bayar" ${existingItem?.payment_method === 'kode_bayar' ? 'selected' : ''}>Kode Bayar</option></select></div>
+                            <div class="form-group" ${existingItem?.payment_method === 'kode_bayar' ? '' : 'hidden'}><label class="form-label" for="detail_payment_institution">Institusi</label><input id="detail_payment_institution" type="text" class="form-control" maxlength="120" value="${Utils.escapeAttr(existingItem?.payment_method === 'kode_bayar' ? existingItem.bank || 'Telkom' : 'Telkom')}" placeholder="Nama institusi penerbit kode bayar"></div>
                             <div id="detail_payment_code_wrap" class="form-group" ${existingItem?.payment_method === 'kode_bayar' ? '' : 'hidden'}><label class="form-label" for="detail_payment_code">Kode Bayar</label><input id="detail_payment_code" type="text" class="form-control" inputmode="text" maxlength="120" value="${Utils.escapeAttr(existingItem?.payment_code || '')}" placeholder="Masukkan kode bayar" ${existingItem?.payment_method === 'kode_bayar' ? 'required' : ''}></div>
                             <div class="grid grid-cols-3 gap-2 mt-3">
                                 <div class="form-group mb-0">
@@ -8804,7 +8807,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     nama_penerima: namaPenerima,
                     payment_method: paymentMethod,
                     payment_code: paymentCode,
-                    bank: paymentMethod === 'rekening' ? bank : '',
+                    bank: paymentMethod === 'rekening' ? bank : String(document.getElementById('detail_payment_institution')?.value || '').trim() || 'Telkom',
                     no_rekening: paymentMethod === 'rekening' ? noRekening : '',
                     qty,
                     harga,
@@ -9118,7 +9121,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     const rek = rekenings.find(r => String(r.id) === String(item.rekening_id)) || {};
                     const penyedia = penyedias.find(p => String(p.name || '').trim().toLowerCase() === String(item.nama_penerima || '').trim().toLowerCase()) || {};
                     const tax = this.getPencairanTaxBreakdown(item);
-                    return [index + 1, rek.kode || '', rek.uraian || '', item.uraian || '', item.nama_penerima || '', penyedia.npwp || '', item.bank || '', item.no_rekening || '', tax.bruto, tax.ppn, tax.pph21, tax.pph22, tax.pph23, tax.pph42, tax.potongan, tax.dibayar];
+                    return [index + 1, rek.kode || '', rek.uraian || '', item.uraian || '', item.nama_penerima || '', penyedia.npwp || '', item.bank || (item.payment_method === 'kode_bayar' ? 'Telkom' : ''), item.payment_method === 'kode_bayar' ? item.payment_code || '' : item.no_rekening || '', tax.bruto, tax.ppn, tax.pph21, tax.pph22, tax.pph23, tax.pph42, tax.potongan, tax.dibayar];
                 });
                 const aoa = [
                     ['LAMPIRAN PERMINTAAN PEMBAYARAN'],
@@ -9126,7 +9129,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     ['Sub Kegiatan', header.sub_kegiatan || ''],
                     ['Tanggal', header.tanggal || ''],
                     [],
-                    ['No', 'Kode Rekening', 'Uraian Rekening', 'Keperluan', 'Nama Penerima', 'NPWP/NIK', 'Bank', 'Nomor Rekening Bank', 'Jumlah', 'PPN', 'PPh 21', 'PPh 22', 'PPh 23', 'PPh 4 Ayat 2', 'Jumlah Potongan', 'Jumlah Dibayarkan'],
+                    ['No', 'Kode Rekening', 'Uraian Rekening', 'Keperluan', 'Nama Penerima', 'NPWP/NIK', 'Bank / Institusi', 'Rekening / Kode Bayar', 'Jumlah', 'PPN', 'PPh 21', 'PPh 22', 'PPh 23', 'PPh 4 Ayat 2', 'Jumlah Potongan', 'Jumlah Dibayarkan'],
                     ...rows,
                     ['JUMLAH TOTAL', '', '', '', '', '', '', '', ...Array.from({ length: 8 }, (_, offset) => rows.reduce((sum, row) => sum + Number(row[8 + offset] || 0), 0))]
                 ];
@@ -9205,7 +9208,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 <td>${rek.uraian || '-'}</td>
                 <td><b>${item.uraian || '-'}</b></td>
                 <td><b>${item.nama_penerima || '-'}</b><br><span style="font-size:7pt;">NPWP/NIK: ${npwpNik}</span></td>
-                <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar' : item.bank || '-')}</td>
+                <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? 'Kode Bayar — ' + (item.bank || 'Telkom') : item.bank || '-')}</td>
                 <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')}</td>
                 <td class="r">${Utils.formatNumber(bruto)}</td>
                 <td class="r">${ppn ? Utils.formatNumber(ppn) : '-'}</td>
@@ -9238,7 +9241,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                     <th rowspan="2">Uraian Rekening</th>
                     <th rowspan="2">Keperluan</th>
                     <th rowspan="2">Nama Penerima</th>
-                    <th rowspan="2">Nama Bank</th>
+                    <th rowspan="2">Bank / Institusi</th>
                     <th rowspan="2">Rekening / Kode Bayar</th>
                     <th rowspan="2">Jumlah</th>
                     <th colspan="5">Potongan</th>
