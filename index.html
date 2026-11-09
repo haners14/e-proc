@@ -9214,7 +9214,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 <td>${rek.kode}</td>
                 <td>${rek.uraian || '-'}</td>
                 <td><b>${item.uraian || '-'}</b></td>
-                <td><b>${item.nama_penerima || '-'}</b><br><span style="font-size:7pt;">NPWP/NIK: ${npwpNik}</span></td>
+                <td><b>${item.nama_penerima || '-'}</b><br><span class="si-identity">NPWP/NIK: ${npwpNik}</span></td>
                 <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? (item.bank || 'Telkom') : item.bank || '-')}</td>
                 <td class="c">${Utils.escapeHTML(item.payment_method === 'kode_bayar' ? item.payment_code || '-' : item.no_rekening || '-')}</td>
                 <td class="r">${Utils.formatNumber(bruto)}</td>
@@ -9309,7 +9309,12 @@ const pencairanItems = DB.get('pencairan_items') || [];
         .tbl-main th:first-child, .tbl-main td:first-child { width: 22px; min-width: 22px; }
         .tbl-main th:nth-child(6), .tbl-main td:nth-child(6) { white-space: nowrap; }
         .tbl-main th:nth-child(7), .tbl-main td:nth-child(7) { white-space: nowrap; }
-        .tbl-main th:nth-child(n+8), .tbl-main td:nth-child(n+8) { white-space: nowrap; }
+        .tbl-main td:nth-child(n+8) { white-space: nowrap; }
+        .tbl-main th:nth-child(n+8) { white-space: normal; }
+        .tbl-main tbody td:nth-child(7) { font-size: 10.5pt; font-weight: bold; font-variant-numeric: tabular-nums; }
+        .tbl-main tbody td:nth-child(5), .tbl-main tbody td:nth-child(6) { font-size: 10pt; }
+        .si-identity { font-size: 9.5pt; font-weight: bold; }
+        .tbl-main td.r { font-size: 10pt; }
         .c { text-align: center; }
         .r { text-align: right; padding-left: 6px !important; padding-right: 6px !important; font-variant-numeric: tabular-nums; }
         .tbl-main th:last-child, .tbl-main td:last-child { padding-right: 7px !important; min-width: 72px; }
