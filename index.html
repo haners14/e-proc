@@ -8384,6 +8384,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                             <td class="p-3 text-center">
                                 <div class="flex justify-center gap-1">
                                     <button class="btn btn-ghost btn-sm text-primary" title="Edit Item" onclick="app.openFormInputItemPencairan('${pencairanId}', '${item.id}')"><i class="ph ph-pencil-simple"></i></button>
+                                    <button class="btn btn-ghost btn-sm text-primary" title="Duplikat Item" aria-label="Duplikat Item" onclick="app.openFormInputItemPencairan('${pencairanId}', '${item.id}', true)"><i class="ph ph-copy"></i></button>
                                     <button class="btn btn-ghost btn-sm text-danger" title="Hapus Item" onclick="app.deleteItemPencairan('${item.id}', '${pencairanId}')"><i class="ph ph-trash"></i></button>
                                 </div>
                             </td>
@@ -8453,7 +8454,7 @@ const pencairanItems = DB.get('pencairan_items') || [];
                 const input=document.getElementById('detail_payment_code');if(input)input.required=code;
             }
 
-           openFormInputItemPencairan(pencairanId, itemId = null) {
+           openFormInputItemPencairan(pencairanId, itemId = null, duplicate = false) {
                 const pencairanList = DB.get('pencairan') || [];
                 const header = pencairanList.find(d => d.id === pencairanId) || {};
                 const subKegiatanHeader = header.sub_kegiatan ? header.sub_kegiatan.trim().toLowerCase() : '';
@@ -8644,10 +8645,10 @@ const pencairanItems = DB.get('pencairan_items') || [];
 
                 const footerHTML = `
                     <button class="btn btn-outline" onclick="app.formDetailPencairan('${pencairanId}')">Kembali</button>
-                    <button class="btn btn-primary" onclick="app.simpanItemPencairanBaru('${pencairanId}', '${itemId || ''}')"><i class="ph ph-floppy-disk"></i> Simpan Item Rincian</button>
+                    <button class="btn btn-primary" onclick="app.simpanItemPencairanBaru('${pencairanId}', '${duplicate ? '' : itemId || ''}')"><i class="ph ph-floppy-disk"></i> Simpan Item Rincian</button>
                 `;
 
-                DOM.openModal(itemId ? 'Edit Item Belanja & Pajak' : 'Tambah Item Belanja & Pajak', bodyHTML, footerHTML, 'min(1000px, 96vw)');
+                DOM.openModal(duplicate ? 'Duplikat Item Belanja & Pajak' : itemId ? 'Edit Item Belanja & Pajak' : 'Tambah Item Belanja & Pajak', bodyHTML, footerHTML, 'min(1000px, 96vw)');
 
                 this.togglePaymentMethod();
                 setTimeout(() => {
